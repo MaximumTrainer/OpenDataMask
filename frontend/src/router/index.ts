@@ -1,0 +1,81 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/store/auth'
+
+import LoginView from '@/views/LoginView.vue'
+import RegisterView from '@/views/RegisterView.vue'
+import WorkspacesView from '@/views/WorkspacesView.vue'
+import WorkspaceDetailView from '@/views/WorkspaceDetailView.vue'
+import ConnectionsView from '@/views/ConnectionsView.vue'
+import TablesView from '@/views/TablesView.vue'
+import JobsView from '@/views/JobsView.vue'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/',
+      redirect: () => {
+        const auth = useAuthStore()
+        return auth.isAuthenticated ? '/workspaces' : '/login'
+      }
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+      meta: { public: true }
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterView,
+      meta: { public: true }
+    },
+    {
+      path: '/workspaces',
+      name: 'workspaces',
+      component: WorkspacesView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id',
+      name: 'workspace-detail',
+      component: WorkspaceDetailView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/connections',
+      name: 'connections',
+      component: ConnectionsView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/tables',
+      name: 'tables',
+      component: TablesView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/jobs',
+      name: 'jobs',
+      component: JobsView,
+      meta: { requiresAuth: true }
+    }
+  ]
+})
+
+router.beforeEach((to) => {
+  const auth = useAuthStore()
+
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  if (to.meta.public && auth.isAuthenticated) {
+    return { name: 'workspaces' }
+  }
+
+  return true
+})
+
+export default router

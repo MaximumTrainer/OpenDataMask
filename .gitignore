@@ -1,0 +1,27 @@
+# Build artifacts
+backend/build/
+backend/.gradle/
+frontend/node_modules/
+frontend/dist/
+cli/odm
+
+# Java
+*.class
+*.jar
+!backend/gradle/wrapper/gradle-wrapper.jar
+
+# Node
+npm-debug.log*
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.env
