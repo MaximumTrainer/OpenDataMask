@@ -108,7 +108,7 @@ storage mechanism.
 - Add a `FILE` connection type to `ConnectionType` enum.
 - Create a file-upload REST endpoint (e.g. `POST /api/workspaces/{id}/files`).
 - Implement a `FileStorageService` that encrypts source files (using existing
-  `EncryptionConfig` AES logic) and stores them in the application database or on
+  `EncryptionService` AES logic) and stores them in the application database or on
   disk.
 - Create a `FileConnector` implementing `DatabaseConnector` (or a dedicated
   interface) for reading/writing file-based data (CSV, JSON, etc.).
@@ -177,8 +177,9 @@ have no implementation.
 | — | `AZURE_SQL` | ❌ Backend-only |
 | — | `MONGODB_COSMOS` | ❌ Backend-only |
 
-Selecting a frontend-only type (e.g. `MYSQL`) results in a runtime error because
-`ConnectorFactory` throws an exception for unknown types.
+Selecting a frontend-only type (e.g. `MYSQL`) causes backend request deserialization/binding to fail
+(typically returning an HTTP 400 response), because the value cannot be mapped to the backend
+`ConnectionType` enum; as a result, `ConnectorFactory.createConnector()` is never invoked in this case.
 
 #### Generator Types
 
@@ -257,7 +258,7 @@ Only four backend test files exist:
 - `DataConnectionService` and `DataConnectionController` tests.
 - `TableConfigurationService` and `TableConfigurationController` tests.
 - `JobService` and `JobController` tests.
-- `EncryptionConfig` tests.
+- `EncryptionService` tests.
 - `JwtTokenProvider` and `JwtAuthenticationFilter` tests.
 - Frontend: no test files found despite Vitest being configured.
 - CLI: no Go test files found.
