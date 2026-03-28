@@ -4,6 +4,7 @@ import com.opendatamask.dto.AuthResponse
 import com.opendatamask.dto.LoginRequest
 import com.opendatamask.dto.RegisterRequest
 import com.opendatamask.model.User
+import com.opendatamask.model.UserRole
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtTokenProvider
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -30,7 +31,7 @@ class AuthService(
             username = request.username,
             email = request.email,
             passwordHash = passwordEncoder.encode(request.password),
-            role = request.role
+            role = UserRole.USER
         )
         userRepository.save(user)
 

@@ -3,7 +3,6 @@ package com.opendatamask.service
 import com.opendatamask.dto.RegisterRequest
 import com.opendatamask.dto.WorkspaceRequest
 import com.opendatamask.dto.WorkspaceUserRequest
-import com.opendatamask.model.UserRole
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.repository.WorkspaceRepository
 import com.opendatamask.repository.WorkspaceUserRepository
@@ -45,8 +44,7 @@ class WorkspaceServiceTest {
             RegisterRequest(
                 username = "wsowner_${System.nanoTime()}",
                 email = "wsowner_${System.nanoTime()}@example.com",
-                password = "password123",
-                role = UserRole.ADMIN
+                password = "password123"
             )
         )
         val owner = userRepository.findAll().last { it.username.startsWith("wsowner") }

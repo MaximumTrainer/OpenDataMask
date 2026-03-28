@@ -3,7 +3,6 @@ package com.opendatamask.controller
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.opendatamask.dto.LoginRequest
 import com.opendatamask.dto.RegisterRequest
-import com.opendatamask.model.UserRole
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -31,8 +30,7 @@ class AuthControllerTest {
         val request = RegisterRequest(
             username = "ctrluser_${System.nanoTime()}",
             email = "ctrluser_${System.nanoTime()}@example.com",
-            password = "password123",
-            role = UserRole.USER
+            password = "password123"
         )
 
         mockMvc.post("/api/auth/register") {

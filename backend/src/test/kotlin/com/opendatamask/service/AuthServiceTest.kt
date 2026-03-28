@@ -36,8 +36,7 @@ class AuthServiceTest {
         val request = RegisterRequest(
             username = "testuser",
             email = "testuser@example.com",
-            password = "password123",
-            role = UserRole.USER
+            password = "password123"
         )
 
         val response = authService.register(request)
@@ -135,15 +134,19 @@ class AuthServiceTest {
     }
 
     @Test
-    fun `register creates admin user when role is ADMIN`() {
+    fun `register always assigns USER role regardless of request`() {
+        // Verify that self-registration cannot escalate to ADMIN (privilege escalation fix)
         val request = RegisterRequest(
             username = "adminuser",
             email = "admin@example.com",
-            password = "adminpass123",
-            role = UserRole.ADMIN
+            password = "adminpass123"
         )
 
         val response = authService.register(request)
-        assertEquals(UserRole.ADMIN, response.role)
+        assertEquals(UserRole.USER, response.role)
+
+        val savedUser = userRepository.findByUsername("adminuser")
+        assertTrue(savedUser.isPresent)
+        assertEquals(UserRole.USER, savedUser.get().role)
     }
 }
