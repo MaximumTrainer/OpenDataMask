@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: opendatamask
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/opendatamask}
+    username: ${DATABASE_USERNAME:opendatamask}
+    password: ${DATABASE_PASSWORD:opendatamask}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  security:
+    user:
+      name: admin
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+
+server:
+  port: ${SERVER_PORT:8080}
+
+opendatamask:
+  jwt:
+    secret: ${JWT_SECRET:change-this-secret-in-production-must-be-at-least-256-bits-long}
+    expiration: ${JWT_EXPIRATION:86400000}
+  encryption:
+    key: ${ENCRYPTION_KEY:0123456789abcdef}

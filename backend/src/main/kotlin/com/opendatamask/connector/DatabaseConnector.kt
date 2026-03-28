@@ -1,0 +1,14 @@
+package com.opendatamask.connector
+
+data class ColumnInfo(
+    val name: String,
+    val type: String,
+    val nullable: Boolean = true
+)
+
+interface DatabaseConnector {
+    fun testConnection(): Boolean
+    fun listTables(): List<String>
+    fun listColumns(tableName: String): List<ColumnInfo>
+    fun fetchData(tableName: String, limit: Int? = null): List<Map<String, Any?>>
+}
