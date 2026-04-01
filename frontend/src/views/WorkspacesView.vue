@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkspaceStore } from '@/store/workspace'
-import Modal from '@/components/Modal.vue'
+import AppModal from '@/components/AppModal.vue'
 import type { WorkspaceRequest } from '@/types'
 
 const store = useWorkspaceStore()
@@ -153,7 +153,7 @@ function formatDate(dateStr: string) {
     </div>
 
     <!-- Create Modal -->
-    <Modal v-if="showCreateModal" title="Create Workspace" @close="showCreateModal = false">
+    <AppModal v-if="showCreateModal" title="Create Workspace" @close="showCreateModal = false">
       <form @submit.prevent="submitCreate">
         <div v-if="formError" class="alert alert-error">{{ formError }}</div>
         <div class="form-group">
@@ -172,10 +172,10 @@ function formatDate(dateStr: string) {
           Create
         </button>
       </template>
-    </Modal>
+    </AppModal>
 
     <!-- Edit Modal -->
-    <Modal v-if="showEditModal" title="Edit Workspace" @close="showEditModal = false">
+    <AppModal v-if="showEditModal" title="Edit Workspace" @close="showEditModal = false">
       <form @submit.prevent="submitEdit">
         <div v-if="formError" class="alert alert-error">{{ formError }}</div>
         <div class="form-group">
@@ -194,7 +194,7 @@ function formatDate(dateStr: string) {
           Save Changes
         </button>
       </template>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 

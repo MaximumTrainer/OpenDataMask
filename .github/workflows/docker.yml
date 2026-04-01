@@ -3,12 +3,13 @@ name: Docker Build & Push
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   docker:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
-    needs: []
     permissions:
       contents: read
       packages: write
@@ -17,6 +18,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -39,7 +41,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          push: true
+          push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
@@ -58,8 +60,27 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          push: true
+          push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata for CLI
+        id: meta-cli
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/cli
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push CLI image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./cli
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta-cli.outputs.tags }}
+          labels: ${{ steps.meta-cli.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

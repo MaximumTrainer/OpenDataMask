@@ -24,7 +24,7 @@ jobs:
         run: chmod +x backend/gradlew
 
       - name: Build and test
-        run: cd backend && ./gradlew build test
+        run: cd backend && ./gradlew build --no-daemon
         env:
           JWT_SECRET: ci-test-jwt-secret-not-used-in-production-placeholder
           ENCRYPTION_KEY: ci-test-encryption-key-placeholder
@@ -35,6 +35,13 @@ jobs:
         with:
           name: backend-test-report
           path: backend/build/reports/tests/test/
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage-report
+          path: backend/build/reports/jacoco/test/
 
   frontend:
     name: Frontend (Vue 3/TypeScript)
@@ -53,7 +60,7 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Lint
-        run: cd frontend && npm run lint || true
+        run: cd frontend && npm run lint
 
       - name: Build
         run: cd frontend && npm run build
