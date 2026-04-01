@@ -1,10 +1,13 @@
 package com.opendatamask.connector
 
 import com.opendatamask.model.ConnectionType
+import com.opendatamask.service.FileStorageService
 import org.springframework.stereotype.Component
 
 @Component
-class ConnectorFactory {
+class ConnectorFactory(
+    private val fileStorageService: FileStorageService? = null
+) {
 
     fun createConnector(
         type: ConnectionType,
@@ -32,6 +35,13 @@ class ConnectorFactory {
                 connectionString = connectionString,
                 database = database
             )
+            ConnectionType.FILE -> {
+                val fileId = connectionString.toLongOrNull()
+                    ?: throw IllegalArgumentException("FILE connection requires a numeric file ID in connectionString")
+                val retrieved = fileStorageService?.retrieveFile(fileId)
+                    ?: throw IllegalStateException("FileStorageService not available for FILE connector")
+                FileConnector(retrieved.content, retrieved.filename, retrieved.contentType)
+            }
         }
     }
 }

@@ -54,7 +54,8 @@ export enum ConnectionType {
   POSTGRESQL = 'POSTGRESQL',
   MONGODB = 'MONGODB',
   AZURE_SQL = 'AZURE_SQL',
-  MONGODB_COSMOS = 'MONGODB_COSMOS'
+  MONGODB_COSMOS = 'MONGODB_COSMOS',
+  FILE = 'FILE'
 }
 
 export interface DataConnection {

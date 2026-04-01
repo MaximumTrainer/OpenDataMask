@@ -21,7 +21,9 @@ class JobService(
     private val tableConfigurationRepository: TableConfigurationRepository,
     private val columnGeneratorRepository: ColumnGeneratorRepository,
     private val encryptionService: EncryptionService,
-    private val connectorFactory: ConnectorFactory
+    private val connectorFactory: ConnectorFactory,
+    private val generatorService: GeneratorService,
+    private val destinationSchemaService: DestinationSchemaService
 ) {
     private val logger = LoggerFactory.getLogger(JobService::class.java)
 
@@ -114,10 +116,18 @@ class JobService(
                 throw IllegalStateException("Cannot connect to destination database")
             }
 
+            destinationSchemaService.validateCompatibility(sourceConn.type, destConn.type)
+
             val tableConfigs = tableConfigurationRepository.findByWorkspaceId(job.workspaceId)
             addLog(job.id, "Processing ${tableConfigs.size} table(s)", LogLevel.INFO)
 
             for (tableConfig in tableConfigs) {
+                addLog(job.id, "Mirroring schema for table: ${tableConfig.tableName}", LogLevel.INFO)
+                destinationSchemaService.mirrorSchema(
+                    sourceConnector, sourceConn.type,
+                    destConnector, destConn.type,
+                    tableConfig.tableName
+                )
                 processTable(job.id, tableConfig, sourceConnector, destConnector)
             }
 
@@ -158,14 +168,17 @@ class JobService(
                     "Masking ${data.size} rows in ${tableConfig.tableName} with ${generators.size} generator(s)",
                     LogLevel.INFO
                 )
-                // TODO(#9): apply generators via GeneratorService once implemented
-                val written = destConnector.writeData(tableConfig.tableName, data)
-                addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                val maskedData = data.map { row -> generatorService.applyGenerators(row, generators) }
+                val written = destConnector.writeData(tableConfig.tableName, maskedData)
+                addLog(jobId, "Wrote $written masked rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
             TableMode.GENERATE -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
-                addLog(jobId, "Generating data for ${tableConfig.tableName} with ${generators.size} generator(s)", LogLevel.INFO)
-                // TODO(#9): generate rows via GeneratorService once implemented
+                val rowCount = tableConfig.rowLimit?.toInt() ?: 100
+                addLog(jobId, "Generating $rowCount rows for ${tableConfig.tableName} with ${generators.size} generator(s)", LogLevel.INFO)
+                val generatedData = generatorService.generateRows(generators, rowCount)
+                val written = destConnector.writeData(tableConfig.tableName, generatedData)
+                addLog(jobId, "Wrote $written generated rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
             TableMode.SUBSET -> {
                 val data = sourceConnector.fetchData(

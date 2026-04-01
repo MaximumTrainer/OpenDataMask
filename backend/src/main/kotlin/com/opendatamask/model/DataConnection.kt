@@ -4,7 +4,7 @@ import jakarta.persistence.*
 import java.time.LocalDateTime
 
 enum class ConnectionType {
-    POSTGRESQL, MONGODB, AZURE_SQL, MONGODB_COSMOS
+    POSTGRESQL, MONGODB, AZURE_SQL, MONGODB_COSMOS, FILE
 }
 
 @Entity
