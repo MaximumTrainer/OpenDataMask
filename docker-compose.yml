@@ -27,8 +27,8 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/opendatamask
       DATABASE_USERNAME: opendatamask
       DATABASE_PASSWORD: opendatamask
-      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production-must-be-at-least-256-bits-long}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-this-16-char-key-for-prod}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set (generate with: openssl rand -base64 32)}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY must be set (generate with: openssl rand -base64 32)}
       SERVER_PORT: 8080
     depends_on:
       postgres:
