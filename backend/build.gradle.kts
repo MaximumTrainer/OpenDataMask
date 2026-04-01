@@ -64,7 +64,9 @@ tasks.jacocoTestReport {
         files(classDirectories.files.map {
             fileTree(it) {
                 exclude(
-                    "**/config/**",
+                    "**/config/SecurityConfig*",
+                    "**/config/GlobalExceptionHandler*",
+                    "**/config/StartupSecurityValidator*",
                     "**/OpenDataMaskApplication*",
                     "**/model/**"
                 )
