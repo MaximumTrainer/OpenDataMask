@@ -7,5 +7,6 @@ import org.springframework.stereotype.Repository
 @Repository
 interface DataConnectionRepository : JpaRepository<DataConnection, Long> {
     fun findByWorkspaceId(workspaceId: Long): List<DataConnection>
+    fun findByWorkspaceIdAndIsSource(workspaceId: Long, isSource: Boolean): List<DataConnection>
     fun deleteByWorkspaceId(workspaceId: Long)
 }

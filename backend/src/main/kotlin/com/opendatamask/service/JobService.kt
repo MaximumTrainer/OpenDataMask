@@ -24,7 +24,8 @@ class JobService(
     private val connectorFactory: ConnectorFactory,
     private val generatorService: GeneratorService,
     private val destinationSchemaService: DestinationSchemaService,
-    private val postJobActionService: PostJobActionService
+    private val postJobActionService: PostJobActionService,
+    private val schemaChangeService: SchemaChangeService
 ) {
     private val logger = LoggerFactory.getLogger(JobService::class.java)
 
@@ -40,6 +41,14 @@ class JobService(
         )
         val saved = jobRepository.save(job)
         return saved.toResponse()
+    }
+
+    @Transactional
+    fun createJob(workspaceId: Long): Job {
+        workspaceRepository.findById(workspaceId)
+            .orElseThrow { NoSuchElementException("Workspace not found: $workspaceId") }
+        val job = Job(workspaceId = workspaceId, status = JobStatus.PENDING, createdBy = 0L)
+        return jobRepository.save(job)
     }
 
     @Transactional(readOnly = true)
@@ -76,6 +85,10 @@ class JobService(
         try {
             updateJobStatus(job, JobStatus.RUNNING)
             addLog(job.id, "Job started", LogLevel.INFO)
+
+            if (schemaChangeService.isBlockingJobRun(job.workspaceId)) {
+                throw IllegalStateException("Job blocked: unresolved schema changes require attention before running")
+            }
 
             val sourceConnections = dataConnectionRepository.findByWorkspaceId(job.workspaceId)
                 .filter { it.isSource }
@@ -197,6 +210,14 @@ class JobService(
                 addLog(jobId, "Subsetting ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
                 val written = destConnector.writeData(tableConfig.tableName, data)
                 addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+            }
+            TableMode.UPSERT -> {
+                val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
+                val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), tableConfig.whereClause)
+                addLog(jobId, "Upserting ${data.size} rows in ${tableConfig.tableName} with ${generators.size} generator(s)", LogLevel.INFO)
+                val maskedData = if (generators.isNotEmpty()) data.map { row -> generatorService.applyGenerators(row, generators) } else data
+                val written = destConnector.writeData(tableConfig.tableName, maskedData)
+                addLog(jobId, "Wrote $written upserted rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
             TableMode.SKIP -> {
                 // unreachable: SKIP tables are short-circuited in the calling loop

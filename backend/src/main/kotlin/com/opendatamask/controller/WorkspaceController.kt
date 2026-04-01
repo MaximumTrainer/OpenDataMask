@@ -2,6 +2,7 @@ package com.opendatamask.controller
 
 import com.opendatamask.dto.*
 import com.opendatamask.repository.UserRepository
+import com.opendatamask.repository.WorkspaceTagRepository
 import com.opendatamask.service.WorkspaceService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -14,7 +15,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/workspaces")
 class WorkspaceController(
     private val workspaceService: WorkspaceService,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val tagRepository: WorkspaceTagRepository
 ) {
 
     @PostMapping
@@ -34,10 +36,16 @@ class WorkspaceController(
 
     @GetMapping
     fun listWorkspaces(
-        @AuthenticationPrincipal userDetails: UserDetails
+        @AuthenticationPrincipal userDetails: UserDetails,
+        @RequestParam(required = false) tag: String?
     ): ResponseEntity<List<WorkspaceResponse>> {
         val userId = getUserId(userDetails)
-        return ResponseEntity.ok(workspaceService.listWorkspaces(userId))
+        val workspaces = workspaceService.listWorkspaces(userId)
+        if (tag != null) {
+            val taggedWorkspaceIds = tagRepository.findByTag(tag).map { it.workspaceId }.toSet()
+            return ResponseEntity.ok(workspaces.filter { it.id in taggedWorkspaceIds })
+        }
+        return ResponseEntity.ok(workspaces)
     }
 
     @PutMapping("/{workspaceId}")

@@ -95,6 +95,41 @@ class GeneratorServiceTest {
     }
 
     @Test
+    fun `FIRST_NAME generates a non-blank first name`() {
+        val result = service.generateValue(GeneratorType.FIRST_NAME, "original", null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `IP_ADDRESS generates a valid IPv4 address`() {
+        val result = service.generateValue(GeneratorType.IP_ADDRESS, "192.168.1.1", null) as String
+        assertTrue(result.contains("."))
+        assertEquals(4, result.split(".").size)
+    }
+
+    @Test
+    fun `PARTIAL_MASK masks all but last 4 characters`() {
+        val result = service.generateValue(GeneratorType.PARTIAL_MASK, "4111111111111111", mapOf("keepLast" to "4")) as String
+        assertTrue(result.endsWith("1111"))
+        assertTrue(result.startsWith("*"))
+    }
+
+    @Test
+    fun `FORMAT_PRESERVING preserves non-alphanumeric format`() {
+        val result = service.generateValue(GeneratorType.FORMAT_PRESERVING, "555-123-4567", null) as String
+        assertEquals('-', result[3])
+        assertEquals('-', result[7])
+    }
+
+    @Test
+    fun `ORGANIZATION generates a non-blank company name`() {
+        val result = service.generateValue(GeneratorType.ORGANIZATION, "Acme Corp", null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
     fun `applyGenerators transforms specified columns`() {
         val row = mapOf("name" to "Alice", "email" to "alice@example.com", "id" to 1)
         val generators = listOf(

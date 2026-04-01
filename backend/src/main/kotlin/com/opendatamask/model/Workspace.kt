@@ -3,6 +3,10 @@ package com.opendatamask.model
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
+enum class SchemaChangeHandling {
+    BLOCK_ALL, BLOCK_EXPOSING, NEVER_BLOCK
+}
+
 @Entity
 @Table(name = "workspaces")
 class Workspace(
@@ -23,7 +27,11 @@ class Workspace(
     var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(nullable = false)
-    var updatedAt: LocalDateTime = LocalDateTime.now()
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    var schemaChangeHandling: SchemaChangeHandling = SchemaChangeHandling.BLOCK_EXPOSING
 ) {
     @PrePersist
     fun prePersist() {

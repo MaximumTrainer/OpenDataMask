@@ -42,6 +42,12 @@ class ConnectorFactory(
                     ?: throw IllegalStateException("FileStorageService not available for FILE connector")
                 FileConnector(retrieved.content, retrieved.filename, retrieved.contentType)
             }
+            ConnectionType.MYSQL -> MySQLConnector(
+                connectionString = connectionString,
+                username = username,
+                password = password,
+                database = database
+            )
         }
     }
 }

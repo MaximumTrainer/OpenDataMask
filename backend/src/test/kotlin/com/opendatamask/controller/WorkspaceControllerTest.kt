@@ -3,6 +3,7 @@ package com.opendatamask.controller
 import com.opendatamask.dto.WorkspaceResponse
 import com.opendatamask.dto.WorkspaceUserResponse
 import com.opendatamask.repository.UserRepository
+import com.opendatamask.repository.WorkspaceTagRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl
 import com.opendatamask.service.WorkspaceService
@@ -30,6 +31,7 @@ class WorkspaceControllerTest {
 
     @MockBean private lateinit var workspaceService: WorkspaceService
     @MockBean private lateinit var userRepository: UserRepository
+    @MockBean private lateinit var tagRepository: WorkspaceTagRepository
     @MockBean private lateinit var jwtTokenProvider: JwtTokenProvider
     @MockBean private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
 

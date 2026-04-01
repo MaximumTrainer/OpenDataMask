@@ -4,7 +4,28 @@ import jakarta.persistence.*
 import java.time.LocalDateTime
 
 enum class GeneratorType {
-    NAME, EMAIL, PHONE, ADDRESS, SSN, CREDIT_CARD, DATE, UUID, CONSTANT, NULL, CUSTOM
+    // Existing
+    NAME, EMAIL, PHONE, ADDRESS, SSN, CREDIT_CARD, DATE, UUID, CONSTANT, NULL, CUSTOM,
+    // Name variants
+    FIRST_NAME, LAST_NAME, FULL_NAME,
+    // Location
+    STREET_ADDRESS, CITY, STATE, ZIP_CODE, COUNTRY, POSTAL_CODE, GPS_COORDINATES,
+    // Credentials
+    USERNAME, PASSWORD,
+    // Financial
+    IBAN, SWIFT_CODE, MONEY_AMOUNT, BTC_ADDRESS,
+    // Identification
+    PASSPORT_NUMBER, DRIVERS_LICENSE, BIRTH_DATE, GENDER,
+    // Medical
+    ICD_CODE, MEDICAL_RECORD_NUMBER, HEALTH_PLAN_NUMBER,
+    // Network
+    IP_ADDRESS, IPV6_ADDRESS, MAC_ADDRESS, URL,
+    // Vehicle
+    VIN, LICENSE_PLATE,
+    // Other
+    ORGANIZATION, ACCOUNT_NUMBER,
+    // Composite / PK generators
+    CONDITIONAL, PARTIAL_MASK, FORMAT_PRESERVING, SEQUENTIAL, RANDOM_INT
 }
 
 @Entity
