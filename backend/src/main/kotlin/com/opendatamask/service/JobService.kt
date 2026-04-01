@@ -194,6 +194,9 @@ class JobService(
                 val written = destConnector.writeData(tableConfig.tableName, data)
                 addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
+            TableMode.SKIP -> {
+                addLog(jobId, "Skipping table: ${tableConfig.tableName}", LogLevel.INFO)
+            }
         }
     }
 

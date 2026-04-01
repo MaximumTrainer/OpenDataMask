@@ -4,7 +4,7 @@ import jakarta.persistence.*
 import java.time.LocalDateTime
 
 enum class LogLevel {
-    INFO, WARN, ERROR
+    DEBUG, INFO, WARN, ERROR
 }
 
 @Entity

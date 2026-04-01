@@ -4,7 +4,7 @@ import jakarta.persistence.*
 import java.time.LocalDateTime
 
 enum class TableMode {
-    PASSTHROUGH, MASK, GENERATE, SUBSET
+    PASSTHROUGH, MASK, GENERATE, SUBSET, SKIP
 }
 
 @Entity
