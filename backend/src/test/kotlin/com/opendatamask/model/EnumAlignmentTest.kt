@@ -9,7 +9,7 @@ class EnumAlignmentTest {
     @Test
     fun `ConnectionType contains canonical set`() {
         val values = ConnectionType.values().map { it.name }.toSet()
-        val expected = setOf("POSTGRESQL", "MONGODB", "AZURE_SQL", "MONGODB_COSMOS")
+        val expected = setOf("POSTGRESQL", "MONGODB", "AZURE_SQL", "MONGODB_COSMOS", "FILE")
         assertEquals(expected, values, "ConnectionType values do not match canonical set")
     }
 
