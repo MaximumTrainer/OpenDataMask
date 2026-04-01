@@ -103,12 +103,15 @@ class PostJobActionService(
 
     fun createAction(action: PostJobAction): PostJobAction = repository.save(action)
     fun listActions(workspaceId: Long): List<PostJobAction> = repository.findByWorkspaceId(workspaceId)
-    fun updateAction(id: Long, updated: PostJobAction): PostJobAction {
+    fun updateAction(workspaceId: Long, id: Long, request: com.opendatamask.dto.PostJobActionRequest): PostJobAction {
         val existing = repository.findById(id)
             .orElseThrow { NoSuchElementException("PostJobAction not found: $id") }
-        existing.actionType = updated.actionType
-        existing.config = updated.config
-        existing.enabled = updated.enabled
+        if (existing.workspaceId != workspaceId) {
+            throw NoSuchElementException("PostJobAction $id does not belong to workspace $workspaceId")
+        }
+        existing.actionType = request.actionType
+        existing.config = request.config
+        existing.enabled = request.enabled
         return repository.save(existing)
     }
     fun deleteAction(id: Long) = repository.deleteById(id)

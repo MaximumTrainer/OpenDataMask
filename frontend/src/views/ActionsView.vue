@@ -62,7 +62,7 @@ async function submitForm() {
   formError.value = ''
   try {
     const parsed = JSON.parse(form.value.config)
-    if (typeof parsed !== 'object' || parsed === null) throw new Error()
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error()
   } catch {
     formError.value = 'Config must be valid JSON object.'
     return

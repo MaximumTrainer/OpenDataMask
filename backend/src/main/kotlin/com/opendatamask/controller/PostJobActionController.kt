@@ -1,5 +1,6 @@
 package com.opendatamask.controller
 
+import com.opendatamask.dto.PostJobActionRequest
 import com.opendatamask.model.PostJobAction
 import com.opendatamask.service.PostJobActionService
 import org.springframework.http.HttpStatus
@@ -18,9 +19,14 @@ class PostJobActionController(
     @PostMapping
     fun createAction(
         @PathVariable workspaceId: Long,
-        @RequestBody action: PostJobAction
+        @RequestBody request: PostJobActionRequest
     ): ResponseEntity<PostJobAction> {
-        val toSave = action.copy(workspaceId = workspaceId)
+        val toSave = PostJobAction(
+            workspaceId = workspaceId,
+            actionType = request.actionType,
+            config = request.config,
+            enabled = request.enabled
+        )
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createAction(toSave))
     }
 
@@ -28,9 +34,9 @@ class PostJobActionController(
     fun updateAction(
         @PathVariable workspaceId: Long,
         @PathVariable actionId: Long,
-        @RequestBody action: PostJobAction
+        @RequestBody request: PostJobActionRequest
     ): ResponseEntity<PostJobAction> =
-        ResponseEntity.ok(service.updateAction(actionId, action.copy(workspaceId = workspaceId)))
+        ResponseEntity.ok(service.updateAction(workspaceId, actionId, request))
 
     @DeleteMapping("/{actionId}")
     fun deleteAction(
