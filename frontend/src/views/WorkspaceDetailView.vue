@@ -16,7 +16,8 @@ const tabs = [
   { label: 'Overview',    icon: '📋', path: () => `/workspaces/${workspaceId.value}` },
   { label: 'Connections', icon: '🔌', path: () => `/workspaces/${workspaceId.value}/connections` },
   { label: 'Tables',      icon: '📊', path: () => `/workspaces/${workspaceId.value}/tables` },
-  { label: 'Jobs',        icon: '⚙️', path: () => `/workspaces/${workspaceId.value}/jobs` }
+  { label: 'Jobs',        icon: '⚙️', path: () => `/workspaces/${workspaceId.value}/jobs` },
+  { label: 'Actions',     icon: '⚡', path: () => `/workspaces/${workspaceId.value}/actions` }
 ]
 
 function navigate(path: string) {
@@ -118,6 +119,16 @@ function formatDate(d: string) {
               <div>
                 <div class="font-semibold">Jobs</div>
                 <div class="text-sm text-gray-500">Run & monitor jobs</div>
+              </div>
+            </button>
+            <button
+              class="quick-btn"
+              @click="navigate(`/workspaces/${workspaceId}/actions`)"
+            >
+              <span class="quick-icon">⚡</span>
+              <div>
+                <div class="font-semibold">Actions</div>
+                <div class="text-sm text-gray-500">Post-job webhooks & notifications</div>
               </div>
             </button>
           </div>

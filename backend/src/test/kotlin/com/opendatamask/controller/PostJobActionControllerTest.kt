@@ -2,6 +2,7 @@ package com.opendatamask.controller
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.opendatamask.dto.PostJobActionRequest
 import com.opendatamask.model.ActionType
 import com.opendatamask.model.PostJobAction
 import com.opendatamask.security.JwtAuthenticationFilter
@@ -51,12 +52,13 @@ class PostJobActionControllerTest {
 
     @Test
     fun `POST create action returns 201`() {
-        val action = PostJobAction(workspaceId = 1L, actionType = ActionType.WEBHOOK, config = """{"url":"http://example.com"}""")
-        whenever(service.createAction(any<PostJobAction>())).thenReturn(action.copy(id = 1L))
+        val request = PostJobActionRequest(actionType = ActionType.WEBHOOK, config = """{"url":"http://example.com"}""")
+        val saved = PostJobAction(id = 1L, workspaceId = 1L, actionType = ActionType.WEBHOOK, config = """{"url":"http://example.com"}""")
+        whenever(service.createAction(any<PostJobAction>())).thenReturn(saved)
         mockMvc.perform(
             post("/api/workspaces/1/actions")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper.writeValueAsString(action))
+                .content(mapper.writeValueAsString(request))
         ).andExpect(status().isCreated)
     }
 
@@ -65,5 +67,31 @@ class PostJobActionControllerTest {
         mockMvc.perform(delete("/api/workspaces/1/actions/42"))
             .andExpect(status().isNoContent)
         verify(service).deleteAction(42L)
+    }
+
+    @Test
+    fun `PUT update action returns 200 with correct response body`() {
+        val request = PostJobActionRequest(
+            actionType = ActionType.WEBHOOK,
+            config = """{"url":"http://example.com"}"""
+        )
+        val returned = PostJobAction(
+            id = 42L,
+            workspaceId = 1L,
+            actionType = ActionType.WEBHOOK,
+            config = """{"url":"http://example.com"}"""
+        )
+        whenever(service.updateAction(eq(1L), eq(42L), any<PostJobActionRequest>())).thenReturn(returned)
+        mockMvc.perform(
+            put("/api/workspaces/1/actions/42")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(request))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(42))
+            .andExpect(jsonPath("$.workspaceId").value(1))
+            .andExpect(jsonPath("$.actionType").value("WEBHOOK"))
+            .andExpect(jsonPath("$.config").value("""{"url":"http://example.com"}"""))
+        verify(service).updateAction(eq(1L), eq(42L), any<PostJobActionRequest>())
     }
 }

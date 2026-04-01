@@ -1,5 +1,6 @@
 package com.opendatamask.service
 
+import com.opendatamask.dto.PostJobActionRequest
 import com.opendatamask.model.ActionType
 import com.opendatamask.model.Job
 import com.opendatamask.model.JobStatus
@@ -7,6 +8,7 @@ import com.opendatamask.model.PostJobAction
 import com.opendatamask.repository.PostJobActionRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.*
 import java.time.LocalDateTime
 
@@ -67,5 +69,40 @@ class PostJobActionServiceTest {
     fun `deleteAction calls repository`() {
         service.deleteAction(42L)
         verify(repository).deleteById(42L)
+    }
+
+    @Test
+    fun `updateAction updates fields and saves`() {
+        val existing = PostJobAction(
+            id = 1L, workspaceId = 1L,
+            actionType = ActionType.EMAIL,
+            config = """{"to":"old@example.com"}"""
+        )
+        val request = PostJobActionRequest(
+            actionType = ActionType.WEBHOOK,
+            config = """{"url":"http://new.example.com"}""",
+            enabled = false
+        )
+        whenever(repository.findById(1L)).thenReturn(java.util.Optional.of(existing))
+        whenever(repository.save(any<PostJobAction>())).thenReturn(existing)
+        service.updateAction(1L, 1L, request)
+        verify(repository).save(existing)
+        assertEquals(ActionType.WEBHOOK, existing.actionType)
+        assertEquals("""{"url":"http://new.example.com"}""", existing.config)
+        assertEquals(false, existing.enabled)
+    }
+
+    @Test
+    fun `updateAction throws when action belongs to different workspace`() {
+        val existing = PostJobAction(
+            id = 1L, workspaceId = 99L,
+            actionType = ActionType.EMAIL,
+            config = """{"to":"other@example.com"}"""
+        )
+        whenever(repository.findById(1L)).thenReturn(java.util.Optional.of(existing))
+        assertThrows<NoSuchElementException> {
+            service.updateAction(1L, 1L, PostJobActionRequest(actionType = ActionType.EMAIL, config = "{}"))
+        }
+        verify(repository, never()).save(any())
     }
 }
