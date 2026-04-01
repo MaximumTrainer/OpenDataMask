@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend:
+    name: Backend (Kotlin/Spring Boot)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x backend/gradlew
+
+      - name: Build and test
+        run: cd backend && ./gradlew build test
+        env:
+          JWT_SECRET: ci-test-jwt-secret-not-used-in-production-placeholder
+          ENCRYPTION_KEY: ci-test-encryption-key-placeholder
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-report
+          path: backend/build/reports/tests/test/
+
+  frontend:
+    name: Frontend (Vue 3/TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Lint
+        run: cd frontend && npm run lint || true
+
+      - name: Build
+        run: cd frontend && npm run build
+
+      - name: Test
+        run: cd frontend && npm test -- --run
+
+  cli:
+    name: CLI (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
+
+      - name: Build
+        run: cd cli && go build ./...
+
+      - name: Test
+        run: cd cli && go test ./...
+
+      - name: Vet
+        run: cd cli && go vet ./...
