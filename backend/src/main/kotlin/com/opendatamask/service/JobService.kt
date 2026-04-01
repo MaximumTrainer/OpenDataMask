@@ -123,6 +123,10 @@ class JobService(
             addLog(job.id, "Processing ${tableConfigs.size} table(s)", LogLevel.INFO)
 
             for (tableConfig in tableConfigs) {
+                if (tableConfig.mode == TableMode.SKIP) {
+                    addLog(job.id, "Skipping table: ${tableConfig.tableName}", LogLevel.INFO)
+                    continue
+                }
                 addLog(job.id, "Mirroring schema for table: ${tableConfig.tableName}", LogLevel.INFO)
                 destinationSchemaService.mirrorSchema(
                     sourceConnector, sourceConn.type,
@@ -195,7 +199,7 @@ class JobService(
                 addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
             TableMode.SKIP -> {
-                addLog(jobId, "Skipping table: ${tableConfig.tableName}", LogLevel.INFO)
+                // unreachable: SKIP tables are short-circuited in the calling loop
             }
         }
     }
