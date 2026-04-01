@@ -106,4 +106,33 @@ class GeneratorServiceTest {
         assertEquals("masked@example.com", result["email"])
         assertEquals(1, result["id"])
     }
+
+    @Test
+    fun `generateRows produces the requested number of rows`() {
+        val generators = listOf(
+            ColumnGenerator(tableConfigurationId = 1L, columnName = "name", generatorType = GeneratorType.NAME),
+            ColumnGenerator(tableConfigurationId = 1L, columnName = "email", generatorType = GeneratorType.EMAIL)
+        )
+        val rows = service.generateRows(generators, 3)
+        assertEquals(3, rows.size)
+        rows.forEach { row ->
+            assertTrue((row["name"] as String).isNotBlank())
+            assertTrue((row["email"] as String).contains("@"))
+        }
+    }
+
+    @Test
+    fun `generateRows returns empty list when count is zero`() {
+        val generators = listOf(
+            ColumnGenerator(tableConfigurationId = 1L, columnName = "name", generatorType = GeneratorType.NAME)
+        )
+        val rows = service.generateRows(generators, 0)
+        assertTrue(rows.isEmpty())
+    }
+
+    @Test
+    fun `CUSTOM falls back to originalValue when no params provided`() {
+        val result = service.generateValue(GeneratorType.CUSTOM, "fallback", null)
+        assertEquals("fallback", result)
+    }
 }
