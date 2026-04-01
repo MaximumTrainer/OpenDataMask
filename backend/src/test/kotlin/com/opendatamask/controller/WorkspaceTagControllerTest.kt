@@ -2,6 +2,8 @@ package com.opendatamask.controller
 
 import com.opendatamask.model.WorkspaceTag
 import com.opendatamask.repository.WorkspaceTagRepository
+import com.opendatamask.security.JwtTokenProvider
+import com.opendatamask.security.UserDetailsServiceImpl
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,6 +26,8 @@ class WorkspaceTagControllerTest {
 
     @Autowired private lateinit var mockMvc: MockMvc
     @MockBean private lateinit var tagRepository: WorkspaceTagRepository
+    @MockBean private lateinit var jwtTokenProvider: JwtTokenProvider
+    @MockBean private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
 
     @Test
     fun `GET tags returns 200`() {
@@ -35,7 +39,8 @@ class WorkspaceTagControllerTest {
 
     @Test
     fun `POST tag returns 201`() {
-        whenever(tagRepository.save(any())).thenAnswer { it.arguments[0] }
+        val saved = WorkspaceTag(workspaceId = 1L, tag = "pii")
+        whenever(tagRepository.save(any<WorkspaceTag>())).thenReturn(saved)
         mockMvc.perform(
             post("/api/workspaces/1/tags")
                 .contentType(MediaType.APPLICATION_JSON)

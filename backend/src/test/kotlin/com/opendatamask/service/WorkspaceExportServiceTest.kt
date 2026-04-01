@@ -38,9 +38,9 @@ class WorkspaceExportServiceTest {
         val workspace = Workspace(id = 1L, name = "test", ownerId = 1L)
         whenever(workspaceRepo.findById(1L)).thenReturn(Optional.of(workspace))
         whenever(tableConfigRepo.findByWorkspaceId(1L)).thenReturn(emptyList())
-        whenever(tableConfigRepo.save(any())).thenAnswer { it.arguments[0] }
+        whenever(tableConfigRepo.save(any<TableConfiguration>())).thenAnswer { it.arguments[0] }
         whenever(columnGeneratorRepo.findByTableConfigurationId(any())).thenReturn(emptyList())
-        whenever(columnGeneratorRepo.save(any())).thenAnswer { it.arguments[0] }
+        whenever(columnGeneratorRepo.save(any<ColumnGenerator>())).thenAnswer { it.arguments[0] }
 
         val config = com.opendatamask.dto.WorkspaceConfigDto(
             tables = listOf(com.opendatamask.dto.TableConfigExportDto(

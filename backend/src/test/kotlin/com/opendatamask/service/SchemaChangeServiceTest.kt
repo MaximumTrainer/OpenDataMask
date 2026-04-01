@@ -51,7 +51,7 @@ class SchemaChangeServiceTest {
         whenever(snapshotRepo.findTopByWorkspaceIdOrderBySnapshotAtDesc(1L)).thenReturn(snapshot)
         whenever(changeRepo.findByWorkspaceIdAndStatus(1L, SchemaChangeStatus.UNRESOLVED)).thenReturn(emptyList())
         whenever(changeRepo.saveAll(any<List<SchemaChange>>())).thenAnswer { it.arguments[0] as List<SchemaChange> }
-        whenever(snapshotRepo.save(any())).thenAnswer { it.arguments[0] }
+        whenever(snapshotRepo.save(any<SchemaSnapshot>())).thenAnswer { it.arguments[0] as SchemaSnapshot }
 
         val changes = service.detectChanges(1L)
         assertTrue(changes.any { it.changeType == SchemaChangeType.NEW_COLUMN && it.columnName == "email" })

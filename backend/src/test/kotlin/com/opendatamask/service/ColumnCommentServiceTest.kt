@@ -27,7 +27,8 @@ class ColumnCommentServiceTest {
 
     @Test
     fun `addComment saves and returns comment`() {
-        whenever(commentRepo.save(any())).thenAnswer { it.arguments[0] }
+        val expectedComment = ColumnComment(workspaceId = 1L, tableName = "users", columnName = "email", userId = 1L, comment = "This column contains PII")
+        whenever(commentRepo.save(any<ColumnComment>())).thenReturn(expectedComment)
         val result = service.addComment(1L, "users", "email", 1L, "This column contains PII")
         verify(commentRepo).save(any())
         assertEquals("This column contains PII", result.comment)

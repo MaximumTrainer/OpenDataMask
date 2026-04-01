@@ -41,7 +41,7 @@ class JobSchedulerServiceTest {
     @Test
     fun `createSchedule saves with nextRunAt set`() {
         val schedule = JobSchedule(workspaceId = 1L, cronExpression = "0 0 * * * *")
-        whenever(scheduleRepo.save(any())).thenAnswer { it.arguments[0] }
+        whenever(scheduleRepo.save(any<JobSchedule>())).thenAnswer { it.arguments[0] as JobSchedule }
         val saved = service.createSchedule(schedule)
         assertNotNull(saved.nextRunAt)
         verify(scheduleRepo).save(schedule)
@@ -64,7 +64,7 @@ class JobSchedulerServiceTest {
         whenever(scheduleRepo.findByEnabledTrue()).thenReturn(listOf(dueSchedule))
         val mockJob = Job(id = 99L, workspaceId = 1L, status = JobStatus.PENDING, createdBy = 0L)
         whenever(jobService.createJob(1L)).thenReturn(mockJob)
-        whenever(scheduleRepo.save(any())).thenAnswer { it.arguments[0] }
+        whenever(scheduleRepo.save(any<JobSchedule>())).thenAnswer { it.arguments[0] as JobSchedule }
 
         service.processSchedules()
 
