@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import Modal from '@/components/Modal.vue'
+import AppModal from '@/components/AppModal.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import * as jobsApi from '@/api/jobs'
 import * as connectionsApi from '@/api/connections'
@@ -68,7 +68,6 @@ function startAutoRefresh() {
 }
 
 // Cleanup timer on unmount
-import { onUnmounted } from 'vue'
 onUnmounted(() => {
   if (refreshTimer !== null) clearInterval(refreshTimer)
 })
@@ -291,7 +290,7 @@ function progressPercent(job: Job) {
     </div>
 
     <!-- Create Modal -->
-    <Modal v-if="showCreateModal" title="Run New Masking Job" @close="showCreateModal = false">
+    <AppModal v-if="showCreateModal" title="Run New Masking Job" @close="showCreateModal = false">
       <form @submit.prevent="submitCreate">
         <div v-if="createError" class="alert alert-error">{{ createError }}</div>
 
@@ -333,7 +332,7 @@ function progressPercent(job: Job) {
           Run Job
         </button>
       </template>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 

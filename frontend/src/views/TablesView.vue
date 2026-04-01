@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import Modal from '@/components/Modal.vue'
+import AppModal from '@/components/AppModal.vue'
 import * as tablesApi from '@/api/tables'
 import * as connectionsApi from '@/api/connections'
 import type {
@@ -344,7 +344,7 @@ function paramString(params?: Record<string, string>) {
     </div>
 
     <!-- Table Config Modal -->
-    <Modal
+    <AppModal
       v-if="showTableModal"
       :title="editingTable ? 'Edit Table Configuration' : 'Add Table Configuration'"
       @close="showTableModal = false"
@@ -391,10 +391,10 @@ function paramString(params?: Record<string, string>) {
           {{ editingTable ? 'Save Changes' : 'Add Table' }}
         </button>
       </template>
-    </Modal>
+    </AppModal>
 
     <!-- Column Generator Modal -->
-    <Modal
+    <AppModal
       v-if="showColumnModal"
       :title="editingColumn ? 'Edit Column Generator' : 'Add Column Generator'"
       @close="showColumnModal = false"
@@ -459,7 +459,7 @@ function paramString(params?: Record<string, string>) {
           {{ editingColumn ? 'Save Changes' : 'Add Column' }}
         </button>
       </template>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 

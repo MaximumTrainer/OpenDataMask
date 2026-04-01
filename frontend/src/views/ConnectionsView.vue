@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import Modal from '@/components/Modal.vue'
+import AppModal from '@/components/AppModal.vue'
 import * as connectionsApi from '@/api/connections'
 import type { DataConnection, DataConnectionRequest } from '@/types'
 import { ConnectionType } from '@/types'
@@ -242,7 +242,7 @@ function typeLabel(t: ConnectionType) {
     </div>
 
     <!-- Modal -->
-    <Modal
+    <AppModal
       v-if="showModal"
       :title="editingConnection ? 'Edit Connection' : 'Add Connection'"
       size="lg"
@@ -301,6 +301,6 @@ function typeLabel(t: ConnectionType) {
           {{ editingConnection ? 'Save Changes' : 'Add Connection' }}
         </button>
       </template>
-    </Modal>
+    </AppModal>
   </div>
 </template>
