@@ -66,4 +66,16 @@ class PostJobActionControllerTest {
             .andExpect(status().isNoContent)
         verify(service).deleteAction(42L)
     }
+
+    @Test
+    fun `PUT update action returns 200`() {
+        val action = PostJobAction(workspaceId = 1L, actionType = ActionType.WEBHOOK, config = """{"url":"http://example.com"}""")
+        whenever(service.updateAction(eq(42L), any<PostJobAction>())).thenReturn(action.copy(id = 42L))
+        mockMvc.perform(
+            put("/api/workspaces/1/actions/42")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(action))
+        ).andExpect(status().isOk)
+        verify(service).updateAction(eq(42L), any<PostJobAction>())
+    }
 }

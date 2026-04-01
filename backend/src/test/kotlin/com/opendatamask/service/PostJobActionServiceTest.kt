@@ -68,4 +68,26 @@ class PostJobActionServiceTest {
         service.deleteAction(42L)
         verify(repository).deleteById(42L)
     }
+
+    @Test
+    fun `updateAction updates fields and saves`() {
+        val existing = PostJobAction(
+            id = 1L, workspaceId = 1L,
+            actionType = ActionType.EMAIL,
+            config = """{"to":"old@example.com"}"""
+        )
+        val updated = PostJobAction(
+            id = 1L, workspaceId = 1L,
+            actionType = ActionType.WEBHOOK,
+            config = """{"url":"http://new.example.com"}""",
+            enabled = false
+        )
+        whenever(repository.findById(1L)).thenReturn(java.util.Optional.of(existing))
+        whenever(repository.save(any<PostJobAction>())).thenReturn(existing)
+        service.updateAction(1L, updated)
+        verify(repository).save(existing)
+        assertEquals(ActionType.WEBHOOK, existing.actionType)
+        assertEquals("""{"url":"http://new.example.com"}""", existing.config)
+        assertEquals(false, existing.enabled)
+    }
 }

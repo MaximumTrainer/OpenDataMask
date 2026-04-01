@@ -24,6 +24,14 @@ class PostJobActionController(
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createAction(toSave))
     }
 
+    @PutMapping("/{actionId}")
+    fun updateAction(
+        @PathVariable workspaceId: Long,
+        @PathVariable actionId: Long,
+        @RequestBody action: PostJobAction
+    ): ResponseEntity<PostJobAction> =
+        ResponseEntity.ok(service.updateAction(actionId, action.copy(workspaceId = workspaceId)))
+
     @DeleteMapping("/{actionId}")
     fun deleteAction(
         @PathVariable workspaceId: Long,

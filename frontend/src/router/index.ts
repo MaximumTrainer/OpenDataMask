@@ -8,6 +8,7 @@ import WorkspaceDetailView from '@/views/WorkspaceDetailView.vue'
 import ConnectionsView from '@/views/ConnectionsView.vue'
 import TablesView from '@/views/TablesView.vue'
 import JobsView from '@/views/JobsView.vue'
+import ActionsView from '@/views/ActionsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -59,6 +60,12 @@ const router = createRouter({
       path: '/workspaces/:id/jobs',
       name: 'jobs',
       component: JobsView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/actions',
+      name: 'actions',
+      component: ActionsView,
       meta: { requiresAuth: true }
     }
   ]

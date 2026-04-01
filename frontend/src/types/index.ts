@@ -204,6 +204,29 @@ export interface JobLog {
   timestamp: string
 }
 
+// ── Post-Job Action ───────────────────────────────────────────────────────
+
+export enum ActionType {
+  WEBHOOK = 'WEBHOOK',
+  EMAIL = 'EMAIL',
+  SCRIPT = 'SCRIPT'
+}
+
+export interface PostJobAction {
+  id: number
+  workspaceId: number
+  actionType: ActionType
+  config: string
+  enabled: boolean
+  createdAt: string
+}
+
+export interface PostJobActionRequest {
+  actionType: ActionType
+  config: string
+  enabled?: boolean
+}
+
 // ── Pagination ────────────────────────────────────────────────────────────
 
 export interface Page<T> {
