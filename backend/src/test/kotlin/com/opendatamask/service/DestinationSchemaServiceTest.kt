@@ -33,6 +33,12 @@ class DestinationSchemaServiceTest {
     }
 
     @Test
+    fun `mapColumnType maps bare PostgreSQL VARCHAR to NVARCHAR MAX for Azure SQL destination`() {
+        val result = service.mapColumnType("VARCHAR", ConnectionType.POSTGRESQL, ConnectionType.AZURE_SQL)
+        assertEquals("NVARCHAR(MAX)", result)
+    }
+
+    @Test
     fun `mapColumnType maps PostgreSQL bool to BIT for Azure SQL destination`() {
         val result = service.mapColumnType("bool", ConnectionType.POSTGRESQL, ConnectionType.AZURE_SQL)
         assertEquals("BIT", result)
@@ -114,6 +120,26 @@ class DestinationSchemaServiceTest {
         assertEquals("mixed", result)
     }
 
+    // ── mapColumnType – FILE source ───────────────────────────────────────
+
+    @Test
+    fun `mapColumnType maps FILE mixed type to TEXT for PostgreSQL destination`() {
+        val result = service.mapColumnType("mixed", ConnectionType.FILE, ConnectionType.POSTGRESQL)
+        assertEquals("TEXT", result)
+    }
+
+    @Test
+    fun `mapColumnType maps FILE mixed type to NVARCHAR MAX for Azure SQL destination`() {
+        val result = service.mapColumnType("mixed", ConnectionType.FILE, ConnectionType.AZURE_SQL)
+        assertEquals("NVARCHAR(MAX)", result)
+    }
+
+    @Test
+    fun `mapColumnType maps FILE VARCHAR to NVARCHAR MAX for Azure SQL destination`() {
+        val result = service.mapColumnType("VARCHAR", ConnectionType.FILE, ConnectionType.AZURE_SQL)
+        assertEquals("NVARCHAR(MAX)", result)
+    }
+
     // ── mirrorSchema ──────────────────────────────────────────────────────
 
     @Test
@@ -166,6 +192,10 @@ class DestinationSchemaServiceTest {
     fun `validateCompatibility passes for homogeneous SQL pairs`() {
         service.validateCompatibility(ConnectionType.POSTGRESQL, ConnectionType.POSTGRESQL)
         service.validateCompatibility(ConnectionType.AZURE_SQL, ConnectionType.AZURE_SQL)
+    }
+
+    @Test
+    fun `validateCompatibility passes for heterogeneous SQL pairs`() {
         service.validateCompatibility(ConnectionType.POSTGRESQL, ConnectionType.AZURE_SQL)
     }
 

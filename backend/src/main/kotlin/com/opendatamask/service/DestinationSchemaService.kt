@@ -43,6 +43,10 @@ class DestinationSchemaService {
         "BOOLEAN" to "BIT", "TEXT" to "NVARCHAR(MAX)",
         "TIMESTAMP" to "DATETIME2", "DATE" to "DATE", "TIME" to "TIME",
         "VARCHAR(36)" to "NVARCHAR(36)",
+        // Catch bare string type names that may come through the fallback path (e.g. VARCHAR,
+        // CHAR, NVARCHAR without a length) — SQL Server requires a length, so map to NVARCHAR(MAX).
+        "VARCHAR" to "NVARCHAR(MAX)", "CHAR" to "NVARCHAR(MAX)",
+        "NVARCHAR" to "NVARCHAR(MAX)", "NCHAR" to "NVARCHAR(MAX)",
         "DECIMAL(19,4)" to "DECIMAL(19,4)", "DECIMAL(10,4)" to "DECIMAL(10,4)", "DECIMAL" to "DECIMAL"
     )
 
@@ -54,7 +58,8 @@ class DestinationSchemaService {
             ConnectionType.AZURE_SQL ->
                 azureSqlTypeMap[sourceType.lowercase()] ?: sourceType.uppercase()
             ConnectionType.MONGODB, ConnectionType.MONGODB_COSMOS -> "mixed"
-            ConnectionType.FILE -> sourceType.uppercase()
+            ConnectionType.FILE ->
+                if (sourceType.equals("mixed", ignoreCase = true)) "TEXT" else sourceType.uppercase()
         }
 
         // Step 2: translate the portable type to the destination dialect
