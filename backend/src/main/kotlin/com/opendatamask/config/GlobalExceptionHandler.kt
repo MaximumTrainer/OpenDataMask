@@ -2,6 +2,7 @@ package com.opendatamask.config
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -50,6 +51,13 @@ class GlobalExceptionHandler {
     fun handleAccessDenied(ex: AccessDeniedException): ResponseEntity<ErrorResponse> {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
             ErrorResponse(status = 403, error = "Forbidden", message = ex.message)
+        )
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleMessageNotReadable(ex: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(status = 400, error = "Bad Request", message = ex.message)
         )
     }
 
