@@ -4,6 +4,7 @@ import com.opendatamask.dto.JobLogResponse
 import com.opendatamask.dto.JobResponse
 import com.opendatamask.model.JobStatus
 import com.opendatamask.model.LogLevel
+import com.opendatamask.model.User
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl
@@ -13,20 +14,45 @@ import org.mockito.kotlin.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
+import org.springframework.security.config.annotation.web.builders.HttpSecurity
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
+import org.springframework.security.test.context.support.WithMockUser
+import org.springframework.security.web.SecurityFilterChain
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.time.LocalDateTime
+import java.util.Optional
 
 @WebMvcTest(
     JobController::class,
-    excludeAutoConfiguration = [SecurityAutoConfiguration::class, SecurityFilterAutoConfiguration::class]
+    excludeAutoConfiguration = [
+        SecurityAutoConfiguration::class,
+        SecurityFilterAutoConfiguration::class,
+        UserDetailsServiceAutoConfiguration::class
+    ]
 )
+@Import(JobControllerTest.TestSecurityConfig::class)
 @ActiveProfiles("test")
 class JobControllerTest {
+
+    @TestConfiguration
+    @EnableWebSecurity
+    class TestSecurityConfig {
+        @Bean
+        fun testSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
+            http.csrf { it.disable() }
+                .authorizeHttpRequests { it.anyRequest().permitAll() }
+            return http.build()
+        }
+    }
 
     @Autowired private lateinit var mockMvc: MockMvc
 
@@ -102,5 +128,22 @@ class JobControllerTest {
         mockMvc.perform(post("/api/workspaces/1/jobs/1/cancel"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("CANCELLED"))
+    }
+
+    @Test
+    @WithMockUser(username = "alice")
+    fun `POST create and run job returns 201`() {
+        val mockUser = User(id = 1L, username = "alice", email = "alice@example.com", passwordHash = "hash")
+        whenever(userRepository.findByUsername("alice")).thenReturn(Optional.of(mockUser))
+        whenever(jobService.createJob(1L, 1L)).thenReturn(makeJobResponse(id = 1L, status = JobStatus.PENDING))
+        doNothing().whenever(jobService).runJob(1L)
+
+        mockMvc.perform(post("/api/workspaces/1/jobs"))
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.status").value("PENDING"))
+
+        verify(jobService).createJob(1L, 1L)
+        verify(jobService).runJob(1L)
     }
 }
