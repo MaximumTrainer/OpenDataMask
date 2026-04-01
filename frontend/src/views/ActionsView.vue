@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import Modal from '@/components/Modal.vue'
+import AppModal from '@/components/AppModal.vue'
 import * as actionsApi from '@/api/actions'
 import type { PostJobAction, PostJobActionRequest } from '@/types'
 import { ActionType } from '@/types'
@@ -218,7 +218,7 @@ function formatDate(d: string) {
     </div>
 
     <!-- Modal -->
-    <Modal
+    <AppModal
       v-if="showModal"
       :title="editingAction ? 'Edit Action' : 'Add Post-Job Action'"
       @close="showModal = false"
@@ -270,7 +270,7 @@ function formatDate(d: string) {
           {{ editingAction ? 'Save Changes' : 'Add Action' }}
         </button>
       </template>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 
