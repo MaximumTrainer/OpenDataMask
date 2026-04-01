@@ -84,20 +84,26 @@ class SensitivityScanService(
 
     fun detectSensitivity(columnName: String, sampleValues: List<String>): SensitivityRule? {
         val lowerCol = columnName.lowercase()
+
+        // First pass: column name matches (takes priority over value-only matches)
         for (rule in rules) {
             val colMatch = rule.columnNamePatterns.any { it.containsMatchIn(lowerCol) }
+            if (!colMatch) continue
             val valMatch = rule.valuePatterns.isNotEmpty() &&
                 sampleValues.any { sample -> rule.valuePatterns.any { it.containsMatchIn(sample) } }
-
-            if (!colMatch && !valMatch) continue
-
-            val effectiveConfidence = when {
-                colMatch && valMatch -> ConfidenceLevel.FULL
-                colMatch -> rule.confidence
-                else -> ConfidenceLevel.MEDIUM
-            }
+            val effectiveConfidence = if (valMatch) ConfidenceLevel.FULL else rule.confidence
             return rule.copy(confidence = effectiveConfidence)
         }
+
+        // Second pass: value-only matches (lower confidence, no column name signal)
+        for (rule in rules) {
+            if (rule.valuePatterns.isEmpty()) continue
+            val valMatch = sampleValues.any { sample ->
+                rule.valuePatterns.any { it.containsMatchIn(sample) }
+            }
+            if (valMatch) return rule.copy(confidence = ConfidenceLevel.MEDIUM)
+        }
+
         return null
     }
 

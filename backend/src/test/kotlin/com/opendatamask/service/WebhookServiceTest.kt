@@ -106,7 +106,7 @@ class WebhookServiceTest {
         val webhook = makeWebhook(triggerEvents = setOf("FAILED")) // only FAILED, not COMPLETED
         whenever(webhookRepository.findByWorkspaceIdAndTriggerTypeAndEnabledTrue(1L, WebhookTriggerType.DATA_GENERATION))
             .thenReturn(listOf(webhook))
-        whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(makeWorkspace()))
+        // workspaceRepository is not called — service returns early after filtering empty webhooks
 
         webhookService.triggerForJob(job, "COMPLETED")
 

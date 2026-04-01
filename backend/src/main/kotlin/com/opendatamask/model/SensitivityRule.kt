@@ -17,13 +17,6 @@ fun buildRules(): List<SensitivityRule> = listOf(
         confidence = ConfidenceLevel.HIGH
     ),
     SensitivityRule(
-        sensitivityType = SensitivityType.PHONE,
-        recommendedGenerator = GeneratorType.PHONE,
-        columnNamePatterns = listOf(Regex("phone|telephone|mobile|cell", RegexOption.IGNORE_CASE)),
-        valuePatterns = listOf(Regex("""[\d\-\(\)\+]{7,15}""")),
-        confidence = ConfidenceLevel.HIGH
-    ),
-    SensitivityRule(
         sensitivityType = SensitivityType.SSN,
         recommendedGenerator = GeneratorType.SSN,
         columnNamePatterns = listOf(Regex("ssn|social_security", RegexOption.IGNORE_CASE)),
@@ -35,6 +28,13 @@ fun buildRules(): List<SensitivityRule> = listOf(
         recommendedGenerator = GeneratorType.CREDIT_CARD,
         columnNamePatterns = listOf(Regex("credit_card|card_number|cc_num", RegexOption.IGNORE_CASE)),
         valuePatterns = listOf(Regex("""\d{4}[\-\s]?\d{4}[\-\s]?\d{4}[\-\s]?\d{4}""")),
+        confidence = ConfidenceLevel.HIGH
+    ),
+    SensitivityRule(
+        sensitivityType = SensitivityType.PHONE,
+        recommendedGenerator = GeneratorType.PHONE,
+        columnNamePatterns = listOf(Regex("phone|telephone|mobile|cell", RegexOption.IGNORE_CASE)),
+        valuePatterns = listOf(Regex("""[\d\-\(\)\+]{7,15}""")),
         confidence = ConfidenceLevel.HIGH
     ),
     SensitivityRule(

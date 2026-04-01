@@ -3,6 +3,7 @@ package com.opendatamask.controller
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.opendatamask.dto.*
 import com.opendatamask.model.InheritedConfig
+import com.opendatamask.model.User
 import com.opendatamask.model.Workspace
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtTokenProvider
@@ -17,12 +18,14 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAut
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.time.Instant
 import java.time.LocalDateTime
+import java.util.Optional
 
 @WebMvcTest(
     WorkspaceInheritanceController::class,
@@ -74,9 +77,9 @@ class WorkspaceInheritanceControllerTest {
     @Test
     fun `POST children creates child workspace and returns 201`() {
         val response = makeWorkspaceResponse(id = 5L, name = "child", parentId = 1L)
-        whenever(workspaceService.createWorkspace(any<WorkspaceRequest>(), any())).thenReturn(response)
-        whenever(userRepository.findByUsername(any())).thenReturn(
-            java.util.Optional.of(com.opendatamask.model.User(id = 1L, username = "user", email = "u@t.com", passwordHash = "hash"))
+        whenever(workspaceService.createWorkspace(any<WorkspaceRequest>(), any<Long>())).thenReturn(response)
+        whenever(userRepository.findByUsername("testuser")).thenReturn(
+            Optional.of(User(id = 1L, username = "testuser", email = "u@t.com", passwordHash = "hash"))
         )
 
         val body = objectMapper.writeValueAsString(
@@ -84,9 +87,9 @@ class WorkspaceInheritanceControllerTest {
         )
         mockMvc.perform(
             post("/api/workspaces/1/children")
+                .with(user("testuser").roles("USER"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
-                .principal { "user" }
         )
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.id").value(5))
