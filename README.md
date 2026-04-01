@@ -132,13 +132,31 @@ Configure via environment variables:
 | `DATABASE_URL` | `jdbc:postgresql://localhost:5432/opendatamask` | App database URL |
 | `DATABASE_USERNAME` | `opendatamask` | App database username |
 | `DATABASE_PASSWORD` | `opendatamask` | App database password |
-| `JWT_SECRET` | *(insecure default)* | JWT signing secret (change in production!) |
-| `ENCRYPTION_KEY` | *(insecure default)* | AES key for encrypting connection passwords |
+| `JWT_SECRET` | *(required — no default)* | JWT signing secret (generate with `openssl rand -base64 32`) |
+| `ENCRYPTION_KEY` | *(required — no default)* | AES key for encrypting connection passwords (generate with `openssl rand -base64 32`) |
 | `SERVER_PORT` | `8080` | Backend server port |
 
 ## Security Notes
 
-- Change `JWT_SECRET` and `ENCRYPTION_KEY` in production
+> ⚠️ **The application will refuse to start if `JWT_SECRET` or `ENCRYPTION_KEY` are not set or are insecure defaults.**
+
+### Required Environment Variables
+
+You **must** set the following before running in any non-test environment:
+
+| Variable | Description | How to generate |
+|----------|-------------|-----------------|
+| `JWT_SECRET` | JWT signing secret (min 256 bits) | `openssl rand -base64 32` |
+| `ENCRYPTION_KEY` | AES key for encrypting connection passwords | `openssl rand -base64 32` |
+
+Example:
+```bash
+export JWT_SECRET=$(openssl rand -base64 32)
+export ENCRYPTION_KEY=$(openssl rand -base64 32)
+```
+
+### Other Security Practices
+
 - Use HTTPS in production (the CLI supports `--insecure` only for development)
 - Connection passwords are AES-encrypted before storage
 - User passwords are BCrypt-hashed

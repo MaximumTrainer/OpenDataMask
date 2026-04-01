@@ -29,7 +29,7 @@ server:
 
 opendatamask:
   jwt:
-    secret: ${JWT_SECRET:change-this-secret-in-production-must-be-at-least-256-bits-long}
+    secret: ${JWT_SECRET:}
     expiration: ${JWT_EXPIRATION:86400000}
   encryption:
-    key: ${ENCRYPTION_KEY:0123456789abcdef}
+    key: ${ENCRYPTION_KEY:}

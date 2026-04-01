@@ -20,5 +20,8 @@ spring:
       - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
 
 opendatamask:
+  jwt:
+    secret: test-jwt-secret-for-testing-only-not-production
+    expiration: 86400000
   encryption:
     key: 0123456789abcdef
