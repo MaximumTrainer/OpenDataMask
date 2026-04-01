@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppModal from '@/components/AppModal.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -68,7 +68,6 @@ function startAutoRefresh() {
 }
 
 // Cleanup timer on unmount
-import { onUnmounted } from 'vue'
 onUnmounted(() => {
   if (refreshTimer !== null) clearInterval(refreshTimer)
 })
