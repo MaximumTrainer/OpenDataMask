@@ -47,13 +47,14 @@ class AzureSQLConnector(
         }
     }
 
-    override fun fetchData(tableName: String, limit: Int?): List<Map<String, Any?>> {
+    override fun fetchData(tableName: String, limit: Int?, whereClause: String?): List<Map<String, Any?>> {
         // Use square-bracket quoting for SQL Server identifier safety; strip brackets from input
         val sanitizedTable = tableName.replace("[", "").replace("]", "")
+        val wherePart = if (!whereClause.isNullOrBlank()) " WHERE $whereClause" else ""
         val query = if (limit != null) {
-            "SELECT TOP $limit * FROM [$sanitizedTable]"
+            "SELECT TOP $limit * FROM [$sanitizedTable]$wherePart"
         } else {
-            "SELECT * FROM [$sanitizedTable]"
+            "SELECT * FROM [$sanitizedTable]$wherePart"
         }
         return getConnection().use { conn ->
             conn.prepareStatement(query).use { stmt ->
@@ -69,6 +70,42 @@ class AzureSQLConnector(
                     rows.add(row)
                 }
                 rows
+            }
+        }
+    }
+
+    override fun createTable(tableName: String, columns: List<ColumnInfo>) {
+        val sanitizedTable = tableName.replace("[", "").replace("]", "")
+        val colDefs = columns.joinToString(", ") { col ->
+            val sanitizedCol = col.name.replace("[", "").replace("]", "")
+            val nullConstraint = if (col.nullable) "" else " NOT NULL"
+            "[$sanitizedCol] ${col.type}$nullConstraint"
+        }
+        val sql = "IF OBJECT_ID('[$sanitizedTable]', 'U') IS NULL CREATE TABLE [$sanitizedTable] ($colDefs)"
+        getConnection().use { conn -> conn.createStatement().use { it.execute(sql) } }
+    }
+
+    override fun truncateTable(tableName: String) {
+        val sanitizedTable = tableName.replace("[", "").replace("]", "")
+        getConnection().use { conn -> conn.createStatement().use { it.execute("DELETE FROM [$sanitizedTable]") } }
+    }
+
+    override fun writeData(tableName: String, rows: List<Map<String, Any?>>): Int {
+        if (rows.isEmpty()) return 0
+        val sanitizedTable = tableName.replace("[", "").replace("]", "")
+        val columns = rows.first().keys.toList()
+        val quotedCols = columns.joinToString(", ") { col ->
+            "[${col.replace("[", "").replace("]", "")}]"
+        }
+        val placeholders = columns.joinToString(", ") { "?" }
+        val sql = "INSERT INTO [$sanitizedTable] ($quotedCols) VALUES ($placeholders)"
+        return getConnection().use { conn ->
+            conn.prepareStatement(sql).use { stmt ->
+                for (row in rows) {
+                    columns.forEachIndexed { idx, col -> stmt.setObject(idx + 1, row[col]) }
+                    stmt.addBatch()
+                }
+                stmt.executeBatch().sum()
             }
         }
     }

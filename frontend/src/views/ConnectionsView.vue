@@ -36,12 +36,9 @@ const connectionTypes = Object.values(ConnectionType)
 
 const defaultPorts: Record<ConnectionType, number> = {
   [ConnectionType.POSTGRESQL]: 5432,
-  [ConnectionType.MYSQL]: 3306,
-  [ConnectionType.MARIADB]: 3306,
-  [ConnectionType.MSSQL]: 1433,
-  [ConnectionType.ORACLE]: 1521,
-  [ConnectionType.SQLITE]: 0,
-  [ConnectionType.MONGODB]: 27017
+  [ConnectionType.MONGODB]: 27017,
+  [ConnectionType.AZURE_SQL]: 1433,
+  [ConnectionType.MONGODB_COSMOS]: 10255
 }
 
 function onTypeChange() {

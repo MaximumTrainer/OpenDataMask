@@ -2,7 +2,8 @@
 
 export enum UserRole {
   ADMIN = 'ADMIN',
-  USER = 'USER'
+  USER = 'USER',
+  VIEWER = 'VIEWER'
 }
 
 export interface User {
@@ -51,12 +52,9 @@ export interface WorkspaceRequest {
 
 export enum ConnectionType {
   POSTGRESQL = 'POSTGRESQL',
-  MYSQL = 'MYSQL',
-  MARIADB = 'MARIADB',
-  MSSQL = 'MSSQL',
-  ORACLE = 'ORACLE',
-  SQLITE = 'SQLITE',
-  MONGODB = 'MONGODB'
+  MONGODB = 'MONGODB',
+  AZURE_SQL = 'AZURE_SQL',
+  MONGODB_COSMOS = 'MONGODB_COSMOS'
 }
 
 export interface DataConnection {
@@ -124,22 +122,17 @@ export interface TableConfigurationRequest {
 // ── Column Generator ──────────────────────────────────────────────────────
 
 export enum GeneratorType {
-  PASSTHROUGH = 'PASSTHROUGH',
-  NULLIFY = 'NULLIFY',
-  RANDOM_STRING = 'RANDOM_STRING',
-  RANDOM_NUMBER = 'RANDOM_NUMBER',
-  RANDOM_EMAIL = 'RANDOM_EMAIL',
-  RANDOM_PHONE = 'RANDOM_PHONE',
-  RANDOM_NAME = 'RANDOM_NAME',
-  RANDOM_UUID = 'RANDOM_UUID',
-  RANDOM_DATE = 'RANDOM_DATE',
-  HASH_MD5 = 'HASH_MD5',
-  HASH_SHA256 = 'HASH_SHA256',
-  FIXED_VALUE = 'FIXED_VALUE',
-  LOOKUP = 'LOOKUP',
-  REGEX = 'REGEX',
-  SEQUENCE = 'SEQUENCE',
-  FAKER = 'FAKER'
+  NAME = 'NAME',
+  EMAIL = 'EMAIL',
+  PHONE = 'PHONE',
+  ADDRESS = 'ADDRESS',
+  SSN = 'SSN',
+  CREDIT_CARD = 'CREDIT_CARD',
+  DATE = 'DATE',
+  UUID = 'UUID',
+  CONSTANT = 'CONSTANT',
+  NULL = 'NULL',
+  CUSTOM = 'CUSTOM'
 }
 
 export interface ColumnGenerator {

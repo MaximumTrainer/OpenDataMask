@@ -39,7 +39,7 @@ const activeTable = ref<TableConfiguration | null>(null)
 const editingColumn = ref<ColumnGenerator | null>(null)
 const columnForm = ref<ColumnGeneratorRequest>({
   columnName: '',
-  generatorType: GeneratorType.PASSTHROUGH,
+  generatorType: GeneratorType.NULL,
   parameters: {}
 })
 const columnFormError = ref('')
@@ -155,7 +155,7 @@ async function toggleExpand(t: TableConfiguration) {
 function openCreateColumn(t: TableConfiguration) {
   activeTable.value = t
   editingColumn.value = null
-  columnForm.value = { columnName: '', generatorType: GeneratorType.PASSTHROUGH, parameters: {} }
+  columnForm.value = { columnName: '', generatorType: GeneratorType.NULL, parameters: {} }
   columnFormError.value = ''
   showColumnModal.value = true
 }

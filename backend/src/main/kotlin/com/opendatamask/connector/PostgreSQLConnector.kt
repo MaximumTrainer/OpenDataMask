@@ -46,13 +46,14 @@ class PostgreSQLConnector(
         }
     }
 
-    override fun fetchData(tableName: String, limit: Int?): List<Map<String, Any?>> {
+    override fun fetchData(tableName: String, limit: Int?, whereClause: String?): List<Map<String, Any?>> {
         // Use double-quoting for PostgreSQL identifier safety
         val quotedTable = "\"${tableName.replace("\"", "")}\""
+        val wherePart = if (!whereClause.isNullOrBlank()) " WHERE $whereClause" else ""
         val query = if (limit != null) {
-            "SELECT * FROM $quotedTable LIMIT $limit"
+            "SELECT * FROM $quotedTable$wherePart LIMIT $limit"
         } else {
-            "SELECT * FROM $quotedTable"
+            "SELECT * FROM $quotedTable$wherePart"
         }
         return getConnection().use { conn ->
             conn.prepareStatement(query).use { stmt ->
@@ -68,6 +69,40 @@ class PostgreSQLConnector(
                     rows.add(row)
                 }
                 rows
+            }
+        }
+    }
+
+    override fun createTable(tableName: String, columns: List<ColumnInfo>) {
+        val quotedTable = "\"${tableName.replace("\"", "")}\""
+        val colDefs = columns.joinToString(", ") { col ->
+            val quotedCol = "\"${col.name.replace("\"", "")}\""
+            val nullConstraint = if (col.nullable) "" else " NOT NULL"
+            "$quotedCol ${col.type}$nullConstraint"
+        }
+        val sql = "CREATE TABLE IF NOT EXISTS $quotedTable ($colDefs)"
+        getConnection().use { conn -> conn.createStatement().use { it.execute(sql) } }
+    }
+
+    override fun truncateTable(tableName: String) {
+        val quotedTable = "\"${tableName.replace("\"", "")}\""
+        getConnection().use { conn -> conn.createStatement().use { it.execute("DELETE FROM $quotedTable") } }
+    }
+
+    override fun writeData(tableName: String, rows: List<Map<String, Any?>>): Int {
+        if (rows.isEmpty()) return 0
+        val quotedTable = "\"${tableName.replace("\"", "")}\""
+        val columns = rows.first().keys.toList()
+        val quotedCols = columns.joinToString(", ") { "\"${it.replace("\"", "")}\"" }
+        val placeholders = columns.joinToString(", ") { "?" }
+        val sql = "INSERT INTO $quotedTable ($quotedCols) VALUES ($placeholders)"
+        return getConnection().use { conn ->
+            conn.prepareStatement(sql).use { stmt ->
+                for (row in rows) {
+                    columns.forEachIndexed { idx, col -> stmt.setObject(idx + 1, row[col]) }
+                    stmt.addBatch()
+                }
+                stmt.executeBatch().sum()
             }
         }
     }

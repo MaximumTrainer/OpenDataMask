@@ -48,13 +48,41 @@ open class MongoDBConnector(
         }
     }
 
-    override fun fetchData(tableName: String, limit: Int?): List<Map<String, Any?>> {
+    override fun fetchData(tableName: String, limit: Int?, whereClause: String?): List<Map<String, Any?>> {
+        // whereClause is expected to be a MongoDB query filter as JSON, e.g. {"age": {"$gt": 18}}
         return createMongoClient().use { client ->
             val collection = client.getDatabase(getDatabaseName()).getCollection(tableName)
-            val cursor = if (limit != null) collection.find().limit(limit) else collection.find()
+            val filter = if (!whereClause.isNullOrBlank()) Document.parse(whereClause) else Document()
+            val cursor = if (limit != null) collection.find(filter).limit(limit) else collection.find(filter)
             cursor.map { doc ->
                 doc.entries.associate { it.key to it.value }
             }.toList()
         }
+    }
+
+    override fun createTable(tableName: String, columns: List<ColumnInfo>) {
+        createMongoClient().use { client ->
+            val db = client.getDatabase(getDatabaseName())
+            try {
+                db.createCollection(tableName)
+            } catch (e: Exception) {
+                // Collection already exists — no action needed
+            }
+        }
+    }
+
+    override fun truncateTable(tableName: String) {
+        createMongoClient().use { client ->
+            client.getDatabase(getDatabaseName()).getCollection(tableName).deleteMany(Document())
+        }
+    }
+
+    override fun writeData(tableName: String, rows: List<Map<String, Any?>>): Int {
+        if (rows.isEmpty()) return 0
+        createMongoClient().use { client ->
+            val collection = client.getDatabase(getDatabaseName()).getCollection(tableName)
+            collection.insertMany(rows.map { Document(it) })
+        }
+        return rows.size
     }
 }

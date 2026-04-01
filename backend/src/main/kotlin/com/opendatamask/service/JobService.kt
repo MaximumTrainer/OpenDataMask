@@ -135,8 +135,6 @@ class JobService(
         }
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    // TODO: implement actual data write to destConnector once a write API is defined on DatabaseConnector
     private fun processTable(
         jobId: Long,
         tableConfig: TableConfiguration,
@@ -149,6 +147,8 @@ class JobService(
             TableMode.PASSTHROUGH -> {
                 val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt())
                 addLog(jobId, "Fetched ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
+                val written = destConnector.writeData(tableConfig.tableName, data)
+                addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
             TableMode.MASK -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
@@ -158,15 +158,24 @@ class JobService(
                     "Masking ${data.size} rows in ${tableConfig.tableName} with ${generators.size} generator(s)",
                     LogLevel.INFO
                 )
+                // TODO(#9): apply generators via GeneratorService once implemented
+                val written = destConnector.writeData(tableConfig.tableName, data)
+                addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
             TableMode.GENERATE -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
                 addLog(jobId, "Generating data for ${tableConfig.tableName} with ${generators.size} generator(s)", LogLevel.INFO)
+                // TODO(#9): generate rows via GeneratorService once implemented
             }
             TableMode.SUBSET -> {
-                val limit = tableConfig.rowLimit?.toInt()
-                val data = sourceConnector.fetchData(tableConfig.tableName, limit)
+                val data = sourceConnector.fetchData(
+                    tableConfig.tableName,
+                    tableConfig.rowLimit?.toInt(),
+                    tableConfig.whereClause
+                )
                 addLog(jobId, "Subsetting ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
+                val written = destConnector.writeData(tableConfig.tableName, data)
+                addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
         }
     }
