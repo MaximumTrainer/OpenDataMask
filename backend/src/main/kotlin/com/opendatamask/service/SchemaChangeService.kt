@@ -20,7 +20,8 @@ class SchemaChangeService(
     private val schemaChangeRepository: SchemaChangeRepository,
     private val workspaceRepository: WorkspaceRepository,
     private val dataConnectionRepository: DataConnectionRepository,
-    private val connectorFactory: ConnectorFactory
+    private val connectorFactory: ConnectorFactory,
+    private val webhookService: WebhookService
 ) {
     private val logger = LoggerFactory.getLogger(SchemaChangeService::class.java)
     private val mapper = jacksonObjectMapper()
@@ -76,7 +77,11 @@ class SchemaChangeService(
         val toSave = newChanges.filter { c ->
             "${c.changeType}|${c.tableName}|${c.columnName}" !in existingKeys
         }
-        return schemaChangeRepository.saveAll(toSave)
+        val savedChanges = schemaChangeRepository.saveAll(toSave)
+        if (savedChanges.isNotEmpty()) {
+            webhookService.triggerForSchemaChange(workspaceId, savedChanges)
+        }
+        return savedChanges
     }
 
     private fun diffSchemas(
@@ -136,8 +141,18 @@ class SchemaChangeService(
     }
 
     fun resolveAll(workspaceId: Long) {
+        val exposingTypes = setOf(SchemaChangeType.NEW_COLUMN, SchemaChangeType.TYPE_CHANGED, SchemaChangeType.NULLABILITY_CHANGED)
         val unresolved = schemaChangeRepository.findByWorkspaceIdAndStatus(workspaceId, SchemaChangeStatus.UNRESOLVED)
+            .filter { it.changeType in exposingTypes }
         unresolved.forEach { it.status = SchemaChangeStatus.RESOLVED }
+        schemaChangeRepository.saveAll(unresolved)
+    }
+
+    fun dismissAll(workspaceId: Long) {
+        val notificationTypes = setOf(SchemaChangeType.DROPPED_COLUMN, SchemaChangeType.DROPPED_TABLE, SchemaChangeType.NEW_TABLE)
+        val unresolved = schemaChangeRepository.findByWorkspaceIdAndStatus(workspaceId, SchemaChangeStatus.UNRESOLVED)
+            .filter { it.changeType in notificationTypes }
+        unresolved.forEach { it.status = SchemaChangeStatus.DISMISSED }
         schemaChangeRepository.saveAll(unresolved)
     }
 
@@ -168,3 +183,5 @@ class SchemaChangeService(
         }
     }
 }
+
+

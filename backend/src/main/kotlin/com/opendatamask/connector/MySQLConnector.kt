@@ -106,4 +106,22 @@ class MySQLConnector(
             }
         }
     }
+
+    override fun listForeignKeys(tableName: String): List<ForeignKeyInfo> {
+        return getConnection().use { conn ->
+            val fks = mutableListOf<ForeignKeyInfo>()
+            val rs = conn.metaData.getImportedKeys(null, database, tableName)
+            while (rs.next()) {
+                fks.add(
+                    ForeignKeyInfo(
+                        fromTable = rs.getString("FKTABLE_NAME"),
+                        fromColumn = rs.getString("FKCOLUMN_NAME"),
+                        toTable = rs.getString("PKTABLE_NAME"),
+                        toColumn = rs.getString("PKCOLUMN_NAME")
+                    )
+                )
+            }
+            fks
+        }
+    }
 }

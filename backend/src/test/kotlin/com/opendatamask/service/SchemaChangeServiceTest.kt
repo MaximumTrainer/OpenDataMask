@@ -18,7 +18,8 @@ class SchemaChangeServiceTest {
     private val workspaceRepo = mock<WorkspaceRepository>()
     private val connectionRepo = mock<DataConnectionRepository>()
     private val connectorFactory = mock<ConnectorFactory>()
-    private val service = SchemaChangeService(snapshotRepo, changeRepo, workspaceRepo, connectionRepo, connectorFactory)
+    private val webhookService = mock<WebhookService>()
+    private val service = SchemaChangeService(snapshotRepo, changeRepo, workspaceRepo, connectionRepo, connectorFactory, webhookService)
     private val mapper = jacksonObjectMapper()
 
     @Test
@@ -85,3 +86,4 @@ class SchemaChangeServiceTest {
         verify(changeRepo).save(argThat { status == SchemaChangeStatus.RESOLVED })
     }
 }
+

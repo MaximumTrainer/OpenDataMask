@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository
 @Repository
 interface WorkspaceRepository : JpaRepository<Workspace, Long> {
     fun findByOwnerId(ownerId: Long): List<Workspace>
+    fun findByParentWorkspaceId(parentWorkspaceId: Long): List<Workspace>
 }

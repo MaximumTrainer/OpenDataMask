@@ -6,6 +6,13 @@ data class ColumnInfo(
     val nullable: Boolean = true
 )
 
+data class ForeignKeyInfo(
+    val fromTable: String,
+    val fromColumn: String,
+    val toTable: String,
+    val toColumn: String
+)
+
 interface DatabaseConnector {
     fun testConnection(): Boolean
     fun listTables(): List<String>
@@ -14,4 +21,5 @@ interface DatabaseConnector {
     fun createTable(tableName: String, columns: List<ColumnInfo>)
     fun truncateTable(tableName: String)
     fun writeData(tableName: String, rows: List<Map<String, Any?>>): Int
+    fun listForeignKeys(tableName: String): List<ForeignKeyInfo> = emptyList()
 }

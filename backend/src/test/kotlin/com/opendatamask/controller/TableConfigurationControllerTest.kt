@@ -50,6 +50,7 @@ class TableConfigurationControllerTest {
     private fun makeGeneratorResponse(id: Long = 1L, tableConfigId: Long = 1L) = ColumnGeneratorResponse(
         id = id, tableConfigurationId = tableConfigId, columnName = "email",
         generatorType = GeneratorType.EMAIL, generatorParams = null,
+        presetId = null, consistencyMode = com.opendatamask.model.ConsistencyMode.RANDOM, linkKey = null,
         createdAt = LocalDateTime.now()
     )
 

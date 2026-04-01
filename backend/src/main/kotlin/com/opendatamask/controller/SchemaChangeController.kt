@@ -23,7 +23,7 @@ class SchemaChangeController(
     @GetMapping
     fun getChanges(@PathVariable workspaceId: Long): ResponseEntity<SchemaChangesResponse> {
         val changes = schemaChangeService.getUnresolvedChanges(workspaceId)
-        val exposingTypes = setOf(SchemaChangeType.NEW_COLUMN, SchemaChangeType.TYPE_CHANGED, SchemaChangeType.NULLABILITY_CHANGED, SchemaChangeType.NEW_TABLE)
+        val exposingTypes = setOf(SchemaChangeType.NEW_COLUMN, SchemaChangeType.TYPE_CHANGED, SchemaChangeType.NULLABILITY_CHANGED)
         val exposing = changes.filter { it.changeType in exposingTypes }
         val notifications = changes.filter { it.changeType !in exposingTypes }
         return ResponseEntity.ok(SchemaChangesResponse(exposing, notifications))
@@ -53,6 +53,12 @@ class SchemaChangeController(
         return ResponseEntity.ok().build()
     }
 
+    @PostMapping("/dismiss-all")
+    fun dismissAll(@PathVariable workspaceId: Long): ResponseEntity<Void> {
+        schemaChangeService.dismissAll(workspaceId)
+        return ResponseEntity.ok().build()
+    }
+
     @PatchMapping("/settings")
     fun updateSettings(
         @PathVariable workspaceId: Long,
@@ -66,3 +72,5 @@ class SchemaChangeController(
         return ResponseEntity.ok().build()
     }
 }
+
+

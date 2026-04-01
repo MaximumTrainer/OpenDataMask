@@ -30,6 +30,8 @@ class JobServiceTest {
     @Mock private lateinit var generatorService: GeneratorService
     @Mock private lateinit var destinationSchemaService: DestinationSchemaService
     @Mock private lateinit var postJobActionService: PostJobActionService
+    @Mock private lateinit var schemaChangeService: SchemaChangeService
+    @Mock private lateinit var webhookService: WebhookService
 
     @InjectMocks
     private lateinit var jobService: JobService
@@ -400,3 +402,4 @@ class JobServiceTest {
         verify(postJobActionService).triggerActions(any())
     }
 }
+

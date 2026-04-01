@@ -1,5 +1,6 @@
 package com.opendatamask.dto
 
+import com.opendatamask.model.ConsistencyMode
 import com.opendatamask.model.GeneratorType
 import com.opendatamask.model.TableMode
 import jakarta.validation.constraints.NotBlank
@@ -37,7 +38,10 @@ data class ColumnGeneratorRequest(
     @field:NotNull(message = "Generator type is required")
     val generatorType: GeneratorType,
 
-    val generatorParams: String? = null
+    val generatorParams: String? = null,
+    val presetId: Long? = null,
+    val consistencyMode: ConsistencyMode = ConsistencyMode.RANDOM,
+    val linkKey: String? = null
 )
 
 data class ColumnGeneratorResponse(
@@ -46,5 +50,8 @@ data class ColumnGeneratorResponse(
     val columnName: String,
     val generatorType: GeneratorType,
     val generatorParams: String?,
+    val presetId: Long?,
+    val consistencyMode: ConsistencyMode,
+    val linkKey: String?,
     val createdAt: LocalDateTime
 )

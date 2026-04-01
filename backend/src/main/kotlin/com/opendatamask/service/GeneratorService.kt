@@ -3,18 +3,64 @@ package com.opendatamask.service
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.opendatamask.model.ColumnGenerator
+import com.opendatamask.model.ConsistencyMode
 import com.opendatamask.model.GeneratorType
 import net.datafaker.Faker
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 @Service
-class GeneratorService {
+class GeneratorService(
+    @Value("\${opendatamask.encryption.key:0123456789abcdef}") private val encryptionKey: String
+) {
     private val faker = Faker()
     private val mapper = jacksonObjectMapper()
+    private val sequentialCounters = ConcurrentHashMap<String, AtomicLong>()
 
-    fun generateValue(type: GeneratorType, originalValue: Any?, params: Map<String, String>?): Any? {
+    fun computeWorkspaceSecret(workspaceId: Long): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val bytes = digest.digest((encryptionKey + workspaceId).toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    fun hmacSeed(workspaceSecret: String, originalValue: String): Long {
+        val mac = Mac.getInstance("HmacSHA256")
+        mac.init(SecretKeySpec(workspaceSecret.toByteArray(), "HmacSHA256"))
+        val bytes = mac.doFinal(originalValue.toByteArray())
+        return ByteBuffer.wrap(bytes).long
+    }
+
+    fun generateValueConsistent(
+        type: GeneratorType,
+        params: Map<String, String>?,
+        originalValue: String,
+        workspaceSecret: String
+    ): String {
+        val seed = hmacSeed(workspaceSecret, originalValue)
+        val seededFaker = Faker(java.util.Random(seed))
+        return generateValue(type, originalValue, params, seededFaker)?.toString() ?: ""
+    }
+
+    fun resetSequentialCounters() {
+        sequentialCounters.clear()
+    }
+
+    fun generateValue(
+        type: GeneratorType,
+        originalValue: Any?,
+        params: Map<String, String>?,
+        faker: Faker = this.faker,
+        columnKey: String? = null,
+        rawParams: String? = null
+    ): Any? {
         return when (type) {
             GeneratorType.NAME -> faker.name().fullName()
             GeneratorType.EMAIL -> faker.internet().emailAddress()
@@ -58,41 +104,132 @@ class GeneratorService {
             GeneratorType.LICENSE_PLATE -> faker.vehicle().licensePlate()
             GeneratorType.ORGANIZATION -> faker.company().name()
             GeneratorType.ACCOUNT_NUMBER -> faker.regexify("[0-9]{10}")
-            GeneratorType.CONDITIONAL -> originalValue
             GeneratorType.PARTIAL_MASK -> {
                 val s = originalValue?.toString() ?: return null
-                val keepLast = params?.get("keepLast")?.toIntOrNull() ?: 4
-                val maskChar = params?.get("maskChar") ?: "*"
-                if (s.length <= keepLast) s else maskChar.repeat(s.length - keepLast) + s.takeLast(keepLast)
+                val maskChar = (params?.get("maskChar") ?: "*").firstOrNull() ?: '*'
+                val revealFromIndex = if (params?.containsKey("keepLast") == true) {
+                    val keepLast = params["keepLast"]?.toIntOrNull() ?: 4
+                    s.length - keepLast
+                } else {
+                    val maskEnd = params?.get("maskEnd")?.toIntOrNull() ?: -4
+                    if (maskEnd < 0) s.length + maskEnd else maskEnd
+                }
+                s.mapIndexed { i, c ->
+                    if (i < revealFromIndex) {
+                        if (c.isLetterOrDigit()) maskChar else c
+                    } else c
+                }.joinToString("")
             }
             GeneratorType.FORMAT_PRESERVING -> {
                 val s = originalValue?.toString() ?: return null
                 s.map { c ->
                     when {
-                        c.isDigit() -> faker.number().numberBetween(0, 9).toString()[0]
-                        c.isLetter() -> faker.regexify("[a-z]")[0]
+                        c.isDigit() -> ('0'.code + faker.number().numberBetween(0, 10)).toChar()
+                        c.isUpperCase() -> ('A'.code + faker.number().numberBetween(0, 26)).toChar()
+                        c.isLowerCase() -> ('a'.code + faker.number().numberBetween(0, 26)).toChar()
                         else -> c
                     }
                 }.joinToString("")
             }
             GeneratorType.SEQUENTIAL -> {
-                params?.get("current")?.toLongOrNull()?.let { it + 1 } ?: 1L
+                val start = params?.get("start")?.toLongOrNull() ?: 1L
+                val step = params?.get("step")?.toLongOrNull() ?: 1L
+                val key = columnKey ?: "default"
+                val counter = sequentialCounters.computeIfAbsent(key) { AtomicLong(start - step) }
+                counter.addAndGet(step).toString()
             }
             GeneratorType.RANDOM_INT -> {
                 val min = params?.get("min")?.toLongOrNull() ?: 1L
                 val max = params?.get("max")?.toLongOrNull() ?: 999999L
-                faker.number().numberBetween(min, max)
+                faker.number().numberBetween(min, max).toString()
+            }
+            GeneratorType.CONDITIONAL -> {
+                val jsonParams = rawParams?.let {
+                    try { mapper.readValue<Map<String, Any?>>(it) } catch (e: Exception) { null }
+                }
+                if (jsonParams != null) {
+                    val conditions = jsonParams["conditions"] as? List<*>
+                    val defaultTypeName = jsonParams["default"] as? String ?: "NULL"
+                    val defaultType = try {
+                        GeneratorType.valueOf(defaultTypeName)
+                    } catch (e: Exception) {
+                        GeneratorType.NULL
+                    }
+                    val originalStr = originalValue?.toString()
+                    val matchedCondition = conditions
+                        ?.filterIsInstance<Map<String, *>>()
+                        ?.find { condition ->
+                            val whenExpr = condition["when"] as? String ?: return@find false
+                            evaluateWhenCondition(whenExpr, originalStr)
+                        }
+                    if (matchedCondition != null) {
+                        val thenTypeName = matchedCondition["then"] as? String ?: "CONSTANT"
+                        val thenType = try {
+                            GeneratorType.valueOf(thenTypeName)
+                        } catch (e: Exception) {
+                            GeneratorType.CONSTANT
+                        }
+                        val thenValue = matchedCondition["thenValue"] as? String
+                        generateValue(thenType, originalValue, thenValue?.let { mapOf("value" to it) }, faker, columnKey)
+                    } else {
+                        generateValue(defaultType, originalValue, params, faker, columnKey)
+                    }
+                } else {
+                    originalValue
+                }
             }
         }
     }
 
-    fun applyGenerators(row: Map<String, Any?>, generators: List<ColumnGenerator>): Map<String, Any?> {
+    private fun evaluateWhenCondition(whenExpr: String, originalValue: String?): Boolean {
+        val singleQuoteMatch = Regex("value\\s*==\\s*'([^']*)'").find(whenExpr)
+        val doubleQuoteMatch = Regex("""value\s*==\s*"([^"]*)"""").find(whenExpr)
+        val expected = singleQuoteMatch?.groupValues?.get(1)
+            ?: doubleQuoteMatch?.groupValues?.get(1)
+            ?: whenExpr
+        return originalValue == expected
+    }
+
+    fun applyGenerators(
+        row: Map<String, Any?>,
+        generators: List<ColumnGenerator>,
+        workspaceSecret: String? = null
+    ): Map<String, Any?> {
         val result = row.toMutableMap()
+
+        // Pre-compute one seeded Faker per link group (CONSISTENT mode only)
+        val linkGroupFakers = mutableMapOf<String, Faker>()
+        if (workspaceSecret != null) {
+            generators
+                .filter { it.consistencyMode == ConsistencyMode.CONSISTENT && it.linkKey != null }
+                .groupBy { it.linkKey!! }
+                .forEach { (linkKey, linkedGenerators) ->
+                    val primaryGen = linkedGenerators.first()
+                    val originalValue = row[primaryGen.columnName]?.toString() ?: ""
+                    val seed = hmacSeed(workspaceSecret, originalValue)
+                    linkGroupFakers[linkKey] = Faker(java.util.Random(seed))
+                }
+        }
+
         for (generator in generators) {
             val params: Map<String, String>? = generator.generatorParams?.let {
                 try { mapper.readValue(it) } catch (e: Exception) { null }
             }
-            result[generator.columnName] = generateValue(generator.generatorType, row[generator.columnName], params)
+            val columnKey = "${generator.tableConfigurationId}:${generator.columnName}"
+            val originalValue = row[generator.columnName]
+
+            val value = when {
+                generator.consistencyMode == ConsistencyMode.CONSISTENT && workspaceSecret != null -> {
+                    val fakerToUse = generator.linkKey?.let { linkGroupFakers[it] }
+                        ?: run {
+                            val seed = hmacSeed(workspaceSecret, originalValue?.toString() ?: "")
+                            Faker(java.util.Random(seed))
+                        }
+                    generateValue(generator.generatorType, originalValue, params, fakerToUse, columnKey, generator.generatorParams)
+                }
+                else -> generateValue(generator.generatorType, originalValue, params, this.faker, columnKey, generator.generatorParams)
+            }
+            result[generator.columnName] = value
         }
         return result
     }
@@ -103,7 +240,8 @@ class GeneratorService {
                 val params: Map<String, String>? = generator.generatorParams?.let {
                     try { mapper.readValue(it) } catch (e: Exception) { null }
                 }
-                generator.columnName to generateValue(generator.generatorType, null, params)
+                val columnKey = "${generator.tableConfigurationId}:${generator.columnName}"
+                generator.columnName to generateValue(generator.generatorType, null, params, this.faker, columnKey, generator.generatorParams)
             }
         }
     }

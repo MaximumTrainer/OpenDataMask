@@ -31,7 +31,13 @@ class Workspace(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var schemaChangeHandling: SchemaChangeHandling = SchemaChangeHandling.BLOCK_EXPOSING
+    var schemaChangeHandling: SchemaChangeHandling = SchemaChangeHandling.BLOCK_EXPOSING,
+
+    @Column
+    val parentWorkspaceId: Long? = null,
+
+    @Column(nullable = false)
+    val inheritanceEnabled: Boolean = false
 ) {
     @PrePersist
     fun prePersist() {

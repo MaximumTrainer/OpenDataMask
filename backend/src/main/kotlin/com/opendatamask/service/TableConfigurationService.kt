@@ -68,7 +68,10 @@ class TableConfigurationService(
             tableConfigurationId = tableId,
             columnName = request.columnName,
             generatorType = request.generatorType,
-            generatorParams = request.generatorParams
+            generatorParams = request.generatorParams,
+            presetId = request.presetId,
+            consistencyMode = request.consistencyMode,
+            linkKey = request.linkKey
         )
         return columnGeneratorRepository.save(generator).toColumnResponse()
     }
@@ -94,6 +97,9 @@ class TableConfigurationService(
         generator.columnName = request.columnName
         generator.generatorType = request.generatorType
         generator.generatorParams = request.generatorParams
+        generator.presetId = request.presetId
+        generator.consistencyMode = request.consistencyMode
+        generator.linkKey = request.linkKey
         return columnGeneratorRepository.save(generator).toColumnResponse()
     }
 
@@ -133,6 +139,9 @@ class TableConfigurationService(
         columnName = columnName,
         generatorType = generatorType,
         generatorParams = generatorParams,
+        presetId = presetId,
+        consistencyMode = consistencyMode,
+        linkKey = linkKey,
         createdAt = createdAt
     )
 }

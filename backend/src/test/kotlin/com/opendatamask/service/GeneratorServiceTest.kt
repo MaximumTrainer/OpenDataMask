@@ -12,7 +12,7 @@ class GeneratorServiceTest {
 
     @BeforeEach
     fun setup() {
-        service = GeneratorService()
+        service = GeneratorService("0123456789abcdef")
     }
 
     @Test

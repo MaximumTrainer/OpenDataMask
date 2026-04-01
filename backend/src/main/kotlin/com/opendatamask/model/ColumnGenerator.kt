@@ -28,6 +28,10 @@ enum class GeneratorType {
     CONDITIONAL, PARTIAL_MASK, FORMAT_PRESERVING, SEQUENTIAL, RANDOM_INT
 }
 
+enum class ConsistencyMode {
+    RANDOM, CONSISTENT
+}
+
 @Entity
 @Table(name = "column_generators")
 class ColumnGenerator(
@@ -47,6 +51,14 @@ class ColumnGenerator(
 
     @Column(length = 4096)
     var generatorParams: String? = null,
+
+    var presetId: Long? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    var consistencyMode: ConsistencyMode = ConsistencyMode.RANDOM,
+
+    var linkKey: String? = null,
 
     @Column(nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()

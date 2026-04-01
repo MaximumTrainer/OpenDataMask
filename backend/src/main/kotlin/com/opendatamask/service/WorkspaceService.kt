@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional
 class WorkspaceService(
     private val workspaceRepository: WorkspaceRepository,
     private val workspaceUserRepository: WorkspaceUserRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val workspaceInheritanceService: WorkspaceInheritanceService,
+    private val sensitivityScanService: SensitivityScanService
 ) {
 
     @Transactional
@@ -22,7 +24,9 @@ class WorkspaceService(
         val workspace = Workspace(
             name = request.name,
             description = request.description,
-            ownerId = ownerId
+            ownerId = ownerId,
+            parentWorkspaceId = request.parentWorkspaceId,
+            inheritanceEnabled = request.inheritanceEnabled
         )
         val saved = workspaceRepository.save(workspace)
 
@@ -30,6 +34,12 @@ class WorkspaceService(
         workspaceUserRepository.save(
             WorkspaceUser(workspaceId = saved.id, userId = ownerId, role = WorkspaceRole.ADMIN)
         )
+
+        if (saved.inheritanceEnabled && saved.parentWorkspaceId != null) {
+            workspaceInheritanceService.inheritFromParent(saved.id, saved.parentWorkspaceId)
+        }
+
+        Thread { sensitivityScanService.scanWorkspace(saved.id) }.start()
 
         return saved.toResponse()
     }
@@ -157,6 +167,8 @@ class WorkspaceService(
         description = description,
         ownerId = ownerId,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        parentWorkspaceId = parentWorkspaceId,
+        inheritanceEnabled = inheritanceEnabled
     )
 }

@@ -25,8 +25,14 @@ class JobService(
     private val generatorService: GeneratorService,
     private val destinationSchemaService: DestinationSchemaService,
     private val postJobActionService: PostJobActionService,
-    private val schemaChangeService: SchemaChangeService
+    private val schemaChangeService: SchemaChangeService,
+    private val webhookService: WebhookService
 ) {
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private var subsetExecutionService: SubsetExecutionService? = null
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private var subsetTableConfigRepository: SubsetTableConfigRepository? = null
     private val logger = LoggerFactory.getLogger(JobService::class.java)
 
     @Transactional
@@ -135,6 +141,19 @@ class JobService(
             val tableConfigs = tableConfigurationRepository.findByWorkspaceId(job.workspaceId)
             addLog(job.id, "Processing ${tableConfigs.size} table(s)", LogLevel.INFO)
 
+            val localSubsetRepo = subsetTableConfigRepository
+            val localSubsetExec = subsetExecutionService
+            val subsetRows: Map<String, List<Map<String, Any?>>> =
+                if (localSubsetRepo != null &&
+                    localSubsetExec != null &&
+                    localSubsetRepo.findByWorkspaceId(job.workspaceId).isNotEmpty()
+                ) {
+                    addLog(job.id, "Running referential integrity subset execution", LogLevel.INFO)
+                    localSubsetExec.executeSubset(job.workspaceId, sourceConnector)
+                } else {
+                    emptyMap()
+                }
+
             for (tableConfig in tableConfigs) {
                 if (tableConfig.mode == TableMode.SKIP) {
                     addLog(job.id, "Skipping table: ${tableConfig.tableName}", LogLevel.INFO)
@@ -146,13 +165,14 @@ class JobService(
                     destConnector, destConn.type,
                     tableConfig.tableName
                 )
-                processTable(job.id, tableConfig, sourceConnector, destConnector)
+                processTable(job.id, tableConfig, sourceConnector, destConnector, subsetRows)
             }
 
             updateJobStatus(job, JobStatus.COMPLETED)
             addLog(job.id, "Job completed successfully", LogLevel.INFO)
             val completedJob = jobRepository.findById(job.id).orElse(job)
             postJobActionService.triggerActions(completedJob)
+            webhookService.triggerForJob(completedJob, JobStatus.COMPLETED.name)
 
         } catch (e: Exception) {
             logger.error("Job ${job.id} failed", e)
@@ -163,6 +183,7 @@ class JobService(
             failedJob.errorMessage = e.message?.take(4096)
             jobRepository.save(failedJob)
             postJobActionService.triggerActions(failedJob)
+            webhookService.triggerForJob(failedJob, JobStatus.FAILED.name)
         }
     }
 
@@ -170,7 +191,8 @@ class JobService(
         jobId: Long,
         tableConfig: TableConfiguration,
         sourceConnector: com.opendatamask.connector.DatabaseConnector,
-        destConnector: com.opendatamask.connector.DatabaseConnector
+        destConnector: com.opendatamask.connector.DatabaseConnector,
+        preComputedRows: Map<String, List<Map<String, Any?>>> = emptyMap()
     ) {
         addLog(jobId, "Processing table: ${tableConfig.tableName} (mode: ${tableConfig.mode})", LogLevel.INFO)
 
@@ -202,11 +224,12 @@ class JobService(
                 addLog(jobId, "Wrote $written generated rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
             TableMode.SUBSET -> {
-                val data = sourceConnector.fetchData(
-                    tableConfig.tableName,
-                    tableConfig.rowLimit?.toInt(),
-                    tableConfig.whereClause
-                )
+                val data = preComputedRows[tableConfig.tableName]
+                    ?: sourceConnector.fetchData(
+                        tableConfig.tableName,
+                        tableConfig.rowLimit?.toInt(),
+                        tableConfig.whereClause
+                    )
                 addLog(jobId, "Subsetting ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
                 val written = destConnector.writeData(tableConfig.tableName, data)
                 addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
@@ -267,3 +290,6 @@ class JobService(
         timestamp = timestamp
     )
 }
+
+
+
