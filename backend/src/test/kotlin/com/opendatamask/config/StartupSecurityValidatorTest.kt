@@ -48,4 +48,13 @@ class StartupSecurityValidatorTest {
         )
         assertThrows<IllegalStateException> { validator.validate() }
     }
+
+    @Test
+    fun `validate throws when ENCRYPTION_KEY is the docker-compose fallback default`() {
+        val validator = createValidator(
+            jwtSecret = "secure-jwt-secret",
+            encryptionKey = "change-this-16-char-key-for-prod"
+        )
+        assertThrows<IllegalStateException> { validator.validate() }
+    }
 }

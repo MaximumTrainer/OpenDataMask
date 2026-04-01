@@ -11,7 +11,8 @@ private val INSECURE_JWT_DEFAULTS = setOf(
 )
 
 private val INSECURE_ENCRYPTION_DEFAULTS = setOf(
-    "0123456789abcdef"
+    "0123456789abcdef",
+    "change-this-16-char-key-for-prod"
 )
 
 @Component
