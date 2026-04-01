@@ -3,13 +3,13 @@ package com.opendatamask.model
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
-enum class PostJobActionType {
+enum class ActionType {
     WEBHOOK, EMAIL, SCRIPT
 }
 
 @Entity
 @Table(name = "post_job_actions")
-class PostJobAction(
+data class PostJobAction(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
@@ -17,15 +17,12 @@ class PostJobAction(
     @Column(nullable = false)
     var workspaceId: Long,
 
-    @Column(nullable = false)
-    var name: String,
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var type: PostJobActionType,
+    var actionType: ActionType,
 
-    @Column(nullable = false, length = 8192)
-    var configuration: String,
+    @Column(nullable = false, columnDefinition = "TEXT")
+    var config: String = "{}",
 
     @Column(nullable = false)
     var enabled: Boolean = true,
@@ -34,7 +31,5 @@ class PostJobAction(
     var createdAt: LocalDateTime = LocalDateTime.now()
 ) {
     @PrePersist
-    fun prePersist() {
-        createdAt = LocalDateTime.now()
-    }
+    fun prePersist() { createdAt = LocalDateTime.now() }
 }

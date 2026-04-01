@@ -23,7 +23,8 @@ class JobService(
     private val encryptionService: EncryptionService,
     private val connectorFactory: ConnectorFactory,
     private val generatorService: GeneratorService,
-    private val destinationSchemaService: DestinationSchemaService
+    private val destinationSchemaService: DestinationSchemaService,
+    private val postJobActionService: PostJobActionService
 ) {
     private val logger = LoggerFactory.getLogger(JobService::class.java)
 
@@ -133,6 +134,8 @@ class JobService(
 
             updateJobStatus(job, JobStatus.COMPLETED)
             addLog(job.id, "Job completed successfully", LogLevel.INFO)
+            val completedJob = jobRepository.findById(job.id).orElse(job)
+            postJobActionService.triggerActions(completedJob)
 
         } catch (e: Exception) {
             logger.error("Job ${job.id} failed", e)
@@ -142,6 +145,7 @@ class JobService(
             failedJob.completedAt = LocalDateTime.now()
             failedJob.errorMessage = e.message?.take(4096)
             jobRepository.save(failedJob)
+            postJobActionService.triggerActions(failedJob)
         }
     }
 
