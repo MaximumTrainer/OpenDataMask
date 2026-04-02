@@ -1,6 +1,6 @@
 package com.opendatamask.security
 
-import com.opendatamask.repository.UserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetails

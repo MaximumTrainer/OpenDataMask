@@ -4,9 +4,9 @@ import com.opendatamask.dto.*
 import com.opendatamask.domain.model.Workspace
 import com.opendatamask.domain.model.WorkspaceRole
 import com.opendatamask.domain.model.WorkspaceUser
-import com.opendatamask.repository.UserRepository
-import com.opendatamask.repository.WorkspaceRepository
-import com.opendatamask.repository.WorkspaceUserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceUserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

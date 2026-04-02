@@ -5,7 +5,7 @@ import com.opendatamask.domain.model.ActionType
 import com.opendatamask.domain.model.Job
 import com.opendatamask.domain.model.JobStatus
 import com.opendatamask.domain.model.PostJobAction
-import com.opendatamask.repository.PostJobActionRepository
+import com.opendatamask.adapter.output.persistence.PostJobActionRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows

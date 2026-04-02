@@ -6,7 +6,7 @@ import com.opendatamask.connector.DatabaseConnector
 import com.opendatamask.dto.DataConnectionRequest
 import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.domain.model.DataConnection
-import com.opendatamask.repository.DataConnectionRepository
+import com.opendatamask.adapter.output.persistence.DataConnectionRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

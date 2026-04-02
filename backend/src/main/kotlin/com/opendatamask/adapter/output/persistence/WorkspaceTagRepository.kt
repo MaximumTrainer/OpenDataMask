@@ -1,4 +1,4 @@
-package com.opendatamask.repository
+package com.opendatamask.adapter.output.persistence
 
 import com.opendatamask.domain.model.WorkspaceTag
 import org.springframework.data.jpa.repository.JpaRepository

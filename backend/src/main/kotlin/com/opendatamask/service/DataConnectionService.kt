@@ -6,7 +6,7 @@ import com.opendatamask.dto.ConnectionTestResult
 import com.opendatamask.dto.DataConnectionRequest
 import com.opendatamask.dto.DataConnectionResponse
 import com.opendatamask.domain.model.DataConnection
-import com.opendatamask.repository.DataConnectionRepository
+import com.opendatamask.adapter.output.persistence.DataConnectionRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

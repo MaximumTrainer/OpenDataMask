@@ -1,4 +1,4 @@
-package com.opendatamask.repository
+package com.opendatamask.adapter.output.persistence
 
 import com.opendatamask.domain.model.SchemaSnapshot
 import org.springframework.data.jpa.repository.JpaRepository

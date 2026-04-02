@@ -2,7 +2,7 @@ package com.opendatamask.service
 
 import com.opendatamask.config.EncryptionService
 import com.opendatamask.domain.model.StoredFile
-import com.opendatamask.repository.StoredFileRepository
+import com.opendatamask.adapter.output.persistence.StoredFileRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.mockito.kotlin.*

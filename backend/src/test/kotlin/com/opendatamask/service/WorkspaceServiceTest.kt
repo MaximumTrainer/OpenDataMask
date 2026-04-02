@@ -3,9 +3,9 @@ package com.opendatamask.service
 import com.opendatamask.dto.RegisterRequest
 import com.opendatamask.dto.WorkspaceRequest
 import com.opendatamask.dto.WorkspaceUserRequest
-import com.opendatamask.repository.UserRepository
-import com.opendatamask.repository.WorkspaceRepository
-import com.opendatamask.repository.WorkspaceUserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceUserRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

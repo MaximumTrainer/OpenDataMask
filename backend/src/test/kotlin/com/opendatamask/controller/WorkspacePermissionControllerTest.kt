@@ -5,9 +5,9 @@ import com.opendatamask.domain.model.User
 import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.domain.model.WorkspaceRole
 import com.opendatamask.domain.model.WorkspaceUser
-import com.opendatamask.repository.UserRepository
-import com.opendatamask.repository.WorkspaceUserPermissionRepository
-import com.opendatamask.repository.WorkspaceUserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceUserPermissionRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceUserRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl
 import com.opendatamask.service.PermissionService

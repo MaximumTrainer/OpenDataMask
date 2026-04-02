@@ -2,8 +2,8 @@ package com.opendatamask.service
 
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.domain.model.ForeignKeyRelationship
-import com.opendatamask.repository.DataConnectionRepository
-import com.opendatamask.repository.ForeignKeyRelationshipRepository
+import com.opendatamask.adapter.output.persistence.DataConnectionRepository
+import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 

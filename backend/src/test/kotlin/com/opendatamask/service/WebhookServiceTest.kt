@@ -2,8 +2,8 @@ package com.opendatamask.service
 
 import com.opendatamask.config.EncryptionService
 import com.opendatamask.domain.model.*
-import com.opendatamask.repository.WebhookRepository
-import com.opendatamask.repository.WorkspaceRepository
+import com.opendatamask.adapter.output.persistence.WebhookRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith

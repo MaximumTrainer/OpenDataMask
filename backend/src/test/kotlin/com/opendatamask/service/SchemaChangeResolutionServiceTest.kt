@@ -1,8 +1,8 @@
 package com.opendatamask.service
 
 import com.opendatamask.domain.model.*
-import com.opendatamask.repository.SchemaChangeRepository
-import com.opendatamask.repository.WorkspaceRepository
+import com.opendatamask.adapter.output.persistence.SchemaChangeRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
@@ -12,8 +12,8 @@ class SchemaChangeResolutionServiceTest {
 
     private val changeRepo = mock<SchemaChangeRepository>()
     private val workspaceRepo = mock<WorkspaceRepository>()
-    private val snapshotRepo = mock<com.opendatamask.repository.SchemaSnapshotRepository>()
-    private val connectionRepo = mock<com.opendatamask.repository.DataConnectionRepository>()
+    private val snapshotRepo = mock<com.opendatamask.adapter.output.persistence.SchemaSnapshotRepository>()
+    private val connectionRepo = mock<com.opendatamask.adapter.output.persistence.DataConnectionRepository>()
     private val connectorFactory = mock<com.opendatamask.connector.ConnectorFactory>()
     private val webhookService = mock<WebhookService>()
     private val service = SchemaChangeService(snapshotRepo, changeRepo, workspaceRepo, connectionRepo, connectorFactory, webhookService)

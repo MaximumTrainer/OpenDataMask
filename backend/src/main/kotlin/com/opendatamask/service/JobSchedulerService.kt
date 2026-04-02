@@ -2,7 +2,7 @@ package com.opendatamask.service
 
 import com.opendatamask.domain.model.JobSchedule
 import com.opendatamask.domain.model.ScheduledJobType
-import com.opendatamask.repository.JobScheduleRepository
+import com.opendatamask.adapter.output.persistence.JobScheduleRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.scheduling.support.CronExpression

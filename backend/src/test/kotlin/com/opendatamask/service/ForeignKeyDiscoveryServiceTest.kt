@@ -6,8 +6,8 @@ import com.opendatamask.connector.ForeignKeyInfo
 import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.domain.model.DataConnection
 import com.opendatamask.domain.model.ForeignKeyRelationship
-import com.opendatamask.repository.DataConnectionRepository
-import com.opendatamask.repository.ForeignKeyRelationshipRepository
+import com.opendatamask.adapter.output.persistence.DataConnectionRepository
+import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*

@@ -4,9 +4,9 @@ import com.opendatamask.dto.ColumnGeneratorResponse
 import com.opendatamask.dto.GeneratorPresetRequest
 import com.opendatamask.dto.GeneratorPresetResponse
 import com.opendatamask.domain.model.GeneratorPreset
-import com.opendatamask.repository.ColumnGeneratorRepository
-import com.opendatamask.repository.GeneratorPresetRepository
-import com.opendatamask.repository.TableConfigurationRepository
+import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
+import com.opendatamask.adapter.output.persistence.GeneratorPresetRepository
+import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

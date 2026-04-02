@@ -1,4 +1,4 @@
-package com.opendatamask.repository
+package com.opendatamask.adapter.output.persistence
 
 import com.opendatamask.domain.model.Job
 import com.opendatamask.domain.model.JobStatus

@@ -3,8 +3,8 @@ package com.opendatamask.service
 import com.opendatamask.domain.model.ForeignKeyRelationship
 import com.opendatamask.domain.model.SubsetLimitType
 import com.opendatamask.domain.model.SubsetTableConfig
-import com.opendatamask.repository.ForeignKeyRelationshipRepository
-import com.opendatamask.repository.SubsetTableConfigRepository
+import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
+import com.opendatamask.adapter.output.persistence.SubsetTableConfigRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock

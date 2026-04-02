@@ -9,7 +9,7 @@ import com.opendatamask.dto.TableConfigurationResponse
 import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.domain.model.TableMode
 import com.opendatamask.domain.model.User
-import com.opendatamask.repository.UserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.security.JwtAuthenticationFilter
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl

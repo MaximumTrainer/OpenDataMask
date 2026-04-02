@@ -6,9 +6,9 @@ import com.opendatamask.config.EncryptionService
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.dto.ColumnPreviewResult
 import com.opendatamask.dto.PreviewSample
-import com.opendatamask.repository.ColumnGeneratorRepository
-import com.opendatamask.repository.DataConnectionRepository
-import com.opendatamask.repository.TableConfigurationRepository
+import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
+import com.opendatamask.adapter.output.persistence.DataConnectionRepository
+import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
 import org.springframework.stereotype.Service
 
 @Service

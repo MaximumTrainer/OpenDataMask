@@ -7,9 +7,9 @@ import com.opendatamask.domain.model.ConsistencyMode
 import com.opendatamask.domain.model.TableConfiguration
 import com.opendatamask.domain.model.TableMode
 import com.opendatamask.dto.GeneratorPresetRequest
-import com.opendatamask.repository.ColumnGeneratorRepository
-import com.opendatamask.repository.GeneratorPresetRepository
-import com.opendatamask.repository.TableConfigurationRepository
+import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
+import com.opendatamask.adapter.output.persistence.GeneratorPresetRepository
+import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

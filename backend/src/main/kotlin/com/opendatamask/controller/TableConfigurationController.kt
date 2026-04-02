@@ -2,7 +2,7 @@ package com.opendatamask.controller
 
 import com.opendatamask.dto.*
 import com.opendatamask.domain.model.WorkspacePermission
-import com.opendatamask.repository.UserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.service.PermissionService
 import com.opendatamask.service.TableConfigurationService
 import jakarta.validation.Valid

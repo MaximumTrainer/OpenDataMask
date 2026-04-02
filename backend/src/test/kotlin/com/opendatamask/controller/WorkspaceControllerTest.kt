@@ -2,8 +2,8 @@ package com.opendatamask.controller
 
 import com.opendatamask.dto.WorkspaceResponse
 import com.opendatamask.dto.WorkspaceUserResponse
-import com.opendatamask.repository.UserRepository
-import com.opendatamask.repository.WorkspaceTagRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceTagRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl
 import com.opendatamask.service.WorkspaceService

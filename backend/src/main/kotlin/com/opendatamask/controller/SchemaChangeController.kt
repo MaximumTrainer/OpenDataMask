@@ -4,7 +4,7 @@ import com.opendatamask.domain.model.SchemaChange
 import com.opendatamask.domain.model.SchemaChangeHandling
 import com.opendatamask.domain.model.SchemaChangeType
 import com.opendatamask.domain.model.SchemaChangeStatus
-import com.opendatamask.repository.WorkspaceRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceRepository
 import com.opendatamask.service.SchemaChangeService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*

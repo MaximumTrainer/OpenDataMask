@@ -1,8 +1,8 @@
 package com.opendatamask.controller
 
 import com.opendatamask.dto.*
-import com.opendatamask.repository.UserRepository
-import com.opendatamask.repository.WorkspaceTagRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceTagRepository
 import com.opendatamask.service.WorkspaceService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus

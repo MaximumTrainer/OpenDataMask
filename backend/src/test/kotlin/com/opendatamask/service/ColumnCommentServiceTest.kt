@@ -1,8 +1,8 @@
 package com.opendatamask.service
 
 import com.opendatamask.domain.model.ColumnComment
-import com.opendatamask.repository.ColumnCommentRepository
-import com.opendatamask.repository.UserRepository
+import com.opendatamask.adapter.output.persistence.ColumnCommentRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows

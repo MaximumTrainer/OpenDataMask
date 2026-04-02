@@ -5,7 +5,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.opendatamask.connector.ColumnInfo
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.domain.model.*
-import com.opendatamask.repository.*
+import com.opendatamask.adapter.output.persistence.*
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service

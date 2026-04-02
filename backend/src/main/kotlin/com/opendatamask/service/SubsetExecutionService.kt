@@ -2,8 +2,8 @@ package com.opendatamask.service
 
 import com.opendatamask.connector.DatabaseConnector
 import com.opendatamask.domain.model.SubsetLimitType
-import com.opendatamask.repository.ForeignKeyRelationshipRepository
-import com.opendatamask.repository.SubsetTableConfigRepository
+import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
+import com.opendatamask.adapter.output.persistence.SubsetTableConfigRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 

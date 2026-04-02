@@ -3,8 +3,8 @@ package com.opendatamask.service
 import com.opendatamask.dto.*
 import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.TableConfiguration
-import com.opendatamask.repository.ColumnGeneratorRepository
-import com.opendatamask.repository.TableConfigurationRepository
+import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
+import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

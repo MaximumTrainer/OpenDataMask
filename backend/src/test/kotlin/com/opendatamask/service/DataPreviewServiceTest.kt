@@ -4,9 +4,9 @@ import com.opendatamask.config.EncryptionService
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.connector.DatabaseConnector
 import com.opendatamask.domain.model.*
-import com.opendatamask.repository.ColumnGeneratorRepository
-import com.opendatamask.repository.DataConnectionRepository
-import com.opendatamask.repository.TableConfigurationRepository
+import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
+import com.opendatamask.adapter.output.persistence.DataConnectionRepository
+import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

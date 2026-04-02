@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.opendatamask.dto.*
 import com.opendatamask.domain.model.InheritedConfig
 import com.opendatamask.domain.model.Workspace
-import com.opendatamask.repository.UserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl
 import com.opendatamask.service.WorkspaceInheritanceService

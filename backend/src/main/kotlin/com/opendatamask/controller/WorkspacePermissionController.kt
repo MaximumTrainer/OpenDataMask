@@ -4,9 +4,9 @@ import com.opendatamask.dto.UpdatePermissionsRequest
 import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.domain.model.WorkspaceRole
 import com.opendatamask.domain.model.WorkspaceUserPermission
-import com.opendatamask.repository.UserRepository
-import com.opendatamask.repository.WorkspaceUserPermissionRepository
-import com.opendatamask.repository.WorkspaceUserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceUserPermissionRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceUserRepository
 import com.opendatamask.service.PermissionService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.AccessDeniedException

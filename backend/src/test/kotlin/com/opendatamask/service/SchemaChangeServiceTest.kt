@@ -5,7 +5,7 @@ import com.opendatamask.connector.ColumnInfo
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.connector.DatabaseConnector
 import com.opendatamask.domain.model.*
-import com.opendatamask.repository.*
+import com.opendatamask.adapter.output.persistence.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.mockito.kotlin.*

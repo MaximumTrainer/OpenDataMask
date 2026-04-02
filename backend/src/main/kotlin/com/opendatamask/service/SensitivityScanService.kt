@@ -3,7 +3,7 @@ package com.opendatamask.service
 import com.opendatamask.config.EncryptionService
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.domain.model.*
-import com.opendatamask.repository.*
+import com.opendatamask.adapter.output.persistence.*
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Instant

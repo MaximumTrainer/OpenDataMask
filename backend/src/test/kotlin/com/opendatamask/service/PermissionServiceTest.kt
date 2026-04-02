@@ -4,8 +4,8 @@ import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.domain.model.WorkspaceRole
 import com.opendatamask.domain.model.WorkspaceUser
 import com.opendatamask.domain.model.WorkspaceUserPermission
-import com.opendatamask.repository.WorkspaceUserPermissionRepository
-import com.opendatamask.repository.WorkspaceUserRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceUserPermissionRepository
+import com.opendatamask.adapter.output.persistence.WorkspaceUserRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

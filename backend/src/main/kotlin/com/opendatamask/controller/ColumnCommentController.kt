@@ -1,7 +1,7 @@
 package com.opendatamask.controller
 
 import com.opendatamask.domain.model.ColumnComment
-import com.opendatamask.repository.UserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.service.ColumnCommentService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

@@ -5,9 +5,9 @@ import com.opendatamask.dto.PrivacyRecommendation
 import com.opendatamask.dto.TableProtectionSummary
 import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.GeneratorType
-import com.opendatamask.repository.ColumnGeneratorRepository
-import com.opendatamask.repository.ColumnSensitivityRepository
-import com.opendatamask.repository.TableConfigurationRepository
+import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
+import com.opendatamask.adapter.output.persistence.ColumnSensitivityRepository
+import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
 import org.springframework.stereotype.Service
 
 @Service

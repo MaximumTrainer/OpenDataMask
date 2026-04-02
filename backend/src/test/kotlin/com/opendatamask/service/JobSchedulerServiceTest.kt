@@ -4,7 +4,7 @@ import com.opendatamask.domain.model.Job
 import com.opendatamask.domain.model.JobSchedule
 import com.opendatamask.domain.model.JobStatus
 import com.opendatamask.domain.model.ScheduledJobType
-import com.opendatamask.repository.JobScheduleRepository
+import com.opendatamask.adapter.output.persistence.JobScheduleRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows

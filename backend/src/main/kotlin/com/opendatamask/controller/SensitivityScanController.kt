@@ -7,8 +7,8 @@ import com.opendatamask.domain.model.ColumnSensitivity
 import com.opendatamask.domain.model.ConfidenceLevel
 import com.opendatamask.domain.model.SensitivityScanLog
 import com.opendatamask.domain.model.SensitivityType
-import com.opendatamask.repository.ColumnSensitivityRepository
-import com.opendatamask.repository.SensitivityScanLogEntryRepository
+import com.opendatamask.adapter.output.persistence.ColumnSensitivityRepository
+import com.opendatamask.adapter.output.persistence.SensitivityScanLogEntryRepository
 import com.opendatamask.service.SensitivityScanService
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType

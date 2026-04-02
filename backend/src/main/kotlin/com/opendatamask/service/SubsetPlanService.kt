@@ -1,8 +1,8 @@
 package com.opendatamask.service
 
 import com.opendatamask.domain.model.SubsetTableConfig
-import com.opendatamask.repository.ForeignKeyRelationshipRepository
-import com.opendatamask.repository.SubsetTableConfigRepository
+import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
+import com.opendatamask.adapter.output.persistence.SubsetTableConfigRepository
 import org.springframework.stereotype.Service
 
 data class SubsetStep(

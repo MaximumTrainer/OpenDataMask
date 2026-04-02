@@ -2,7 +2,7 @@ package com.opendatamask.service
 
 import com.opendatamask.config.EncryptionService
 import com.opendatamask.domain.model.StoredFile
-import com.opendatamask.repository.StoredFileRepository
+import com.opendatamask.adapter.output.persistence.StoredFileRepository
 import org.springframework.stereotype.Service
 import java.util.Base64
 

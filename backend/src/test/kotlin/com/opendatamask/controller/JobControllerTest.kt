@@ -6,7 +6,7 @@ import com.opendatamask.domain.model.JobStatus
 import com.opendatamask.domain.model.LogLevel
 import com.opendatamask.domain.model.User
 import com.opendatamask.domain.model.WorkspacePermission
-import com.opendatamask.repository.UserRepository
+import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl
 import com.opendatamask.service.JobService
