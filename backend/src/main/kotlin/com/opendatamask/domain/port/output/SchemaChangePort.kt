@@ -1,0 +1,14 @@
+package com.opendatamask.domain.port.output
+
+import com.opendatamask.model.SchemaChange
+import com.opendatamask.model.SchemaChangeStatus
+import java.util.Optional
+
+interface SchemaChangePort {
+    fun findById(id: Long): Optional<SchemaChange>
+    fun findByWorkspaceId(workspaceId: Long): List<SchemaChange>
+    fun findByWorkspaceIdAndStatus(workspaceId: Long, status: SchemaChangeStatus): List<SchemaChange>
+    fun save(change: SchemaChange): SchemaChange
+    fun saveAll(changes: List<SchemaChange>): List<SchemaChange>
+    fun deleteByWorkspaceId(workspaceId: Long)
+}
