@@ -18,7 +18,7 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAut
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user
+import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
@@ -75,6 +75,7 @@ class WorkspaceInheritanceControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser")
     fun `POST children creates child workspace and returns 201`() {
         val response = makeWorkspaceResponse(id = 5L, name = "child", parentId = 1L)
         whenever(workspaceService.createWorkspace(any<WorkspaceRequest>(), any<Long>())).thenReturn(response)
@@ -87,7 +88,6 @@ class WorkspaceInheritanceControllerTest {
         )
         mockMvc.perform(
             post("/api/workspaces/1/children")
-                .with(user("testuser").roles("USER"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
         )

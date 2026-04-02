@@ -60,13 +60,15 @@ class DestinationSchemaService {
             ConnectionType.MONGODB, ConnectionType.MONGODB_COSMOS -> "mixed"
             ConnectionType.FILE ->
                 if (sourceType.equals("mixed", ignoreCase = true)) "TEXT" else sourceType.uppercase()
+            ConnectionType.MYSQL ->
+                postgresTypeMap[sourceType.lowercase()] ?: sourceType.uppercase()
         }
 
         // Step 2: translate the portable type to the destination dialect
         return when (destDb) {
             ConnectionType.MONGODB, ConnectionType.MONGODB_COSMOS -> "mixed"
             ConnectionType.AZURE_SQL -> toAzureSqlTypeMap[normalized] ?: normalized
-            ConnectionType.POSTGRESQL, ConnectionType.FILE -> normalized
+            ConnectionType.POSTGRESQL, ConnectionType.FILE, ConnectionType.MYSQL -> normalized
         }
     }
 
