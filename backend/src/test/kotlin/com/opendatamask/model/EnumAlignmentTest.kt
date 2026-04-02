@@ -49,7 +49,7 @@ class EnumAlignmentTest {
     @Test
     fun `TableMode contains canonical set`() {
         val values = TableMode.values().map { it.name }.toSet()
-        val expected = setOf("PASSTHROUGH", "MASK", "GENERATE", "SUBSET", "SKIP")
+        val expected = setOf("PASSTHROUGH", "MASK", "GENERATE", "SUBSET", "UPSERT", "SKIP")
         assertEquals(expected, values, "TableMode values do not match canonical set")
     }
 
