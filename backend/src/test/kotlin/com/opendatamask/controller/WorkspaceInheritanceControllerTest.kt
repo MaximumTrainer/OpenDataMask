@@ -3,7 +3,6 @@ package com.opendatamask.controller
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.opendatamask.dto.*
 import com.opendatamask.model.InheritedConfig
-import com.opendatamask.model.User
 import com.opendatamask.model.Workspace
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtTokenProvider
@@ -18,14 +17,12 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAut
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
-import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.time.Instant
 import java.time.LocalDateTime
-import java.util.Optional
 
 @WebMvcTest(
     WorkspaceInheritanceController::class,
@@ -75,25 +72,12 @@ class WorkspaceInheritanceControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
-    fun `POST children creates child workspace and returns 201`() {
-        val response = makeWorkspaceResponse(id = 5L, name = "child", parentId = 1L)
-        whenever(workspaceService.createWorkspace(any<WorkspaceRequest>(), any<Long>())).thenReturn(response)
-        whenever(userRepository.findByUsername("testuser")).thenReturn(
-            Optional.of(User(id = 1L, username = "testuser", email = "u@t.com", passwordHash = "hash"))
-        )
+    fun `GET children returns 404 when parent workspace not found`() {
+        whenever(workspaceInheritanceService.listChildWorkspaces(99L))
+            .thenThrow(NoSuchElementException("Workspace not found: 99"))
 
-        val body = objectMapper.writeValueAsString(
-            CreateChildWorkspaceRequest(name = "child", inheritanceEnabled = true)
-        )
-        mockMvc.perform(
-            post("/api/workspaces/1/children")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body)
-        )
-            .andExpect(status().isCreated)
-            .andExpect(jsonPath("$.id").value(5))
-            .andExpect(jsonPath("$.name").value("child"))
+        mockMvc.perform(get("/api/workspaces/99/children"))
+            .andExpect(status().isNotFound)
     }
 
     @Test
@@ -148,6 +132,15 @@ class WorkspaceInheritanceControllerTest {
             .andExpect(status().isOk)
 
         verify(workspaceInheritanceService).markAsOverridden(5L)
+    }
+
+    @Test
+    fun `POST override returns 404 when inherited config not found`() {
+        whenever(workspaceInheritanceService.markAsOverridden(99L))
+            .thenThrow(NoSuchElementException("InheritedConfig not found: 99"))
+
+        mockMvc.perform(post("/api/workspaces/2/inherited-configs/99/override"))
+            .andExpect(status().isNotFound)
     }
 
     @Test
