@@ -1,23 +1,32 @@
 package com.opendatamask.controller
 
 import com.opendatamask.dto.*
+import com.opendatamask.model.WorkspacePermission
+import com.opendatamask.repository.UserRepository
+import com.opendatamask.service.PermissionService
 import com.opendatamask.service.TableConfigurationService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/workspaces/{workspaceId}/tables")
 class TableConfigurationController(
-    private val tableConfigurationService: TableConfigurationService
+    private val tableConfigurationService: TableConfigurationService,
+    private val permissionService: PermissionService,
+    private val userRepository: UserRepository
 ) {
 
     @PostMapping
     fun createTableConfiguration(
         @PathVariable workspaceId: Long,
-        @Valid @RequestBody request: TableConfigurationRequest
+        @Valid @RequestBody request: TableConfigurationRequest,
+        @AuthenticationPrincipal userDetails: UserDetails
     ): ResponseEntity<TableConfigurationResponse> {
+        permissionService.requirePermission(getUserId(userDetails), workspaceId, WorkspacePermission.CONFIGURE_GENERATORS)
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(tableConfigurationService.createTableConfiguration(workspaceId, request))
     }
@@ -39,16 +48,20 @@ class TableConfigurationController(
     fun updateTableConfiguration(
         @PathVariable workspaceId: Long,
         @PathVariable tableId: Long,
-        @Valid @RequestBody request: TableConfigurationRequest
+        @Valid @RequestBody request: TableConfigurationRequest,
+        @AuthenticationPrincipal userDetails: UserDetails
     ): ResponseEntity<TableConfigurationResponse> {
+        permissionService.requirePermission(getUserId(userDetails), workspaceId, WorkspacePermission.CONFIGURE_GENERATORS)
         return ResponseEntity.ok(tableConfigurationService.updateTableConfiguration(workspaceId, tableId, request))
     }
 
     @DeleteMapping("/{tableId}")
     fun deleteTableConfiguration(
         @PathVariable workspaceId: Long,
-        @PathVariable tableId: Long
+        @PathVariable tableId: Long,
+        @AuthenticationPrincipal userDetails: UserDetails
     ): ResponseEntity<Void> {
+        permissionService.requirePermission(getUserId(userDetails), workspaceId, WorkspacePermission.CONFIGURE_GENERATORS)
         tableConfigurationService.deleteTableConfiguration(workspaceId, tableId)
         return ResponseEntity.noContent().build()
     }
@@ -57,8 +70,10 @@ class TableConfigurationController(
     fun addColumnGenerator(
         @PathVariable workspaceId: Long,
         @PathVariable tableId: Long,
-        @Valid @RequestBody request: ColumnGeneratorRequest
+        @Valid @RequestBody request: ColumnGeneratorRequest,
+        @AuthenticationPrincipal userDetails: UserDetails
     ): ResponseEntity<ColumnGeneratorResponse> {
+        permissionService.requirePermission(getUserId(userDetails), workspaceId, WorkspacePermission.CONFIGURE_GENERATORS)
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(tableConfigurationService.addColumnGenerator(tableId, request))
     }
@@ -76,8 +91,10 @@ class TableConfigurationController(
         @PathVariable workspaceId: Long,
         @PathVariable tableId: Long,
         @PathVariable generatorId: Long,
-        @Valid @RequestBody request: ColumnGeneratorRequest
+        @Valid @RequestBody request: ColumnGeneratorRequest,
+        @AuthenticationPrincipal userDetails: UserDetails
     ): ResponseEntity<ColumnGeneratorResponse> {
+        permissionService.requirePermission(getUserId(userDetails), workspaceId, WorkspacePermission.CONFIGURE_GENERATORS)
         return ResponseEntity.ok(
             tableConfigurationService.updateColumnGenerator(tableId, generatorId, request)
         )
@@ -87,9 +104,15 @@ class TableConfigurationController(
     fun deleteColumnGenerator(
         @PathVariable workspaceId: Long,
         @PathVariable tableId: Long,
-        @PathVariable generatorId: Long
+        @PathVariable generatorId: Long,
+        @AuthenticationPrincipal userDetails: UserDetails
     ): ResponseEntity<Void> {
+        permissionService.requirePermission(getUserId(userDetails), workspaceId, WorkspacePermission.CONFIGURE_GENERATORS)
         tableConfigurationService.deleteColumnGenerator(tableId, generatorId)
         return ResponseEntity.noContent().build()
     }
+
+    private fun getUserId(userDetails: UserDetails): Long =
+        userRepository.findByUsername(userDetails.username)
+            .orElseThrow { NoSuchElementException("User not found") }.id
 }

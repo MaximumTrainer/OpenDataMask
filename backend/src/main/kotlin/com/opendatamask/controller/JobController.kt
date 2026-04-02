@@ -2,8 +2,10 @@ package com.opendatamask.controller
 
 import com.opendatamask.dto.JobLogResponse
 import com.opendatamask.dto.JobResponse
+import com.opendatamask.model.WorkspacePermission
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.service.JobService
+import com.opendatamask.service.PermissionService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -14,7 +16,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/workspaces/{workspaceId}/jobs")
 class JobController(
     private val jobService: JobService,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val permissionService: PermissionService
 ) {
 
     @PostMapping
@@ -23,6 +26,7 @@ class JobController(
         @AuthenticationPrincipal userDetails: UserDetails
     ): ResponseEntity<JobResponse> {
         val userId = getUserId(userDetails)
+        permissionService.requirePermission(userId, workspaceId, WorkspacePermission.RUN_JOBS)
         val job = jobService.createJob(workspaceId, userId)
         jobService.runJob(job.id)
         return ResponseEntity.status(HttpStatus.CREATED).body(job)

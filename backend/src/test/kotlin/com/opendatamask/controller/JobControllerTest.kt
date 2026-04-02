@@ -5,10 +5,12 @@ import com.opendatamask.dto.JobResponse
 import com.opendatamask.model.JobStatus
 import com.opendatamask.model.LogLevel
 import com.opendatamask.model.User
+import com.opendatamask.model.WorkspacePermission
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl
 import com.opendatamask.service.JobService
+import com.opendatamask.service.PermissionService
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -58,6 +60,7 @@ class JobControllerTest {
 
     @MockBean private lateinit var jobService: JobService
     @MockBean private lateinit var userRepository: UserRepository
+    @MockBean private lateinit var permissionService: PermissionService
     @MockBean private lateinit var jwtTokenProvider: JwtTokenProvider
     @MockBean private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
 

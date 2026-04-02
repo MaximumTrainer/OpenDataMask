@@ -7,11 +7,13 @@ import com.opendatamask.repository.*
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.time.LocalDateTime
 
 @Service
 class SensitivityScanService(
     private val columnSensitivityRepository: ColumnSensitivityRepository,
     private val sensitivityScanLogRepository: SensitivityScanLogRepository,
+    private val sensitivityScanLogEntryRepository: SensitivityScanLogEntryRepository,
     private val workspaceRepository: WorkspaceRepository,
     private val dataConnectionRepository: DataConnectionRepository,
     private val connectorFactory: ConnectorFactory,
@@ -71,6 +73,17 @@ class SensitivityScanService(
                         entity.recommendedGeneratorType = result.recommendedGenerator
                         columnSensitivityRepository.save(entity)
                     }
+                    sensitivityScanLogEntryRepository.save(
+                        SensitivityScanLogEntry(
+                            scanLogId = log.id!!,
+                            tableName = table,
+                            columnName = column,
+                            detectedType = result?.sensitivityType?.name,
+                            confidenceLevel = result?.confidence?.name,
+                            recommendedGenerator = result?.recommendedGenerator?.name,
+                            scannedAt = LocalDateTime.now()
+                        )
+                    )
                 }
             }
             log.status = "COMPLETED"

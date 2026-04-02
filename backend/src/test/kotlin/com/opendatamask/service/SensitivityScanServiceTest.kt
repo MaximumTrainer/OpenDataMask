@@ -20,6 +20,7 @@ class SensitivityScanServiceTest {
 
     @Mock private lateinit var columnSensitivityRepository: ColumnSensitivityRepository
     @Mock private lateinit var sensitivityScanLogRepository: SensitivityScanLogRepository
+    @Mock private lateinit var sensitivityScanLogEntryRepository: SensitivityScanLogEntryRepository
     @Mock private lateinit var workspaceRepository: WorkspaceRepository
     @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
     @Mock private lateinit var connectorFactory: ConnectorFactory
@@ -144,6 +145,8 @@ class SensitivityScanServiceTest {
         )
 
         whenever(sensitivityScanLogRepository.save(any<SensitivityScanLog>())).thenReturn(scanLog)
+        whenever(sensitivityScanLogEntryRepository.save(any<SensitivityScanLogEntry>()))
+            .thenAnswer { it.arguments[0] as SensitivityScanLogEntry }
         whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(workspace))
         whenever(dataConnectionRepository.findByWorkspaceIdAndIsSource(1L, true))
             .thenReturn(listOf(connection))

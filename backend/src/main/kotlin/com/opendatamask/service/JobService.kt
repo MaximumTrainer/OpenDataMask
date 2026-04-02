@@ -33,6 +33,10 @@ class JobService(
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private var subsetTableConfigRepository: SubsetTableConfigRepository? = null
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private var privacyReportService: PrivacyReportService? = null
+
     private val logger = LoggerFactory.getLogger(JobService::class.java)
 
     @Transactional
@@ -171,6 +175,7 @@ class JobService(
             updateJobStatus(job, JobStatus.COMPLETED)
             addLog(job.id, "Job completed successfully", LogLevel.INFO)
             val completedJob = jobRepository.findById(job.id).orElse(job)
+            privacyReportService?.generateJobReport(job.id, job.workspaceId)
             postJobActionService.triggerActions(completedJob)
             webhookService.triggerForJob(completedJob, JobStatus.COMPLETED.name)
 

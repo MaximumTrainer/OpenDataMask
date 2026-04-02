@@ -8,38 +8,73 @@ import com.opendatamask.dto.TableConfigurationRequest
 import com.opendatamask.dto.TableConfigurationResponse
 import com.opendatamask.model.GeneratorType
 import com.opendatamask.model.TableMode
+import com.opendatamask.model.User
+import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtAuthenticationFilter
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl
+import com.opendatamask.service.PermissionService
 import com.opendatamask.service.TableConfigurationService
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.security.config.annotation.web.builders.HttpSecurity
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
+import org.springframework.security.test.context.support.WithMockUser
+import org.springframework.security.web.SecurityFilterChain
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.time.LocalDateTime
+import java.util.Optional
 
 @WebMvcTest(
     TableConfigurationController::class,
-    excludeAutoConfiguration = [SecurityAutoConfiguration::class, SecurityFilterAutoConfiguration::class]
+    excludeAutoConfiguration = [
+        SecurityAutoConfiguration::class,
+        SecurityFilterAutoConfiguration::class,
+        UserDetailsServiceAutoConfiguration::class
+    ]
 )
+@Import(TableConfigurationControllerTest.TestSecurityConfig::class)
 @ActiveProfiles("test")
 class TableConfigurationControllerTest {
+
+    @TestConfiguration
+    @EnableWebSecurity
+    class TestSecurityConfig {
+        @Bean
+        fun testSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
+            http.csrf { it.disable() }
+                .authorizeHttpRequests { it.anyRequest().permitAll() }
+            return http.build()
+        }
+    }
 
     @Autowired private lateinit var mockMvc: MockMvc
 
     @MockBean private lateinit var tableConfigurationService: TableConfigurationService
+    @MockBean private lateinit var permissionService: PermissionService
+    @MockBean private lateinit var userRepository: UserRepository
     @MockBean private lateinit var jwtTokenProvider: JwtTokenProvider
     @MockBean private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
 
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+    private val mockUser = User(id = 1L, username = "testuser", email = "test@example.com", passwordHash = "hash")
+
+    private fun setupAuth() {
+        whenever(userRepository.findByUsername("testuser")).thenReturn(Optional.of(mockUser))
+    }
 
     private fun makeConfigResponse(id: Long = 1L, workspaceId: Long = 1L) = TableConfigurationResponse(
         id = id, workspaceId = workspaceId, tableName = "users", schemaName = null,
@@ -55,7 +90,9 @@ class TableConfigurationControllerTest {
     )
 
     @Test
+    @WithMockUser(username = "testuser")
     fun `POST create table config returns 201`() {
+        setupAuth()
         val request = TableConfigurationRequest(tableName = "users", mode = TableMode.PASSTHROUGH)
         whenever(tableConfigurationService.createTableConfiguration(eq(1L), any())).thenReturn(makeConfigResponse())
 
@@ -87,7 +124,9 @@ class TableConfigurationControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser")
     fun `PUT update table config returns 200`() {
+        setupAuth()
         val request = TableConfigurationRequest(tableName = "orders", mode = TableMode.MASK)
         whenever(tableConfigurationService.updateTableConfiguration(eq(1L), eq(1L), any())).thenReturn(makeConfigResponse())
 
@@ -99,7 +138,9 @@ class TableConfigurationControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser")
     fun `DELETE table config returns 204`() {
+        setupAuth()
         mockMvc.perform(delete("/api/workspaces/1/tables/1"))
             .andExpect(status().isNoContent)
 
@@ -107,7 +148,9 @@ class TableConfigurationControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser")
     fun `POST add column generator returns 201`() {
+        setupAuth()
         val request = ColumnGeneratorRequest(columnName = "email", generatorType = GeneratorType.EMAIL)
         whenever(tableConfigurationService.addColumnGenerator(eq(1L), any())).thenReturn(makeGeneratorResponse())
 
@@ -130,7 +173,9 @@ class TableConfigurationControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser")
     fun `PUT update column generator returns 200`() {
+        setupAuth()
         val request = ColumnGeneratorRequest(columnName = "phone", generatorType = GeneratorType.PHONE)
         whenever(tableConfigurationService.updateColumnGenerator(eq(1L), eq(1L), any())).thenReturn(makeGeneratorResponse())
 
@@ -142,7 +187,9 @@ class TableConfigurationControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser")
     fun `DELETE column generator returns 204`() {
+        setupAuth()
         mockMvc.perform(delete("/api/workspaces/1/tables/1/generators/1"))
             .andExpect(status().isNoContent)
 
