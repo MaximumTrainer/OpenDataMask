@@ -1,6 +1,6 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.adapter.input.rest.dto.ColumnPreviewResult
+import com.opendatamask.domain.port.input.dto.ColumnPreviewResult
 import com.opendatamask.application.service.DataPreviewService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -22,3 +22,4 @@ class DataPreviewController(
             dataPreviewService.previewColumn(workspaceId, tableName, columnName, sampleSize)
         )
 }
+

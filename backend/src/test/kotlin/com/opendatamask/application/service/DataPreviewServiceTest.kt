@@ -1,6 +1,6 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.adapter.output.connector.ConnectorFactory
 import com.opendatamask.adapter.output.connector.DatabaseConnector
 import com.opendatamask.domain.model.*
@@ -23,7 +23,7 @@ class DataPreviewServiceTest {
     @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
     @Mock private lateinit var tableConfigurationRepository: TableConfigurationRepository
     @Mock private lateinit var columnGeneratorRepository: ColumnGeneratorRepository
-    @Mock private lateinit var encryptionService: EncryptionService
+    @Mock private lateinit var EncryptionPort: EncryptionPort
 
     private lateinit var generatorService: GeneratorService
     private lateinit var dataPreviewService: DataPreviewService
@@ -37,7 +37,7 @@ class DataPreviewServiceTest {
             tableConfigurationRepository,
             columnGeneratorRepository,
             generatorService,
-            encryptionService
+            EncryptionPort
         )
     }
 
@@ -72,7 +72,7 @@ class DataPreviewServiceTest {
         )
 
         whenever(dataConnectionRepository.findByWorkspaceIdAndIsSource(1L, true)).thenReturn(listOf(conn))
-        whenever(encryptionService.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
+        whenever(EncryptionPort.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(mockConnector)
         whenever(mockConnector.fetchData("users", limit = 5)).thenReturn(rows)
         whenever(tableConfigurationRepository.findByWorkspaceIdAndTableName(1L, "users")).thenReturn(Optional.empty())
@@ -102,7 +102,7 @@ class DataPreviewServiceTest {
         )
 
         whenever(dataConnectionRepository.findByWorkspaceIdAndIsSource(1L, true)).thenReturn(listOf(conn))
-        whenever(encryptionService.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
+        whenever(EncryptionPort.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(mockConnector)
         whenever(mockConnector.fetchData("users", limit = 5)).thenReturn(rows)
         whenever(tableConfigurationRepository.findByWorkspaceIdAndTableName(1L, "users")).thenReturn(Optional.of(tableConfig))
@@ -126,7 +126,7 @@ class DataPreviewServiceTest {
         val rows = (1..10).map { mapOf<String, Any?>("id" to it.toString()) }
 
         whenever(dataConnectionRepository.findByWorkspaceIdAndIsSource(1L, true)).thenReturn(listOf(conn))
-        whenever(encryptionService.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
+        whenever(EncryptionPort.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(mockConnector)
         whenever(mockConnector.fetchData("orders", limit = 3)).thenReturn(rows.take(3))
         whenever(tableConfigurationRepository.findByWorkspaceIdAndTableName(1L, "orders")).thenReturn(Optional.empty())
@@ -141,7 +141,7 @@ class DataPreviewServiceTest {
         val conn = makeConnection()
 
         whenever(dataConnectionRepository.findByWorkspaceIdAndIsSource(1L, true)).thenReturn(listOf(conn))
-        whenever(encryptionService.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
+        whenever(EncryptionPort.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenThrow(RuntimeException("Connection refused"))
 
@@ -164,7 +164,7 @@ class DataPreviewServiceTest {
         )
 
         whenever(dataConnectionRepository.findByWorkspaceIdAndIsSource(1L, true)).thenReturn(listOf(conn))
-        whenever(encryptionService.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
+        whenever(EncryptionPort.decrypt("encrypted_conn")).thenReturn("jdbc:postgresql://localhost/db")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(mockConnector)
         whenever(mockConnector.fetchData("payments", limit = 5)).thenReturn(rows)
         whenever(tableConfigurationRepository.findByWorkspaceIdAndTableName(1L, "payments")).thenReturn(Optional.of(tableConfig))
@@ -177,3 +177,4 @@ class DataPreviewServiceTest {
         assertEquals("****-****-****-1234", result.samples[0].maskedValue)
     }
 }
+

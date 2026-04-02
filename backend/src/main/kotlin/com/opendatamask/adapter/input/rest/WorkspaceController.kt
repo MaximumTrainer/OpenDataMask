@@ -1,6 +1,6 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.adapter.input.rest.dto.*
+import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.adapter.output.persistence.WorkspaceTagRepository
 import com.opendatamask.application.service.WorkspaceService
@@ -100,3 +100,4 @@ class WorkspaceController(
             .orElseThrow { NoSuchElementException("User not found") }.id
     }
 }
+

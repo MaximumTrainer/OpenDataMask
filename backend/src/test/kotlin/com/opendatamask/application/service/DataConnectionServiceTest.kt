@@ -1,9 +1,9 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.adapter.output.connector.ConnectorFactory
 import com.opendatamask.adapter.output.connector.DatabaseConnector
-import com.opendatamask.adapter.input.rest.dto.DataConnectionRequest
+import com.opendatamask.domain.port.input.dto.DataConnectionRequest
 import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.domain.model.DataConnection
 import com.opendatamask.adapter.output.persistence.DataConnectionRepository
@@ -22,7 +22,7 @@ import java.util.Optional
 class DataConnectionServiceTest {
 
     @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
-    @Mock private lateinit var encryptionService: EncryptionService
+    @Mock private lateinit var EncryptionPort: EncryptionPort
     @Mock private lateinit var connectorFactory: ConnectorFactory
 
     @InjectMocks
@@ -63,28 +63,28 @@ class DataConnectionServiceTest {
     fun `createConnection encrypts credentials and saves`() {
         val request = makeRequest()
         val saved = makeConnection(id = 1L)
-        whenever(encryptionService.encrypt("jdbc:postgresql://localhost/db")).thenReturn("encrypted_conn")
-        whenever(encryptionService.encrypt("pass")).thenReturn("encrypted_pass")
+        whenever(EncryptionPort.encrypt("jdbc:postgresql://localhost/db")).thenReturn("encrypted_conn")
+        whenever(EncryptionPort.encrypt("pass")).thenReturn("encrypted_pass")
         whenever(dataConnectionRepository.save(any<DataConnection>())).thenReturn(saved)
 
         val response = service.createConnection(10L, request)
 
         assertEquals(1L, response.id)
         assertEquals(10L, response.workspaceId)
-        verify(encryptionService).encrypt("jdbc:postgresql://localhost/db")
-        verify(encryptionService).encrypt("pass")
+        verify(EncryptionPort).encrypt("jdbc:postgresql://localhost/db")
+        verify(EncryptionPort).encrypt("pass")
     }
 
     @Test
     fun `createConnection handles null password`() {
         val request = makeRequest(password = null)
         val saved = makeConnection(id = 1L).also { it.password = null }
-        whenever(encryptionService.encrypt(any())).thenReturn("encrypted_conn")
+        whenever(EncryptionPort.encrypt(any())).thenReturn("encrypted_conn")
         whenever(dataConnectionRepository.save(any<DataConnection>())).thenReturn(saved)
 
         service.createConnection(10L, request)
 
-        verify(encryptionService, times(1)).encrypt(any())  // Only conn string encrypted
+        verify(EncryptionPort, times(1)).encrypt(any())  // Only conn string encrypted
     }
 
     // ── getConnection ──────────────────────────────────────────────────────
@@ -145,8 +145,8 @@ class DataConnectionServiceTest {
         val conn = makeConnection(id = 1L, workspaceId = 10L)
         val updateRequest = makeRequest(name = "Updated DB", connectionString = "jdbc:updated")
         whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(conn))
-        whenever(encryptionService.encrypt("jdbc:updated")).thenReturn("enc_updated")
-        whenever(encryptionService.encrypt("pass")).thenReturn("enc_pass")
+        whenever(EncryptionPort.encrypt("jdbc:updated")).thenReturn("enc_updated")
+        whenever(EncryptionPort.encrypt("pass")).thenReturn("enc_pass")
         whenever(dataConnectionRepository.save(any<DataConnection>())).thenAnswer { it.arguments[0] as DataConnection }
 
         val response = service.updateConnection(10L, 1L, updateRequest)
@@ -190,8 +190,8 @@ class DataConnectionServiceTest {
         val conn = makeConnection(id = 1L, workspaceId = 10L)
         val mockConnector = mock<DatabaseConnector>()
         whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(conn))
-        whenever(encryptionService.decrypt("encrypted_conn")).thenReturn("real_conn")
-        whenever(encryptionService.decrypt("encrypted_pass")).thenReturn("real_pass")
+        whenever(EncryptionPort.decrypt("encrypted_conn")).thenReturn("real_conn")
+        whenever(EncryptionPort.decrypt("encrypted_pass")).thenReturn("real_pass")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(mockConnector)
         whenever(mockConnector.testConnection()).thenReturn(true)
@@ -207,7 +207,7 @@ class DataConnectionServiceTest {
         val conn = makeConnection(id = 1L, workspaceId = 10L)
         val mockConnector = mock<DatabaseConnector>()
         whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(conn))
-        whenever(encryptionService.decrypt(any())).thenReturn("decrypted")
+        whenever(EncryptionPort.decrypt(any())).thenReturn("decrypted")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(mockConnector)
         whenever(mockConnector.testConnection()).thenReturn(false)
@@ -222,7 +222,7 @@ class DataConnectionServiceTest {
     fun `testConnection returns failure message when connector throws`() {
         val conn = makeConnection(id = 1L, workspaceId = 10L)
         whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(conn))
-        whenever(encryptionService.decrypt(any())).thenReturn("decrypted")
+        whenever(EncryptionPort.decrypt(any())).thenReturn("decrypted")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenThrow(RuntimeException("host unreachable"))
 
@@ -232,3 +232,5 @@ class DataConnectionServiceTest {
         assertTrue(result.message.contains("host unreachable"))
     }
 }
+
+

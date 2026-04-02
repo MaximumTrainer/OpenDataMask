@@ -1,8 +1,8 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.adapter.input.rest.dto.ConnectionTestResult
-import com.opendatamask.adapter.input.rest.dto.DataConnectionRequest
-import com.opendatamask.adapter.input.rest.dto.DataConnectionResponse
+import com.opendatamask.domain.port.input.dto.ConnectionTestResult
+import com.opendatamask.domain.port.input.dto.DataConnectionRequest
+import com.opendatamask.domain.port.input.dto.DataConnectionResponse
 
 interface DataConnectionUseCase {
     fun createConnection(workspaceId: Long, request: DataConnectionRequest): DataConnectionResponse

@@ -2,6 +2,7 @@ package com.opendatamask.adapter.input.rest
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.opendatamask.adapter.input.rest.dto.*
+import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.domain.model.InheritedConfig
 import com.opendatamask.domain.model.Workspace
 import com.opendatamask.adapter.output.persistence.UserRepository
@@ -152,3 +153,4 @@ class WorkspaceInheritanceControllerTest {
             .andExpect(status().isConflict)
     }
 }
+

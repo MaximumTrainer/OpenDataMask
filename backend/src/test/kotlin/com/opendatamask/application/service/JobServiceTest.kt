@@ -1,6 +1,6 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.adapter.output.connector.ConnectorFactory
 import com.opendatamask.adapter.output.connector.DatabaseConnector
 import com.opendatamask.domain.model.*
@@ -25,7 +25,7 @@ class JobServiceTest {
     @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
     @Mock private lateinit var tableConfigurationRepository: TableConfigurationRepository
     @Mock private lateinit var columnGeneratorRepository: ColumnGeneratorRepository
-    @Mock private lateinit var encryptionService: EncryptionService
+    @Mock private lateinit var EncryptionPort: EncryptionPort
     @Mock private lateinit var connectorFactory: ConnectorFactory
     @Mock private lateinit var generatorService: GeneratorService
     @Mock private lateinit var destinationSchemaService: DestinationSchemaService
@@ -240,7 +240,7 @@ class JobServiceTest {
 
         stubJobSaveAndLog(job)
         whenever(dataConnectionRepository.findByWorkspaceId(1L)).thenReturn(listOf(sourceConn, destConn))
-        whenever(encryptionService.decrypt(any())).thenReturn("decrypted")
+        whenever(EncryptionPort.decrypt(any())).thenReturn("decrypted")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(mockSrc, mockDst)
         whenever(mockSrc.testConnection()).thenReturn(true)
@@ -275,7 +275,7 @@ class JobServiceTest {
 
         stubJobSaveAndLog(job)
         whenever(dataConnectionRepository.findByWorkspaceId(1L)).thenReturn(listOf(sourceConn, destConn))
-        whenever(encryptionService.decrypt(any())).thenReturn("decrypted")
+        whenever(EncryptionPort.decrypt(any())).thenReturn("decrypted")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(mockSrc, mockDst)
         whenever(mockSrc.testConnection()).thenReturn(true)
@@ -310,7 +310,7 @@ class JobServiceTest {
 
         stubJobSaveAndLog(job)
         whenever(dataConnectionRepository.findByWorkspaceId(1L)).thenReturn(listOf(sourceConn, destConn))
-        whenever(encryptionService.decrypt(any())).thenReturn("decrypted")
+        whenever(EncryptionPort.decrypt(any())).thenReturn("decrypted")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(mockSrc, mockDst)
         whenever(mockSrc.testConnection()).thenReturn(true)
@@ -337,7 +337,7 @@ class JobServiceTest {
 
         stubJobSaveAndLog(job)
         whenever(dataConnectionRepository.findByWorkspaceId(1L)).thenReturn(listOf(sourceConn, destConn))
-        whenever(encryptionService.decrypt(any())).thenReturn("decrypted")
+        whenever(EncryptionPort.decrypt(any())).thenReturn("decrypted")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(mockSrc, mockDst)
         whenever(mockSrc.testConnection()).thenReturn(true)
@@ -366,7 +366,7 @@ class JobServiceTest {
 
         stubJobSaveAndLog(job)
         whenever(dataConnectionRepository.findByWorkspaceId(1L)).thenReturn(listOf(sourceConn, destConn))
-        whenever(encryptionService.decrypt(any())).thenReturn("decrypted")
+        whenever(EncryptionPort.decrypt(any())).thenReturn("decrypted")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(mockSrc, mockDst)
         whenever(mockSrc.testConnection()).thenReturn(true)
@@ -391,7 +391,7 @@ class JobServiceTest {
 
         stubJobSaveAndLog(job)
         whenever(dataConnectionRepository.findByWorkspaceId(1L)).thenReturn(listOf(sourceConn, destConn))
-        whenever(encryptionService.decrypt(any())).thenReturn("decrypted")
+        whenever(EncryptionPort.decrypt(any())).thenReturn("decrypted")
         whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(mockSrc, mockDst)
         whenever(mockSrc.testConnection()).thenReturn(false)
@@ -402,4 +402,5 @@ class JobServiceTest {
         verify(postJobActionService).triggerActions(any())
     }
 }
+
 

@@ -2,9 +2,9 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.PrivacyHubUseCase
 
-import com.opendatamask.adapter.input.rest.dto.PrivacyHubSummary
-import com.opendatamask.adapter.input.rest.dto.PrivacyRecommendation
-import com.opendatamask.adapter.input.rest.dto.TableProtectionSummary
+import com.opendatamask.domain.port.input.dto.PrivacyHubSummary
+import com.opendatamask.domain.port.input.dto.PrivacyRecommendation
+import com.opendatamask.domain.port.input.dto.TableProtectionSummary
 import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository

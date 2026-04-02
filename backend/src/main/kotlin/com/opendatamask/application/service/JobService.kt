@@ -2,10 +2,10 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.JobUseCase
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.adapter.output.connector.ConnectorFactory
-import com.opendatamask.adapter.input.rest.dto.JobLogResponse
-import com.opendatamask.adapter.input.rest.dto.JobResponse
+import com.opendatamask.domain.port.input.dto.JobLogResponse
+import com.opendatamask.domain.port.input.dto.JobResponse
 import com.opendatamask.domain.model.*
 import com.opendatamask.adapter.output.persistence.*
 import org.slf4j.LoggerFactory
@@ -22,7 +22,7 @@ class JobService(
     private val dataConnectionRepository: DataConnectionRepository,
     private val tableConfigurationRepository: TableConfigurationRepository,
     private val columnGeneratorRepository: ColumnGeneratorRepository,
-    private val encryptionService: EncryptionService,
+    private val encryptionPort: EncryptionPort,
     private val connectorFactory: ConnectorFactory,
     private val generatorService: GeneratorService,
     private val destinationSchemaService: DestinationSchemaService,
@@ -127,18 +127,18 @@ class JobService(
             addLog(job.id, "Connecting to source: ${sourceConn.name}", LogLevel.INFO)
             val sourceConnector = connectorFactory.createConnector(
                 type = sourceConn.type,
-                connectionString = encryptionService.decrypt(sourceConn.connectionString),
+                connectionString = encryptionPort.decrypt(sourceConn.connectionString),
                 username = sourceConn.username,
-                password = sourceConn.password?.let { encryptionService.decrypt(it) },
+                password = sourceConn.password?.let { encryptionPort.decrypt(it) },
                 database = sourceConn.database
             )
 
             addLog(job.id, "Connecting to destination: ${destConn.name}", LogLevel.INFO)
             val destConnector = connectorFactory.createConnector(
                 type = destConn.type,
-                connectionString = encryptionService.decrypt(destConn.connectionString),
+                connectionString = encryptionPort.decrypt(destConn.connectionString),
                 username = destConn.username,
-                password = destConn.password?.let { encryptionService.decrypt(it) },
+                password = destConn.password?.let { encryptionPort.decrypt(it) },
                 database = destConn.database
             )
 
@@ -304,5 +304,6 @@ class JobService(
         timestamp = timestamp
     )
 }
+
 
 

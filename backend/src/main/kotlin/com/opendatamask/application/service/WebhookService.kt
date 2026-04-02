@@ -2,7 +2,8 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.WebhookUseCase
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
+import com.opendatamask.domain.port.input.dto.WebhookRequest
 import com.opendatamask.domain.model.*
 import com.opendatamask.adapter.output.persistence.WebhookRepository
 import com.opendatamask.adapter.output.persistence.WorkspaceRepository
@@ -18,7 +19,7 @@ import org.springframework.web.client.RestTemplate
 class WebhookService(
     private val webhookRepository: WebhookRepository,
     private val workspaceRepository: WorkspaceRepository,
-    private val encryptionService: EncryptionService,
+    private val encryptionPort: EncryptionPort,
     private val restTemplate: RestTemplate
 ) : WebhookUseCase {
     private val logger = LoggerFactory.getLogger(WebhookService::class.java)
@@ -42,7 +43,7 @@ class WebhookService(
             bodyTemplate = request.bodyTemplate,
             githubOwner = request.githubOwner,
             githubRepo = request.githubRepo,
-            githubPatEncrypted = request.githubPat?.let { encryptionService.encrypt(it) },
+            githubPatEncrypted = request.githubPat?.let { encryptionPort.encrypt(it) },
             githubWorkflow = request.githubWorkflow,
             githubInputsJson = request.githubInputsJson
         )
@@ -60,7 +61,7 @@ class WebhookService(
         webhook.githubOwner = request.githubOwner
         webhook.githubRepo = request.githubRepo
         if (request.githubPat != null) {
-            webhook.githubPatEncrypted = encryptionService.encrypt(request.githubPat)
+            webhook.githubPatEncrypted = encryptionPort.encrypt(request.githubPat)
         }
         webhook.githubWorkflow = request.githubWorkflow
         webhook.githubInputsJson = request.githubInputsJson
@@ -160,7 +161,7 @@ class WebhookService(
         val repo = webhook.githubRepo ?: return
         val workflow = webhook.githubWorkflow ?: return
         val patEncrypted = webhook.githubPatEncrypted ?: return
-        val pat = encryptionService.decrypt(patEncrypted)
+        val pat = encryptionPort.decrypt(patEncrypted)
 
         val url = "https://api.github.com/repos/$owner/$repo/actions/workflows/$workflow/dispatches"
         val inputsRaw = webhook.githubInputsJson ?: "{}"
@@ -207,23 +208,6 @@ class WebhookService(
         return webhook
     }
 }
-
-data class WebhookRequest(
-    val name: String,
-    val enabled: Boolean = true,
-    val triggerType: WebhookTriggerType,
-    val triggerEvents: Set<String> = emptySet(),
-    val webhookType: WebhookType = WebhookType.CUSTOM,
-    val url: String? = null,
-    val bypassSsl: Boolean = false,
-    val headersJson: String? = null,
-    val bodyTemplate: String? = null,
-    val githubOwner: String? = null,
-    val githubRepo: String? = null,
-    val githubPat: String? = null,
-    val githubWorkflow: String? = null,
-    val githubInputsJson: String? = null
-)
 
 // Type alias so existing Job class is unambiguous
 typealias MaskingJob = com.opendatamask.domain.model.Job

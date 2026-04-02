@@ -1,6 +1,7 @@
 package com.opendatamask.adapter.input.rest
 
 import com.opendatamask.adapter.input.rest.dto.*
+import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.domain.model.InheritedConfig
 import com.opendatamask.domain.model.Workspace
 import com.opendatamask.adapter.output.persistence.UserRepository
@@ -106,3 +107,4 @@ class WorkspaceInheritanceController(
         inheritedAt = inheritedAt
     )
 }
+

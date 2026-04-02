@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.adapter.input.rest.dto.PostJobActionRequest
+import com.opendatamask.domain.port.input.dto.PostJobActionRequest
 import com.opendatamask.domain.model.PostJobAction
 
 interface PostJobActionUseCase {

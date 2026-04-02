@@ -2,7 +2,7 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.SubsetConfigUseCase
 
-import com.opendatamask.adapter.input.rest.dto.SubsetTableConfigRequest
+import com.opendatamask.domain.port.input.dto.SubsetTableConfigRequest
 import com.opendatamask.domain.model.SubsetTableConfig
 import com.opendatamask.adapter.output.persistence.SubsetTableConfigRepository
 import org.springframework.stereotype.Service

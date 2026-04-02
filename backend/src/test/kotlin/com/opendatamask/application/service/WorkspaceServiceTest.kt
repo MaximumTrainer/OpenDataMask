@@ -1,8 +1,8 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.adapter.input.rest.dto.RegisterRequest
-import com.opendatamask.adapter.input.rest.dto.WorkspaceRequest
-import com.opendatamask.adapter.input.rest.dto.WorkspaceUserRequest
+import com.opendatamask.domain.port.input.dto.RegisterRequest
+import com.opendatamask.domain.port.input.dto.WorkspaceRequest
+import com.opendatamask.domain.port.input.dto.WorkspaceUserRequest
 import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.adapter.output.persistence.WorkspaceRepository
 import com.opendatamask.adapter.output.persistence.WorkspaceUserRepository
@@ -181,3 +181,4 @@ class WorkspaceServiceTest {
         assertFalse(users.any { it.userId == secondUserId })
     }
 }
+

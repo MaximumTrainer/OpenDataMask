@@ -2,7 +2,7 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.TableConfigurationUseCase
 
-import com.opendatamask.adapter.input.rest.dto.*
+import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.TableConfiguration
 import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository

@@ -2,7 +2,7 @@ package com.opendatamask.adapter.input.rest
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.opendatamask.adapter.input.rest.dto.PostJobActionRequest
+import com.opendatamask.domain.port.input.dto.PostJobActionRequest
 import com.opendatamask.domain.model.ActionType
 import com.opendatamask.domain.model.PostJobAction
 import com.opendatamask.infrastructure.security.JwtAuthenticationFilter
@@ -95,3 +95,4 @@ class PostJobActionControllerTest {
         verify(service).updateAction(eq(1L), eq(42L), any<PostJobActionRequest>())
     }
 }
+

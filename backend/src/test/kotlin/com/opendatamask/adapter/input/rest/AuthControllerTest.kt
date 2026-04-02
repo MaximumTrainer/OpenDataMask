@@ -1,8 +1,8 @@
 package com.opendatamask.adapter.input.rest
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.opendatamask.adapter.input.rest.dto.LoginRequest
-import com.opendatamask.adapter.input.rest.dto.RegisterRequest
+import com.opendatamask.domain.port.input.dto.LoginRequest
+import com.opendatamask.domain.port.input.dto.RegisterRequest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -123,3 +123,4 @@ class AuthControllerTest {
         }
     }
 }
+

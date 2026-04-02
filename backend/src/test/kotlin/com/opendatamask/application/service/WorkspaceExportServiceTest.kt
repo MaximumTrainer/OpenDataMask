@@ -42,11 +42,11 @@ class WorkspaceExportServiceTest {
         whenever(columnGeneratorRepo.findByTableConfigurationId(any())).thenReturn(emptyList())
         whenever(columnGeneratorRepo.save(any<ColumnGenerator>())).thenAnswer { it.arguments[0] }
 
-        val config = com.opendatamask.adapter.input.rest.dto.WorkspaceConfigDto(
-            tables = listOf(com.opendatamask.adapter.input.rest.dto.TableConfigExportDto(
+        val config = com.opendatamask.domain.port.input.dto.WorkspaceConfigDto(
+            tables = listOf(com.opendatamask.domain.port.input.dto.TableConfigExportDto(
                 tableName = "orders", schemaName = null, mode = TableMode.MASK,
                 rowLimit = null, whereClause = null,
-                columnGenerators = listOf(com.opendatamask.adapter.input.rest.dto.ColumnGeneratorExportDto("total", GeneratorType.CUSTOM, null))
+                columnGenerators = listOf(com.opendatamask.domain.port.input.dto.ColumnGeneratorExportDto("total", GeneratorType.CUSTOM, null))
             ))
         )
         service.import(1L, config)
@@ -59,7 +59,8 @@ class WorkspaceExportServiceTest {
     fun `import throws when workspace not found`() {
         whenever(workspaceRepo.findById(999L)).thenReturn(Optional.empty())
         assertThrows(NoSuchElementException::class.java) {
-            service.import(999L, com.opendatamask.adapter.input.rest.dto.WorkspaceConfigDto())
+            service.import(999L, com.opendatamask.domain.port.input.dto.WorkspaceConfigDto())
         }
     }
 }
+

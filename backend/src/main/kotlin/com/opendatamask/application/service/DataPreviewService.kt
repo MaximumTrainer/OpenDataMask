@@ -4,10 +4,10 @@ import com.opendatamask.domain.port.input.DataPreviewUseCase
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.adapter.output.connector.ConnectorFactory
-import com.opendatamask.adapter.input.rest.dto.ColumnPreviewResult
-import com.opendatamask.adapter.input.rest.dto.PreviewSample
+import com.opendatamask.domain.port.input.dto.ColumnPreviewResult
+import com.opendatamask.domain.port.input.dto.PreviewSample
 import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
 import com.opendatamask.adapter.output.persistence.DataConnectionRepository
 import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
@@ -20,7 +20,7 @@ class DataPreviewService(
     private val tableConfigurationRepository: TableConfigurationRepository,
     private val columnGeneratorRepository: ColumnGeneratorRepository,
     private val generatorService: GeneratorService,
-    private val encryptionService: EncryptionService
+    private val encryptionPort: EncryptionPort
 ) : DataPreviewUseCase {
     private val mapper = jacksonObjectMapper()
 
@@ -45,8 +45,8 @@ class DataPreviewService(
 
         val samples = try {
             val conn = connections.first()
-            val decryptedConnectionString = encryptionService.decrypt(conn.connectionString)
-            val decryptedPassword = conn.password?.let { encryptionService.decrypt(it) }
+            val decryptedConnectionString = encryptionPort.decrypt(conn.connectionString)
+            val decryptedPassword = conn.password?.let { encryptionPort.decrypt(it) }
             val connector = connectorFactory.createConnector(
                 type = conn.type,
                 connectionString = decryptedConnectionString,

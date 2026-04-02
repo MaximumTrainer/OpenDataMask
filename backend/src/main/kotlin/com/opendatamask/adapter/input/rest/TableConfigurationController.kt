@@ -1,6 +1,6 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.adapter.input.rest.dto.*
+import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.application.service.PermissionService
@@ -116,3 +116,4 @@ class TableConfigurationController(
         userRepository.findByUsername(userDetails.username)
             .orElseThrow { NoSuchElementException("User not found") }.id
 }
+

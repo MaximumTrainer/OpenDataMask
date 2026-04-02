@@ -1,6 +1,6 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.adapter.input.rest.dto.SubsetTableConfigRequest
+import com.opendatamask.domain.port.input.dto.SubsetTableConfigRequest
 import com.opendatamask.adapter.input.rest.dto.SubsetTableConfigResponse
 import com.opendatamask.adapter.input.rest.dto.toResponse
 import com.opendatamask.application.service.SubsetConfigService
@@ -49,3 +49,4 @@ class SubsetConfigController(
         return ResponseEntity.noContent().build()
     }
 }
+

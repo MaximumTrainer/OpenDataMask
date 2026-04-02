@@ -3,7 +3,7 @@ package com.opendatamask.application.service
 import com.opendatamask.domain.port.input.FileStorageUseCase
 import com.opendatamask.domain.port.input.RetrievedFile
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.domain.model.StoredFile
 import com.opendatamask.adapter.output.persistence.StoredFileRepository
 import org.springframework.stereotype.Service
@@ -12,12 +12,12 @@ import java.util.Base64
 
 @Service
 class FileStorageService(
-    private val encryptionService: EncryptionService,
+    private val encryptionPort: EncryptionPort,
     private val storedFileRepository: StoredFileRepository
 ) : FileStorageUseCase {
     override fun storeFile(workspaceId: Long, filename: String, contentType: String, content: ByteArray, isSource: Boolean): StoredFile {
         val base64Content = Base64.getEncoder().encodeToString(content)
-        val encrypted = encryptionService.encrypt(base64Content)
+        val encrypted = encryptionPort.encrypt(base64Content)
         val storedFile = StoredFile(
             workspaceId = workspaceId,
             filename = filename,
@@ -31,7 +31,7 @@ class FileStorageService(
     override fun retrieveFile(fileId: Long): RetrievedFile {
         val storedFile = storedFileRepository.findById(fileId)
             .orElseThrow { NoSuchElementException("File not found: $fileId") }
-        val decrypted = encryptionService.decrypt(storedFile.encryptedContent)
+        val decrypted = encryptionPort.decrypt(storedFile.encryptedContent)
         val content = Base64.getDecoder().decode(decrypted)
         return RetrievedFile(
             filename = storedFile.filename,

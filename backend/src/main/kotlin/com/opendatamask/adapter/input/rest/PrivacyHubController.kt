@@ -1,7 +1,7 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.adapter.input.rest.dto.PrivacyHubSummary
-import com.opendatamask.adapter.input.rest.dto.PrivacyRecommendation
+import com.opendatamask.domain.port.input.dto.PrivacyHubSummary
+import com.opendatamask.domain.port.input.dto.PrivacyRecommendation
 import com.opendatamask.application.service.PrivacyHubService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -26,3 +26,4 @@ class PrivacyHubController(
         return ResponseEntity.ok(mapOf("applied" to count))
     }
 }
+

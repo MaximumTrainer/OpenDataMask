@@ -1,7 +1,7 @@
 package com.opendatamask.adapter.input.rest
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.opendatamask.adapter.input.rest.dto.WorkspaceConfigDto
+import com.opendatamask.domain.port.input.dto.WorkspaceConfigDto
 import com.opendatamask.application.service.WorkspaceExportService
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -34,3 +34,4 @@ class WorkspaceExportController(
         return ResponseEntity.ok(mapOf("status" to "imported", "version" to config.version))
     }
 }
+

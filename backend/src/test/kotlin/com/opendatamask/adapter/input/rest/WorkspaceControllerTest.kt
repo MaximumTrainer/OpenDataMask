@@ -1,7 +1,7 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.adapter.input.rest.dto.WorkspaceResponse
-import com.opendatamask.adapter.input.rest.dto.WorkspaceUserResponse
+import com.opendatamask.domain.port.input.dto.WorkspaceResponse
+import com.opendatamask.domain.port.input.dto.WorkspaceUserResponse
 import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.adapter.output.persistence.WorkspaceTagRepository
 import com.opendatamask.infrastructure.security.JwtTokenProvider
@@ -83,3 +83,4 @@ class WorkspaceControllerTest {
             .andExpect(jsonPath("$.length()").value(0))
     }
 }
+

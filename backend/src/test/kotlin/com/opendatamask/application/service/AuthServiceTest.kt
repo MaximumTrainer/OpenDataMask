@@ -1,10 +1,10 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.adapter.input.rest.dto.LoginRequest
-import com.opendatamask.adapter.input.rest.dto.RegisterRequest
+import com.opendatamask.domain.port.input.dto.LoginRequest
+import com.opendatamask.domain.port.input.dto.RegisterRequest
 import com.opendatamask.domain.model.UserRole
 import com.opendatamask.adapter.output.persistence.UserRepository
-import com.opendatamask.infrastructure.security.JwtTokenProvider
+import com.opendatamask.domain.port.output.TokenPort
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -29,7 +29,7 @@ class AuthServiceTest {
     private lateinit var passwordEncoder: PasswordEncoder
 
     @Autowired
-    private lateinit var jwtTokenProvider: JwtTokenProvider
+    private lateinit var TokenPort: TokenPort
 
     @Test
     fun `register creates user with correct data`() {
@@ -105,7 +105,7 @@ class AuthServiceTest {
 
         assertNotNull(response.token)
         assertEquals("loginuser", response.username)
-        assertTrue(jwtTokenProvider.validateToken(response.token))
+        assertTrue(TokenPort.validateToken(response.token))
     }
 
     @Test
@@ -150,3 +150,4 @@ class AuthServiceTest {
         assertEquals(UserRole.USER, savedUser.get().role)
     }
 }
+

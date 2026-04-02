@@ -1,8 +1,8 @@
 package com.opendatamask.adapter.input.rest
 
 import com.opendatamask.adapter.input.rest.dto.ApplyPresetRequest
-import com.opendatamask.adapter.input.rest.dto.GeneratorPresetRequest
-import com.opendatamask.adapter.input.rest.dto.GeneratorPresetResponse
+import com.opendatamask.domain.port.input.dto.GeneratorPresetRequest
+import com.opendatamask.domain.port.input.dto.GeneratorPresetResponse
 import com.opendatamask.application.service.GeneratorPresetService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -60,3 +60,4 @@ class GeneratorPresetController(
             generatorPresetService.applyPresetToColumn(workspaceId, tableName, columnName, request.presetId)
         )
 }
+

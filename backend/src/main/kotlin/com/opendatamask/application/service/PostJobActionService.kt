@@ -7,6 +7,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.opendatamask.domain.model.ActionType
 import com.opendatamask.domain.model.Job
 import com.opendatamask.domain.model.PostJobAction
+import com.opendatamask.domain.port.input.dto.PostJobActionRequest
 import com.opendatamask.adapter.output.persistence.PostJobActionRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -105,7 +106,7 @@ class PostJobActionService(
 
     override fun createAction(action: PostJobAction): PostJobAction = repository.save(action)
     override fun listActions(workspaceId: Long): List<PostJobAction> = repository.findByWorkspaceId(workspaceId)
-    override fun updateAction(workspaceId: Long, id: Long, request: com.opendatamask.adapter.input.rest.dto.PostJobActionRequest): PostJobAction {
+    override fun updateAction(workspaceId: Long, id: Long, request: PostJobActionRequest): PostJobAction {
         val existing = repository.findById(id)
             .orElseThrow { NoSuchElementException("PostJobAction not found: $id") }
         if (existing.workspaceId != workspaceId) {

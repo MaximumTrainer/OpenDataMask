@@ -1,6 +1,6 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.adapter.output.connector.ColumnInfo
 import com.opendatamask.adapter.output.connector.ConnectorFactory
 import com.opendatamask.adapter.output.connector.DatabaseConnector
@@ -24,7 +24,7 @@ class SensitivityScanLogServiceTest {
     @Mock private lateinit var workspaceRepository: WorkspaceRepository
     @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
     @Mock private lateinit var connectorFactory: ConnectorFactory
-    @Mock private lateinit var encryptionService: EncryptionService
+    @Mock private lateinit var EncryptionPort: EncryptionPort
 
     @InjectMocks
     private lateinit var sensitivityScanService: SensitivityScanService
@@ -53,7 +53,7 @@ class SensitivityScanLogServiceTest {
         whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(workspace))
         whenever(dataConnectionRepository.findByWorkspaceIdAndIsSource(1L, true))
             .thenReturn(listOf(connection))
-        whenever(encryptionService.decrypt("enc")).thenReturn("conn")
+        whenever(EncryptionPort.decrypt("enc")).thenReturn("conn")
         whenever(connectorFactory.createConnector(
             eq(ConnectionType.POSTGRESQL), eq("conn"),
             anyOrNull(), anyOrNull(), anyOrNull()
@@ -108,7 +108,7 @@ class SensitivityScanLogServiceTest {
         whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(workspace))
         whenever(dataConnectionRepository.findByWorkspaceIdAndIsSource(1L, true))
             .thenReturn(listOf(connection))
-        whenever(encryptionService.decrypt("enc")).thenReturn("conn")
+        whenever(EncryptionPort.decrypt("enc")).thenReturn("conn")
         whenever(connectorFactory.createConnector(
             eq(ConnectionType.POSTGRESQL), eq("conn"),
             anyOrNull(), anyOrNull(), anyOrNull()
@@ -131,3 +131,4 @@ class SensitivityScanLogServiceTest {
         assertNotNull(entry.recommendedGenerator)
     }
 }
+

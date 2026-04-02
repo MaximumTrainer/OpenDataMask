@@ -6,7 +6,7 @@ import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.ConsistencyMode
 import com.opendatamask.domain.model.TableConfiguration
 import com.opendatamask.domain.model.TableMode
-import com.opendatamask.adapter.input.rest.dto.GeneratorPresetRequest
+import com.opendatamask.domain.port.input.dto.GeneratorPresetRequest
 import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
 import com.opendatamask.adapter.output.persistence.GeneratorPresetRepository
 import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
@@ -144,3 +144,4 @@ class GeneratorPresetServiceTest {
         assertEquals(preset.id, result.presetId)
     }
 }
+

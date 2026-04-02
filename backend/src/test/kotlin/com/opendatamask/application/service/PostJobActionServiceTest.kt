@@ -1,6 +1,6 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.adapter.input.rest.dto.PostJobActionRequest
+import com.opendatamask.domain.port.input.dto.PostJobActionRequest
 import com.opendatamask.domain.model.ActionType
 import com.opendatamask.domain.model.Job
 import com.opendatamask.domain.model.JobStatus
@@ -106,3 +106,4 @@ class PostJobActionServiceTest {
         verify(repository, never()).save(any())
     }
 }
+

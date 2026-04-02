@@ -1,7 +1,7 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.adapter.input.rest.dto.PrivacyHubSummary
-import com.opendatamask.adapter.input.rest.dto.PrivacyRecommendation
+import com.opendatamask.domain.port.input.dto.PrivacyHubSummary
+import com.opendatamask.domain.port.input.dto.PrivacyRecommendation
 
 interface PrivacyHubUseCase {
     fun getSummary(workspaceId: Long): PrivacyHubSummary

@@ -2,10 +2,10 @@ package com.opendatamask.adapter.input.rest
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.opendatamask.adapter.input.rest.dto.ColumnGeneratorRequest
-import com.opendatamask.adapter.input.rest.dto.ColumnGeneratorResponse
-import com.opendatamask.adapter.input.rest.dto.TableConfigurationRequest
-import com.opendatamask.adapter.input.rest.dto.TableConfigurationResponse
+import com.opendatamask.domain.port.input.dto.ColumnGeneratorRequest
+import com.opendatamask.domain.port.input.dto.ColumnGeneratorResponse
+import com.opendatamask.domain.port.input.dto.TableConfigurationRequest
+import com.opendatamask.domain.port.input.dto.TableConfigurationResponse
 import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.domain.model.TableMode
 import com.opendatamask.domain.model.User
@@ -207,3 +207,4 @@ class TableConfigurationControllerTest {
         ).andExpect(status().isBadRequest)
     }
 }
+

@@ -1,6 +1,6 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.adapter.input.rest.dto.PrivacyHubSummary
+import com.opendatamask.domain.port.input.dto.PrivacyHubSummary
 import com.opendatamask.domain.model.*
 import com.opendatamask.adapter.output.persistence.*
 import org.junit.jupiter.api.Assertions.*
@@ -201,3 +201,4 @@ class PrivacyHubServiceTest {
         verify(columnGeneratorRepository, never()).save(any())
     }
 }
+

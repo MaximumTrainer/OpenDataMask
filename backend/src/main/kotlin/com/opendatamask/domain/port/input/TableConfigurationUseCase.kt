@@ -1,9 +1,9 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.adapter.input.rest.dto.ColumnGeneratorRequest
-import com.opendatamask.adapter.input.rest.dto.ColumnGeneratorResponse
-import com.opendatamask.adapter.input.rest.dto.TableConfigurationRequest
-import com.opendatamask.adapter.input.rest.dto.TableConfigurationResponse
+import com.opendatamask.domain.port.input.dto.ColumnGeneratorRequest
+import com.opendatamask.domain.port.input.dto.ColumnGeneratorResponse
+import com.opendatamask.domain.port.input.dto.TableConfigurationRequest
+import com.opendatamask.domain.port.input.dto.TableConfigurationResponse
 
 interface TableConfigurationUseCase {
     fun createTableConfiguration(workspaceId: Long, request: TableConfigurationRequest): TableConfigurationResponse

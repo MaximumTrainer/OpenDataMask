@@ -1,6 +1,6 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.adapter.input.rest.dto.PostJobActionRequest
+import com.opendatamask.domain.port.input.dto.PostJobActionRequest
 import com.opendatamask.domain.model.PostJobAction
 import com.opendatamask.application.service.PostJobActionService
 import org.springframework.http.HttpStatus
@@ -47,3 +47,4 @@ class PostJobActionController(
         return ResponseEntity.noContent().build()
     }
 }
+

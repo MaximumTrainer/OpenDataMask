@@ -1,7 +1,7 @@
 package com.opendatamask.adapter.input.rest
 
 import com.opendatamask.domain.model.Webhook
-import com.opendatamask.application.service.WebhookRequest
+import com.opendatamask.domain.port.input.dto.WebhookRequest
 import com.opendatamask.application.service.WebhookService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -48,3 +48,4 @@ class WebhookController(
         return ResponseEntity.ok().build()
     }
 }
+

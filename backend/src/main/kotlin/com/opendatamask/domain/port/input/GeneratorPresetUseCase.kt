@@ -1,8 +1,8 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.adapter.input.rest.dto.ColumnGeneratorResponse
-import com.opendatamask.adapter.input.rest.dto.GeneratorPresetRequest
-import com.opendatamask.adapter.input.rest.dto.GeneratorPresetResponse
+import com.opendatamask.domain.port.input.dto.ColumnGeneratorResponse
+import com.opendatamask.domain.port.input.dto.GeneratorPresetRequest
+import com.opendatamask.domain.port.input.dto.GeneratorPresetResponse
 
 interface GeneratorPresetUseCase {
     fun listSystemPresets(): List<GeneratorPresetResponse>

@@ -2,9 +2,9 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.GeneratorPresetUseCase
 
-import com.opendatamask.adapter.input.rest.dto.ColumnGeneratorResponse
-import com.opendatamask.adapter.input.rest.dto.GeneratorPresetRequest
-import com.opendatamask.adapter.input.rest.dto.GeneratorPresetResponse
+import com.opendatamask.domain.port.input.dto.ColumnGeneratorResponse
+import com.opendatamask.domain.port.input.dto.GeneratorPresetRequest
+import com.opendatamask.domain.port.input.dto.GeneratorPresetResponse
 import com.opendatamask.domain.model.GeneratorPreset
 import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
 import com.opendatamask.adapter.output.persistence.GeneratorPresetRepository

@@ -1,7 +1,7 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.adapter.input.rest.dto.JobLogResponse
-import com.opendatamask.adapter.input.rest.dto.JobResponse
+import com.opendatamask.domain.port.input.dto.JobLogResponse
+import com.opendatamask.domain.port.input.dto.JobResponse
 import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.application.service.JobService
@@ -66,3 +66,4 @@ class JobController(
             .orElseThrow { NoSuchElementException("User not found") }.id
     }
 }
+

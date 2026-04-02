@@ -2,7 +2,7 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.WorkspaceExportUseCase
 
-import com.opendatamask.adapter.input.rest.dto.*
+import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.domain.model.*
 import com.opendatamask.adapter.output.persistence.*
 import org.springframework.stereotype.Service

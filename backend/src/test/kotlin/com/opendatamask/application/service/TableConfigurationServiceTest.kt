@@ -1,7 +1,7 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.adapter.input.rest.dto.ColumnGeneratorRequest
-import com.opendatamask.adapter.input.rest.dto.TableConfigurationRequest
+import com.opendatamask.domain.port.input.dto.ColumnGeneratorRequest
+import com.opendatamask.domain.port.input.dto.TableConfigurationRequest
 import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.domain.model.TableConfiguration
@@ -272,3 +272,4 @@ class TableConfigurationServiceTest {
         assertThrows<NoSuchElementException> { service.deleteColumnGenerator(1L, 1L) }
     }
 }
+

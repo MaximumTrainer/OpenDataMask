@@ -2,11 +2,11 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.DataConnectionUseCase
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.adapter.output.connector.ConnectorFactory
-import com.opendatamask.adapter.input.rest.dto.ConnectionTestResult
-import com.opendatamask.adapter.input.rest.dto.DataConnectionRequest
-import com.opendatamask.adapter.input.rest.dto.DataConnectionResponse
+import com.opendatamask.domain.port.input.dto.ConnectionTestResult
+import com.opendatamask.domain.port.input.dto.DataConnectionRequest
+import com.opendatamask.domain.port.input.dto.DataConnectionResponse
 import com.opendatamask.domain.model.DataConnection
 import com.opendatamask.adapter.output.persistence.DataConnectionRepository
 import org.springframework.stereotype.Service
@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class DataConnectionService(
     private val dataConnectionRepository: DataConnectionRepository,
-    private val encryptionService: EncryptionService,
+    private val encryptionPort: EncryptionPort,
     private val connectorFactory: ConnectorFactory
 ) : DataConnectionUseCase {
 
@@ -25,9 +25,9 @@ class DataConnectionService(
             workspaceId = workspaceId,
             name = request.name,
             type = request.type,
-            connectionString = encryptionService.encrypt(request.connectionString),
+            connectionString = encryptionPort.encrypt(request.connectionString),
             username = request.username,
-            password = request.password?.let { encryptionService.encrypt(it) },
+            password = request.password?.let { encryptionPort.encrypt(it) },
             database = request.database,
             isSource = request.isSource,
             isDestination = request.isDestination
@@ -51,9 +51,9 @@ class DataConnectionService(
         val connection = findConnection(workspaceId, connectionId)
         connection.name = request.name
         connection.type = request.type
-        connection.connectionString = encryptionService.encrypt(request.connectionString)
+        connection.connectionString = encryptionPort.encrypt(request.connectionString)
         connection.username = request.username
-        connection.password = request.password?.let { encryptionService.encrypt(it) }
+        connection.password = request.password?.let { encryptionPort.encrypt(it) }
         connection.database = request.database
         connection.isSource = request.isSource
         connection.isDestination = request.isDestination
@@ -68,8 +68,8 @@ class DataConnectionService(
 
     override fun testConnection(workspaceId: Long, connectionId: Long): ConnectionTestResult {
         val connection = findConnection(workspaceId, connectionId)
-        val decryptedConnectionString = encryptionService.decrypt(connection.connectionString)
-        val decryptedPassword = connection.password?.let { encryptionService.decrypt(it) }
+        val decryptedConnectionString = encryptionPort.decrypt(connection.connectionString)
+        val decryptedPassword = connection.password?.let { encryptionPort.decrypt(it) }
 
         return try {
             val connector = connectorFactory.createConnector(

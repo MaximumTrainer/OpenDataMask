@@ -1,8 +1,8 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.adapter.input.rest.dto.AuthResponse
-import com.opendatamask.adapter.input.rest.dto.LoginRequest
-import com.opendatamask.adapter.input.rest.dto.RegisterRequest
+import com.opendatamask.domain.port.input.dto.AuthResponse
+import com.opendatamask.domain.port.input.dto.LoginRequest
+import com.opendatamask.domain.port.input.dto.RegisterRequest
 import com.opendatamask.application.service.AuthService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -25,3 +25,4 @@ class AuthController(
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request))
     }
 }
+

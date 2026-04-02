@@ -2,7 +2,7 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.SensitivityScanUseCase
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.adapter.output.connector.ConnectorFactory
 import com.opendatamask.domain.model.*
 import com.opendatamask.adapter.output.persistence.*
@@ -19,7 +19,7 @@ class SensitivityScanService(
     private val workspaceRepository: WorkspaceRepository,
     private val dataConnectionRepository: DataConnectionRepository,
     private val connectorFactory: ConnectorFactory,
-    private val encryptionService: EncryptionService
+    private val encryptionPort: EncryptionPort
 ) : SensitivityScanUseCase {
     private val rules: List<SensitivityRule> = buildRules()
 
@@ -40,9 +40,9 @@ class SensitivityScanService(
 
             val connector = connectorFactory.createConnector(
                 type = sourceConnection.type,
-                connectionString = encryptionService.decrypt(sourceConnection.connectionString),
+                connectionString = encryptionPort.decrypt(sourceConnection.connectionString),
                 username = sourceConnection.username,
-                password = sourceConnection.password?.let { encryptionService.decrypt(it) },
+                password = sourceConnection.password?.let { encryptionPort.decrypt(it) },
                 database = sourceConnection.database
             )
 

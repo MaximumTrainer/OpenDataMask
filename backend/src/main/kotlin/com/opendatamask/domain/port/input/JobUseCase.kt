@@ -1,7 +1,7 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.adapter.input.rest.dto.JobLogResponse
-import com.opendatamask.adapter.input.rest.dto.JobResponse
+import com.opendatamask.domain.port.input.dto.JobLogResponse
+import com.opendatamask.domain.port.input.dto.JobResponse
 
 interface JobUseCase {
     fun createJob(workspaceId: Long, createdBy: Long): JobResponse

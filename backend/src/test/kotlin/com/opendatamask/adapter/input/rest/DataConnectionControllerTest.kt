@@ -2,9 +2,9 @@ package com.opendatamask.adapter.input.rest
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.opendatamask.adapter.input.rest.dto.DataConnectionRequest
-import com.opendatamask.adapter.input.rest.dto.DataConnectionResponse
-import com.opendatamask.adapter.input.rest.dto.ConnectionTestResult
+import com.opendatamask.domain.port.input.dto.DataConnectionRequest
+import com.opendatamask.domain.port.input.dto.DataConnectionResponse
+import com.opendatamask.domain.port.input.dto.ConnectionTestResult
 import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.infrastructure.security.JwtAuthenticationFilter
 import com.opendatamask.infrastructure.security.JwtTokenProvider
@@ -126,3 +126,4 @@ class DataConnectionControllerTest {
         ).andExpect(status().isBadRequest)
     }
 }
+

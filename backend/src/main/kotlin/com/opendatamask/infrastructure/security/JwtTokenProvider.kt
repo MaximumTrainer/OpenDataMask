@@ -1,5 +1,6 @@
 package com.opendatamask.infrastructure.security
 
+import com.opendatamask.domain.port.output.TokenPort
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
@@ -15,12 +16,12 @@ class JwtTokenProvider(
 
     @Value("\${opendatamask.jwt.expiration}")
     private val jwtExpiration: Long
-) {
+) : TokenPort {
     private val secretKey: SecretKey by lazy {
         Keys.hmacShaKeyFor(jwtSecret.toByteArray())
     }
 
-    fun generateToken(username: String): String {
+    override fun generateToken(username: String): String {
         val now = Date()
         val expiry = Date(now.time + jwtExpiration)
 
@@ -32,11 +33,11 @@ class JwtTokenProvider(
             .compact()
     }
 
-    fun getUsernameFromToken(token: String): String {
+    override fun getUsernameFromToken(token: String): String {
         return getClaims(token).subject
     }
 
-    fun validateToken(token: String): Boolean {
+    override fun validateToken(token: String): Boolean {
         return try {
             val claims = getClaims(token)
             !claims.expiration.before(Date())

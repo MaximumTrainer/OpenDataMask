@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.adapter.input.rest.dto.WorkspaceConfigDto
+import com.opendatamask.domain.port.input.dto.WorkspaceConfigDto
 
 interface WorkspaceExportUseCase {
     fun export(workspaceId: Long): WorkspaceConfigDto

@@ -2,7 +2,7 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.WorkspaceUseCase
 
-import com.opendatamask.adapter.input.rest.dto.*
+import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.domain.model.Workspace
 import com.opendatamask.domain.model.WorkspaceRole
 import com.opendatamask.domain.model.WorkspaceUser

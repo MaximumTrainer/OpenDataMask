@@ -1,7 +1,8 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.infrastructure.config.EncryptionService
+import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.domain.model.*
+import com.opendatamask.domain.port.input.dto.WebhookRequest
 import com.opendatamask.adapter.output.persistence.WebhookRepository
 import com.opendatamask.adapter.output.persistence.WorkspaceRepository
 import org.junit.jupiter.api.Assertions.*
@@ -23,7 +24,7 @@ class WebhookServiceTest {
 
     @Mock private lateinit var webhookRepository: WebhookRepository
     @Mock private lateinit var workspaceRepository: WorkspaceRepository
-    @Mock private lateinit var encryptionService: EncryptionService
+    @Mock private lateinit var EncryptionPort: EncryptionPort
     @Mock private lateinit var restTemplate: RestTemplate
 
     @InjectMocks
@@ -217,7 +218,7 @@ class WebhookServiceTest {
         whenever(webhookRepository.findByWorkspaceIdAndTriggerTypeAndEnabledTrue(1L, WebhookTriggerType.DATA_GENERATION))
             .thenReturn(listOf(githubWebhook))
         whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(makeWorkspace()))
-        whenever(encryptionService.decrypt("encrypted_pat_value")).thenReturn("ghp_secret_token")
+        whenever(EncryptionPort.decrypt("encrypted_pat_value")).thenReturn("ghp_secret_token")
 
         var capturedUrl: String? = null
         var capturedHeaders: org.springframework.http.HttpHeaders? = null
@@ -312,3 +313,5 @@ class WebhookServiceTest {
         }
     }
 }
+
+
