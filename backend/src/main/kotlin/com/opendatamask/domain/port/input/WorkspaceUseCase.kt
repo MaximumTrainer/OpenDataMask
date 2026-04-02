@@ -1,9 +1,9 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.dto.WorkspaceRequest
-import com.opendatamask.dto.WorkspaceResponse
-import com.opendatamask.dto.WorkspaceUserRequest
-import com.opendatamask.dto.WorkspaceUserResponse
+import com.opendatamask.adapter.input.rest.dto.WorkspaceRequest
+import com.opendatamask.adapter.input.rest.dto.WorkspaceResponse
+import com.opendatamask.adapter.input.rest.dto.WorkspaceUserRequest
+import com.opendatamask.adapter.input.rest.dto.WorkspaceUserResponse
 
 interface WorkspaceUseCase {
     fun createWorkspace(request: WorkspaceRequest, ownerId: Long): WorkspaceResponse

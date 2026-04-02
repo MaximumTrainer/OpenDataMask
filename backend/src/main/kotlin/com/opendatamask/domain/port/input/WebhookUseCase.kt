@@ -1,7 +1,7 @@
 package com.opendatamask.domain.port.input
 
 import com.opendatamask.domain.model.Webhook
-import com.opendatamask.service.WebhookRequest
+import com.opendatamask.application.service.WebhookRequest
 
 interface WebhookUseCase {
     fun listWebhooks(workspaceId: Long): List<Webhook>

@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.dto.SubsetTableConfigRequest
+import com.opendatamask.adapter.input.rest.dto.SubsetTableConfigRequest
 import com.opendatamask.domain.model.SubsetTableConfig
 
 interface SubsetConfigUseCase {
