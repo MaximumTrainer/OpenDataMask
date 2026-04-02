@@ -1,4 +1,4 @@
-package com.opendatamask.model
+package com.opendatamask.domain.model
 
 enum class WorkspacePermission {
     CONFIGURE_GENERATORS,

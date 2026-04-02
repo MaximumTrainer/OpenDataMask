@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
 import com.opendatamask.config.EncryptionService
-import com.opendatamask.model.*
+import com.opendatamask.domain.model.*
 import com.opendatamask.repository.WebhookRepository
 import com.opendatamask.repository.WorkspaceRepository
 import org.slf4j.LoggerFactory
@@ -224,4 +224,4 @@ data class WebhookRequest(
 )
 
 // Type alias so existing Job class is unambiguous
-typealias MaskingJob = com.opendatamask.model.Job
+typealias MaskingJob = com.opendatamask.domain.model.Job

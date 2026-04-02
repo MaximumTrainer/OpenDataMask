@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
 import com.opendatamask.config.EncryptionService
-import com.opendatamask.model.StoredFile
+import com.opendatamask.domain.model.StoredFile
 import com.opendatamask.repository.StoredFileRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*

@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.StoredFile
+import com.opendatamask.domain.model.StoredFile
 import java.util.Optional
 
 interface StoredFilePort {

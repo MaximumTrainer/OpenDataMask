@@ -1,7 +1,7 @@
 package com.opendatamask.domain.port.input
 
 import com.opendatamask.dto.SubsetTableConfigRequest
-import com.opendatamask.model.SubsetTableConfig
+import com.opendatamask.domain.model.SubsetTableConfig
 
 interface SubsetConfigUseCase {
     fun listConfigs(workspaceId: Long): List<SubsetTableConfig>

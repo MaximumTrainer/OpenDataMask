@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.JobLog
+import com.opendatamask.domain.model.JobLog
 
 interface JobLogPort {
     fun findByJobIdOrderByTimestamp(jobId: Long): List<JobLog>

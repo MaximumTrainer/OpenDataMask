@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
-import com.opendatamask.model.WorkspacePermission
-import com.opendatamask.model.WorkspaceUserPermission
+import com.opendatamask.domain.model.WorkspacePermission
+import com.opendatamask.domain.model.WorkspaceUserPermission
 import com.opendatamask.repository.WorkspaceUserPermissionRepository
 import com.opendatamask.repository.WorkspaceUserRepository
 import org.springframework.security.access.AccessDeniedException

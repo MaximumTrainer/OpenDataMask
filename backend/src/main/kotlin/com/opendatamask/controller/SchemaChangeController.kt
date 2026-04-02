@@ -1,9 +1,9 @@
 package com.opendatamask.controller
 
-import com.opendatamask.model.SchemaChange
-import com.opendatamask.model.SchemaChangeHandling
-import com.opendatamask.model.SchemaChangeType
-import com.opendatamask.model.SchemaChangeStatus
+import com.opendatamask.domain.model.SchemaChange
+import com.opendatamask.domain.model.SchemaChangeHandling
+import com.opendatamask.domain.model.SchemaChangeType
+import com.opendatamask.domain.model.SchemaChangeStatus
 import com.opendatamask.repository.WorkspaceRepository
 import com.opendatamask.service.SchemaChangeService
 import org.springframework.http.ResponseEntity

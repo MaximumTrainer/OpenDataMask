@@ -1,6 +1,6 @@
 package com.opendatamask.controller
 
-import com.opendatamask.model.StoredFile
+import com.opendatamask.domain.model.StoredFile
 import com.opendatamask.security.JwtAuthenticationFilter
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl

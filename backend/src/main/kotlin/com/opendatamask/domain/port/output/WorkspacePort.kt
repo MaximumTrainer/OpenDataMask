@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.Workspace
+import com.opendatamask.domain.model.Workspace
 import java.util.Optional
 
 interface WorkspacePort {

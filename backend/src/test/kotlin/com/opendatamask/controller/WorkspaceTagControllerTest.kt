@@ -1,6 +1,6 @@
 package com.opendatamask.controller
 
-import com.opendatamask.model.WorkspaceTag
+import com.opendatamask.domain.model.WorkspaceTag
 import com.opendatamask.repository.WorkspaceTagRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl

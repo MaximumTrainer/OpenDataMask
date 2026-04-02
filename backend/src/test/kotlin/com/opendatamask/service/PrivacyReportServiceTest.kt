@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.opendatamask.model.*
+import com.opendatamask.domain.model.*
 import com.opendatamask.repository.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

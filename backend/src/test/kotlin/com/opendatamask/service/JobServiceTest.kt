@@ -3,7 +3,7 @@ package com.opendatamask.service
 import com.opendatamask.config.EncryptionService
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.connector.DatabaseConnector
-import com.opendatamask.model.*
+import com.opendatamask.domain.model.*
 import com.opendatamask.repository.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

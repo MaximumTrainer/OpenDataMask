@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.InheritedConfig
+import com.opendatamask.domain.model.InheritedConfig
 import java.util.Optional
 
 interface InheritedConfigPort {

@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.StoredFile
+import com.opendatamask.domain.model.StoredFile
 
 data class RetrievedFile(val filename: String, val contentType: String, val content: ByteArray, val isSource: Boolean)
 

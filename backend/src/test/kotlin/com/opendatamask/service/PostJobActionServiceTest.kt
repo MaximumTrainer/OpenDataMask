@@ -1,10 +1,10 @@
 package com.opendatamask.service
 
 import com.opendatamask.dto.PostJobActionRequest
-import com.opendatamask.model.ActionType
-import com.opendatamask.model.Job
-import com.opendatamask.model.JobStatus
-import com.opendatamask.model.PostJobAction
+import com.opendatamask.domain.model.ActionType
+import com.opendatamask.domain.model.Job
+import com.opendatamask.domain.model.JobStatus
+import com.opendatamask.domain.model.PostJobAction
 import com.opendatamask.repository.PostJobActionRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*

@@ -1,6 +1,6 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.ForeignKeyRelationship
+import com.opendatamask.domain.model.ForeignKeyRelationship
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

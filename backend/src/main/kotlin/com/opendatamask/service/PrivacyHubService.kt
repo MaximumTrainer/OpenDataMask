@@ -3,8 +3,8 @@ package com.opendatamask.service
 import com.opendatamask.dto.PrivacyHubSummary
 import com.opendatamask.dto.PrivacyRecommendation
 import com.opendatamask.dto.TableProtectionSummary
-import com.opendatamask.model.ColumnGenerator
-import com.opendatamask.model.GeneratorType
+import com.opendatamask.domain.model.ColumnGenerator
+import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.repository.ColumnGeneratorRepository
 import com.opendatamask.repository.ColumnSensitivityRepository
 import com.opendatamask.repository.TableConfigurationRepository

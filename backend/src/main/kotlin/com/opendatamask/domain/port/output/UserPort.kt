@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.User
+import com.opendatamask.domain.model.User
 import java.util.Optional
 
 interface UserPort {

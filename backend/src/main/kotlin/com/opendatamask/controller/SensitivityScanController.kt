@@ -3,10 +3,10 @@ package com.opendatamask.controller
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.opendatamask.dto.SensitivityScanLogEntryDto
 import com.opendatamask.dto.SensitivityScanLogResponse
-import com.opendatamask.model.ColumnSensitivity
-import com.opendatamask.model.ConfidenceLevel
-import com.opendatamask.model.SensitivityScanLog
-import com.opendatamask.model.SensitivityType
+import com.opendatamask.domain.model.ColumnSensitivity
+import com.opendatamask.domain.model.ConfidenceLevel
+import com.opendatamask.domain.model.SensitivityScanLog
+import com.opendatamask.domain.model.SensitivityType
 import com.opendatamask.repository.ColumnSensitivityRepository
 import com.opendatamask.repository.SensitivityScanLogEntryRepository
 import com.opendatamask.service.SensitivityScanService

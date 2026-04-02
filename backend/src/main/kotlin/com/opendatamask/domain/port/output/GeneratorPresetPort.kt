@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.GeneratorPreset
+import com.opendatamask.domain.model.GeneratorPreset
 import java.util.Optional
 
 interface GeneratorPresetPort {

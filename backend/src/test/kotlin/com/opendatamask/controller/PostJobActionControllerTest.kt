@@ -3,8 +3,8 @@ package com.opendatamask.controller
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.opendatamask.dto.PostJobActionRequest
-import com.opendatamask.model.ActionType
-import com.opendatamask.model.PostJobAction
+import com.opendatamask.domain.model.ActionType
+import com.opendatamask.domain.model.PostJobAction
 import com.opendatamask.security.JwtAuthenticationFilter
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl

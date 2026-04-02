@@ -2,7 +2,7 @@ package com.opendatamask.controller
 
 import com.opendatamask.dto.JobLogResponse
 import com.opendatamask.dto.JobResponse
-import com.opendatamask.model.WorkspacePermission
+import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.service.JobService
 import com.opendatamask.service.PermissionService

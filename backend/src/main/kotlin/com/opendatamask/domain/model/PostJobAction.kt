@@ -1,11 +1,15 @@
-package com.opendatamask.model
+package com.opendatamask.domain.model
 
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
+enum class ActionType {
+    WEBHOOK, EMAIL, SCRIPT
+}
+
 @Entity
-@Table(name = "column_comments")
-class ColumnComment(
+@Table(name = "post_job_actions")
+data class PostJobAction(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
@@ -13,17 +17,15 @@ class ColumnComment(
     @Column(nullable = false)
     var workspaceId: Long,
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var tableName: String,
-
-    @Column(nullable = false)
-    var columnName: String,
-
-    @Column(nullable = false)
-    var userId: Long,
+    var actionType: ActionType,
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    var comment: String,
+    var config: String = "{}",
+
+    @Column(nullable = false)
+    var enabled: Boolean = true,
 
     @Column(nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()

@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.JobSchedule
+import com.opendatamask.domain.model.JobSchedule
 import java.util.Optional
 
 interface JobSchedulePort {

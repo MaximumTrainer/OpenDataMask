@@ -1,5 +1,12 @@
-package com.opendatamask.model
+package com.opendatamask.domain.model
 
+import com.opendatamask.domain.model.ConnectionType
+import com.opendatamask.domain.model.GeneratorType
+import com.opendatamask.domain.model.JobStatus
+import com.opendatamask.domain.model.LogLevel
+import com.opendatamask.domain.model.TableMode
+import com.opendatamask.domain.model.UserRole
+import com.opendatamask.domain.model.WorkspaceRole
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

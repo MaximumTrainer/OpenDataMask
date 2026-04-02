@@ -1,6 +1,6 @@
 package com.opendatamask.service
 
-import com.opendatamask.model.*
+import com.opendatamask.domain.model.*
 import com.opendatamask.repository.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

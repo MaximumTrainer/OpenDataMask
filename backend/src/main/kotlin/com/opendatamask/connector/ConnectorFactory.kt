@@ -1,6 +1,6 @@
 package com.opendatamask.connector
 
-import com.opendatamask.model.ConnectionType
+import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.service.FileStorageService
 import org.springframework.stereotype.Component
 

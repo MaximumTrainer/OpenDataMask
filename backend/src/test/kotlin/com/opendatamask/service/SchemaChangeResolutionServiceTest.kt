@@ -1,6 +1,6 @@
 package com.opendatamask.service
 
-import com.opendatamask.model.*
+import com.opendatamask.domain.model.*
 import com.opendatamask.repository.SchemaChangeRepository
 import com.opendatamask.repository.WorkspaceRepository
 import org.junit.jupiter.api.Assertions.*

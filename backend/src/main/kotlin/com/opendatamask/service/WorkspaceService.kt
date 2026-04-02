@@ -1,9 +1,9 @@
 package com.opendatamask.service
 
 import com.opendatamask.dto.*
-import com.opendatamask.model.Workspace
-import com.opendatamask.model.WorkspaceRole
-import com.opendatamask.model.WorkspaceUser
+import com.opendatamask.domain.model.Workspace
+import com.opendatamask.domain.model.WorkspaceRole
+import com.opendatamask.domain.model.WorkspaceUser
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.repository.WorkspaceRepository
 import com.opendatamask.repository.WorkspaceUserRepository

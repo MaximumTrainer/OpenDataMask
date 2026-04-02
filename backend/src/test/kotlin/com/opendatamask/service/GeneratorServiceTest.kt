@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
-import com.opendatamask.model.ColumnGenerator
-import com.opendatamask.model.GeneratorType
+import com.opendatamask.domain.model.ColumnGenerator
+import com.opendatamask.domain.model.GeneratorType
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*

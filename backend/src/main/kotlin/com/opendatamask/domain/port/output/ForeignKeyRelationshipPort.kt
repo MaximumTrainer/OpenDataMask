@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.ForeignKeyRelationship
+import com.opendatamask.domain.model.ForeignKeyRelationship
 import java.util.Optional
 
 interface ForeignKeyRelationshipPort {

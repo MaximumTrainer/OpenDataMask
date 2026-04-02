@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.JobSchedule
+import com.opendatamask.domain.model.JobSchedule
 
 interface JobScheduleUseCase {
     fun createSchedule(schedule: JobSchedule): JobSchedule

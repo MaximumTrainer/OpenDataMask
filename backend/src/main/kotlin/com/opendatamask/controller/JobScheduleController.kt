@@ -1,6 +1,6 @@
 package com.opendatamask.controller
 
-import com.opendatamask.model.JobSchedule
+import com.opendatamask.domain.model.JobSchedule
 import com.opendatamask.service.JobSchedulerService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

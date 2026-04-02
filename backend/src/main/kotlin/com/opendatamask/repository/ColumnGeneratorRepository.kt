@@ -1,6 +1,6 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.ColumnGenerator
+import com.opendatamask.domain.model.ColumnGenerator
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

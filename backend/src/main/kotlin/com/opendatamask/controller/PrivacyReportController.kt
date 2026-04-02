@@ -1,6 +1,6 @@
 package com.opendatamask.controller
 
-import com.opendatamask.model.PrivacyReport
+import com.opendatamask.domain.model.PrivacyReport
 import com.opendatamask.service.PrivacyReportService
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType

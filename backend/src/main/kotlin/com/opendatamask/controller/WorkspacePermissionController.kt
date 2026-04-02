@@ -1,9 +1,9 @@
 package com.opendatamask.controller
 
 import com.opendatamask.dto.UpdatePermissionsRequest
-import com.opendatamask.model.WorkspacePermission
-import com.opendatamask.model.WorkspaceRole
-import com.opendatamask.model.WorkspaceUserPermission
+import com.opendatamask.domain.model.WorkspacePermission
+import com.opendatamask.domain.model.WorkspaceRole
+import com.opendatamask.domain.model.WorkspaceUserPermission
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.repository.WorkspaceUserPermissionRepository
 import com.opendatamask.repository.WorkspaceUserRepository

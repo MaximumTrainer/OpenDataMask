@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.PostJobAction
+import com.opendatamask.domain.model.PostJobAction
 import java.util.Optional
 
 interface PostJobActionPort {

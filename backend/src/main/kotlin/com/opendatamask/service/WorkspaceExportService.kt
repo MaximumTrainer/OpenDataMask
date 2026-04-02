@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
 import com.opendatamask.dto.*
-import com.opendatamask.model.*
+import com.opendatamask.domain.model.*
 import com.opendatamask.repository.*
 import org.springframework.stereotype.Service
 

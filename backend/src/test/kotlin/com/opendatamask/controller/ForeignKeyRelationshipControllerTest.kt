@@ -3,7 +3,7 @@ package com.opendatamask.controller
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.opendatamask.dto.ForeignKeyRelationshipRequest
 import com.opendatamask.dto.ForeignKeyRelationshipResponse
-import com.opendatamask.model.ForeignKeyRelationship
+import com.opendatamask.domain.model.ForeignKeyRelationship
 import com.opendatamask.security.JwtAuthenticationFilter
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl

@@ -1,6 +1,6 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.DataConnection
+import com.opendatamask.domain.model.DataConnection
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

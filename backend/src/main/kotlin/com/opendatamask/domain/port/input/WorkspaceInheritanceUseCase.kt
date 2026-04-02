@@ -1,7 +1,7 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.InheritedConfig
-import com.opendatamask.model.Workspace
+import com.opendatamask.domain.model.InheritedConfig
+import com.opendatamask.domain.model.Workspace
 
 interface WorkspaceInheritanceUseCase {
     fun inheritFromParent(childWorkspaceId: Long, parentWorkspaceId: Long)

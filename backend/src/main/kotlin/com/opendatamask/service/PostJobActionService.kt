@@ -2,9 +2,9 @@ package com.opendatamask.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.opendatamask.model.ActionType
-import com.opendatamask.model.Job
-import com.opendatamask.model.PostJobAction
+import com.opendatamask.domain.model.ActionType
+import com.opendatamask.domain.model.Job
+import com.opendatamask.domain.model.PostJobAction
 import com.opendatamask.repository.PostJobActionRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service

@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.SensitivityScanLogEntry
+import com.opendatamask.domain.model.SensitivityScanLogEntry
 
 interface SensitivityScanLogEntryPort {
     fun findByScanLogId(scanLogId: Long): List<SensitivityScanLogEntry>

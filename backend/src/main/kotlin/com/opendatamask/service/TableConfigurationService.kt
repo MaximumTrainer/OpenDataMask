@@ -1,8 +1,8 @@
 package com.opendatamask.service
 
 import com.opendatamask.dto.*
-import com.opendatamask.model.ColumnGenerator
-import com.opendatamask.model.TableConfiguration
+import com.opendatamask.domain.model.ColumnGenerator
+import com.opendatamask.domain.model.TableConfiguration
 import com.opendatamask.repository.ColumnGeneratorRepository
 import com.opendatamask.repository.TableConfigurationRepository
 import org.springframework.stereotype.Service

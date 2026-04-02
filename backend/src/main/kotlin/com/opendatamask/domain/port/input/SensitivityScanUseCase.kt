@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.SensitivityScanLog
+import com.opendatamask.domain.model.SensitivityScanLog
 
 interface SensitivityScanUseCase {
     fun scanWorkspace(workspaceId: Long): SensitivityScanLog

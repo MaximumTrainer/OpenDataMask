@@ -1,8 +1,8 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.GeneratorType
-import com.opendatamask.model.TableMode
-import com.opendatamask.model.ActionType
+import com.opendatamask.domain.model.GeneratorType
+import com.opendatamask.domain.model.TableMode
+import com.opendatamask.domain.model.ActionType
 
 data class WorkspaceConfigDto(
     val version: String = "1.0",

@@ -4,8 +4,8 @@ import com.opendatamask.config.EncryptionService
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.connector.DatabaseConnector
 import com.opendatamask.dto.DataConnectionRequest
-import com.opendatamask.model.ConnectionType
-import com.opendatamask.model.DataConnection
+import com.opendatamask.domain.model.ConnectionType
+import com.opendatamask.domain.model.DataConnection
 import com.opendatamask.repository.DataConnectionRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

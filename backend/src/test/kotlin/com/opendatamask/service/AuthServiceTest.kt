@@ -2,7 +2,7 @@ package com.opendatamask.service
 
 import com.opendatamask.dto.LoginRequest
 import com.opendatamask.dto.RegisterRequest
-import com.opendatamask.model.UserRole
+import com.opendatamask.domain.model.UserRole
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtTokenProvider
 import org.junit.jupiter.api.Assertions.*

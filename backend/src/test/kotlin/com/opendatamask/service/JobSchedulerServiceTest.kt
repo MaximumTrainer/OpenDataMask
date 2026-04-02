@@ -1,9 +1,9 @@
 package com.opendatamask.service
 
-import com.opendatamask.model.Job
-import com.opendatamask.model.JobSchedule
-import com.opendatamask.model.JobStatus
-import com.opendatamask.model.ScheduledJobType
+import com.opendatamask.domain.model.Job
+import com.opendatamask.domain.model.JobSchedule
+import com.opendatamask.domain.model.JobStatus
+import com.opendatamask.domain.model.ScheduledJobType
 import com.opendatamask.repository.JobScheduleRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*

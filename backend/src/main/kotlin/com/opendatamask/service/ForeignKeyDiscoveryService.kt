@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
 import com.opendatamask.connector.ConnectorFactory
-import com.opendatamask.model.ForeignKeyRelationship
+import com.opendatamask.domain.model.ForeignKeyRelationship
 import com.opendatamask.repository.DataConnectionRepository
 import com.opendatamask.repository.ForeignKeyRelationshipRepository
 import org.slf4j.LoggerFactory

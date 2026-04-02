@@ -1,7 +1,7 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.SchemaChange
-import com.opendatamask.model.SchemaChangeStatus
+import com.opendatamask.domain.model.SchemaChange
+import com.opendatamask.domain.model.SchemaChangeStatus
 import java.util.Optional
 
 interface SchemaChangePort {

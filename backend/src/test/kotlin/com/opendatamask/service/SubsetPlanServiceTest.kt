@@ -1,8 +1,8 @@
 package com.opendatamask.service
 
-import com.opendatamask.model.ForeignKeyRelationship
-import com.opendatamask.model.SubsetLimitType
-import com.opendatamask.model.SubsetTableConfig
+import com.opendatamask.domain.model.ForeignKeyRelationship
+import com.opendatamask.domain.model.SubsetLimitType
+import com.opendatamask.domain.model.SubsetTableConfig
 import com.opendatamask.repository.ForeignKeyRelationshipRepository
 import com.opendatamask.repository.SubsetTableConfigRepository
 import org.junit.jupiter.api.Assertions.*

@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.ColumnGenerator
+import com.opendatamask.domain.model.ColumnGenerator
 import java.util.Optional
 
 interface ColumnGeneratorPort {

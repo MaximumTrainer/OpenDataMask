@@ -1,6 +1,6 @@
 package com.opendatamask.controller
 
-import com.opendatamask.model.Webhook
+import com.opendatamask.domain.model.Webhook
 import com.opendatamask.service.WebhookRequest
 import com.opendatamask.service.WebhookService
 import org.springframework.http.ResponseEntity

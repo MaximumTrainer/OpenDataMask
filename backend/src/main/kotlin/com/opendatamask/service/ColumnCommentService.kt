@@ -1,6 +1,6 @@
 package com.opendatamask.service
 
-import com.opendatamask.model.ColumnComment
+import com.opendatamask.domain.model.ColumnComment
 import com.opendatamask.repository.ColumnCommentRepository
 import com.opendatamask.repository.UserRepository
 import org.slf4j.LoggerFactory

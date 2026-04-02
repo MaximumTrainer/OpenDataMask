@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.TableConfiguration
+import com.opendatamask.domain.model.TableConfiguration
 import java.util.Optional
 
 interface TableConfigurationPort {

@@ -74,7 +74,7 @@ class WorkspaceServiceTest {
         val members = workspaceUserRepository.findByWorkspaceId(response.id)
         assertEquals(1, members.size)
         assertEquals(ownerId, members[0].userId)
-        assertEquals(com.opendatamask.model.WorkspaceRole.ADMIN, members[0].role)
+        assertEquals(com.opendatamask.domain.model.WorkspaceRole.ADMIN, members[0].role)
     }
 
     @Test

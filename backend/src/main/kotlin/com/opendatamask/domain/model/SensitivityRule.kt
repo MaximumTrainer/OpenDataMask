@@ -1,4 +1,4 @@
-package com.opendatamask.model
+package com.opendatamask.domain.model
 
 data class SensitivityRule(
     val sensitivityType: SensitivityType,

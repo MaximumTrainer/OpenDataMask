@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
 import com.opendatamask.dto.SubsetTableConfigRequest
-import com.opendatamask.model.SubsetTableConfig
+import com.opendatamask.domain.model.SubsetTableConfig
 import com.opendatamask.repository.SubsetTableConfigRepository
 import org.springframework.stereotype.Service
 

@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.WorkspaceTag
+import com.opendatamask.domain.model.WorkspaceTag
 
 interface WorkspaceTagPort {
     fun findByWorkspaceId(workspaceId: Long): List<WorkspaceTag>

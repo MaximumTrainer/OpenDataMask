@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.WorkspacePermission
+import com.opendatamask.domain.model.WorkspacePermission
 
 interface PermissionUseCase {
     fun getEffectivePermissions(userId: Long, workspaceId: Long): Set<WorkspacePermission>

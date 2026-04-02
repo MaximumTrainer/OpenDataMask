@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.SchemaChange
+import com.opendatamask.domain.model.SchemaChange
 
 interface SchemaChangeUseCase {
     fun detectChanges(workspaceId: Long): List<SchemaChange>

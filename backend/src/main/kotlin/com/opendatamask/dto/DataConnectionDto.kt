@@ -1,6 +1,6 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.ConnectionType
+import com.opendatamask.domain.model.ConnectionType
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDateTime

@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.ColumnComment
+import com.opendatamask.domain.model.ColumnComment
 import java.util.Optional
 
 interface ColumnCommentPort {

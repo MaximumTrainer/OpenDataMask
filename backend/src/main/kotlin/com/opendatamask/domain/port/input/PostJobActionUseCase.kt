@@ -1,7 +1,7 @@
 package com.opendatamask.domain.port.input
 
 import com.opendatamask.dto.PostJobActionRequest
-import com.opendatamask.model.PostJobAction
+import com.opendatamask.domain.model.PostJobAction
 
 interface PostJobActionUseCase {
     fun listActions(workspaceId: Long): List<PostJobAction>

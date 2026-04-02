@@ -3,8 +3,8 @@ package com.opendatamask.service
 import com.opendatamask.dto.AuthResponse
 import com.opendatamask.dto.LoginRequest
 import com.opendatamask.dto.RegisterRequest
-import com.opendatamask.model.User
-import com.opendatamask.model.UserRole
+import com.opendatamask.domain.model.User
+import com.opendatamask.domain.model.UserRole
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtTokenProvider
 import org.springframework.security.crypto.password.PasswordEncoder

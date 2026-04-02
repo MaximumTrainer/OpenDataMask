@@ -4,7 +4,7 @@ import com.opendatamask.config.EncryptionService
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.dto.JobLogResponse
 import com.opendatamask.dto.JobResponse
-import com.opendatamask.model.*
+import com.opendatamask.domain.model.*
 import com.opendatamask.repository.*
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async

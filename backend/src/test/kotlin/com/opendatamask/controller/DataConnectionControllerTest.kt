@@ -5,7 +5,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.opendatamask.dto.DataConnectionRequest
 import com.opendatamask.dto.DataConnectionResponse
 import com.opendatamask.dto.ConnectionTestResult
-import com.opendatamask.model.ConnectionType
+import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.security.JwtAuthenticationFilter
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl

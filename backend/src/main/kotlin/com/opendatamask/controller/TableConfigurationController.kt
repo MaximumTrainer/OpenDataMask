@@ -1,7 +1,7 @@
 package com.opendatamask.controller
 
 import com.opendatamask.dto.*
-import com.opendatamask.model.WorkspacePermission
+import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.service.PermissionService
 import com.opendatamask.service.TableConfigurationService

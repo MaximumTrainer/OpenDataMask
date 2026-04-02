@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.PrivacyReport
+import com.opendatamask.domain.model.PrivacyReport
 
 interface PrivacyReportUseCase {
     fun generateCurrentConfigReport(workspaceId: Long): PrivacyReport

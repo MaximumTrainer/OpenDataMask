@@ -1,6 +1,6 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.JobSchedule
+import com.opendatamask.domain.model.JobSchedule
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

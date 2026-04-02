@@ -1,11 +1,11 @@
 package com.opendatamask.service
 
-import com.opendatamask.model.GeneratorPreset
-import com.opendatamask.model.GeneratorType
-import com.opendatamask.model.ColumnGenerator
-import com.opendatamask.model.ConsistencyMode
-import com.opendatamask.model.TableConfiguration
-import com.opendatamask.model.TableMode
+import com.opendatamask.domain.model.GeneratorPreset
+import com.opendatamask.domain.model.GeneratorType
+import com.opendatamask.domain.model.ColumnGenerator
+import com.opendatamask.domain.model.ConsistencyMode
+import com.opendatamask.domain.model.TableConfiguration
+import com.opendatamask.domain.model.TableMode
 import com.opendatamask.dto.GeneratorPresetRequest
 import com.opendatamask.repository.ColumnGeneratorRepository
 import com.opendatamask.repository.GeneratorPresetRepository

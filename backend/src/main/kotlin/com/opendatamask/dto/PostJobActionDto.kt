@@ -1,6 +1,6 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.ActionType
+import com.opendatamask.domain.model.ActionType
 
 data class PostJobActionRequest(
     val actionType: ActionType,

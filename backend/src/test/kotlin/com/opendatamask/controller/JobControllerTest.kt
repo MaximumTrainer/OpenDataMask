@@ -2,10 +2,10 @@ package com.opendatamask.controller
 
 import com.opendatamask.dto.JobLogResponse
 import com.opendatamask.dto.JobResponse
-import com.opendatamask.model.JobStatus
-import com.opendatamask.model.LogLevel
-import com.opendatamask.model.User
-import com.opendatamask.model.WorkspacePermission
+import com.opendatamask.domain.model.JobStatus
+import com.opendatamask.domain.model.LogLevel
+import com.opendatamask.domain.model.User
+import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl

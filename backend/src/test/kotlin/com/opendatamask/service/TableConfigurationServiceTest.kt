@@ -2,10 +2,10 @@ package com.opendatamask.service
 
 import com.opendatamask.dto.ColumnGeneratorRequest
 import com.opendatamask.dto.TableConfigurationRequest
-import com.opendatamask.model.ColumnGenerator
-import com.opendatamask.model.GeneratorType
-import com.opendatamask.model.TableConfiguration
-import com.opendatamask.model.TableMode
+import com.opendatamask.domain.model.ColumnGenerator
+import com.opendatamask.domain.model.GeneratorType
+import com.opendatamask.domain.model.TableConfiguration
+import com.opendatamask.domain.model.TableMode
 import com.opendatamask.repository.ColumnGeneratorRepository
 import com.opendatamask.repository.TableConfigurationRepository
 import org.junit.jupiter.api.Assertions.*

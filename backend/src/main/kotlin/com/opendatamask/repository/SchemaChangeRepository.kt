@@ -1,7 +1,7 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.SchemaChange
-import com.opendatamask.model.SchemaChangeStatus
+import com.opendatamask.domain.model.SchemaChange
+import com.opendatamask.domain.model.SchemaChangeStatus
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

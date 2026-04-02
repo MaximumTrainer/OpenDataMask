@@ -1,6 +1,6 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.UserRole
+import com.opendatamask.domain.model.UserRole
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size

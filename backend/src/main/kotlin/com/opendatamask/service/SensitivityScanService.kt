@@ -2,7 +2,7 @@ package com.opendatamask.service
 
 import com.opendatamask.config.EncryptionService
 import com.opendatamask.connector.ConnectorFactory
-import com.opendatamask.model.*
+import com.opendatamask.domain.model.*
 import com.opendatamask.repository.*
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service

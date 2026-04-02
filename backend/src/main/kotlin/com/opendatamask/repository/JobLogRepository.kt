@@ -1,6 +1,6 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.JobLog
+import com.opendatamask.domain.model.JobLog
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

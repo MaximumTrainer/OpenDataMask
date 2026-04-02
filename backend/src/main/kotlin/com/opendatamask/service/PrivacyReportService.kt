@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.opendatamask.model.PrivacyReport
+import com.opendatamask.domain.model.PrivacyReport
 import com.opendatamask.repository.ColumnGeneratorRepository
 import com.opendatamask.repository.ColumnSensitivityRepository
 import com.opendatamask.repository.PrivacyReportRepository

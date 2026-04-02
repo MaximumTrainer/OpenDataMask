@@ -1,6 +1,6 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.PrivacyReport
+import com.opendatamask.domain.model.PrivacyReport
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface PrivacyReportRepository : JpaRepository<PrivacyReport, Long> {

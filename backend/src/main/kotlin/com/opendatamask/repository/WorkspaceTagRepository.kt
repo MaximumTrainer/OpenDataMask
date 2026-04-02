@@ -1,6 +1,6 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.WorkspaceTag
+import com.opendatamask.domain.model.WorkspaceTag
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

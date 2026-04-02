@@ -1,4 +1,4 @@
-package com.opendatamask.model
+package com.opendatamask.domain.model
 
 import jakarta.persistence.*
 import java.time.Instant

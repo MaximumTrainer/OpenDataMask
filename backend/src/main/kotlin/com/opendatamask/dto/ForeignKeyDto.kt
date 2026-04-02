@@ -1,6 +1,6 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.ForeignKeyRelationship
+import com.opendatamask.domain.model.ForeignKeyRelationship
 import jakarta.validation.constraints.NotBlank
 import java.time.Instant
 

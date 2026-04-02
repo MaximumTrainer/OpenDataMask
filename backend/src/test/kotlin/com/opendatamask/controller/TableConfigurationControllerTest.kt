@@ -6,9 +6,9 @@ import com.opendatamask.dto.ColumnGeneratorRequest
 import com.opendatamask.dto.ColumnGeneratorResponse
 import com.opendatamask.dto.TableConfigurationRequest
 import com.opendatamask.dto.TableConfigurationResponse
-import com.opendatamask.model.GeneratorType
-import com.opendatamask.model.TableMode
-import com.opendatamask.model.User
+import com.opendatamask.domain.model.GeneratorType
+import com.opendatamask.domain.model.TableMode
+import com.opendatamask.domain.model.User
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtAuthenticationFilter
 import com.opendatamask.security.JwtTokenProvider
@@ -85,7 +85,7 @@ class TableConfigurationControllerTest {
     private fun makeGeneratorResponse(id: Long = 1L, tableConfigId: Long = 1L) = ColumnGeneratorResponse(
         id = id, tableConfigurationId = tableConfigId, columnName = "email",
         generatorType = GeneratorType.EMAIL, generatorParams = null,
-        presetId = null, consistencyMode = com.opendatamask.model.ConsistencyMode.RANDOM, linkKey = null,
+        presetId = null, consistencyMode = com.opendatamask.domain.model.ConsistencyMode.RANDOM, linkKey = null,
         createdAt = LocalDateTime.now()
     )
 

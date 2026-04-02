@@ -2,8 +2,8 @@ package com.opendatamask.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.opendatamask.dto.*
-import com.opendatamask.model.InheritedConfig
-import com.opendatamask.model.Workspace
+import com.opendatamask.domain.model.InheritedConfig
+import com.opendatamask.domain.model.Workspace
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.security.JwtTokenProvider
 import com.opendatamask.security.UserDetailsServiceImpl

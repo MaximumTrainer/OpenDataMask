@@ -1,7 +1,7 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.Webhook
-import com.opendatamask.model.WebhookTriggerType
+import com.opendatamask.domain.model.Webhook
+import com.opendatamask.domain.model.WebhookTriggerType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

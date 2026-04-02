@@ -1,7 +1,7 @@
 package com.opendatamask.controller
 
 import com.opendatamask.dto.PostJobActionRequest
-import com.opendatamask.model.PostJobAction
+import com.opendatamask.domain.model.PostJobAction
 import com.opendatamask.service.PostJobActionService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

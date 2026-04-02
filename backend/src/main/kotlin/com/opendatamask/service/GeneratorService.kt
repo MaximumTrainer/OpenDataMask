@@ -2,9 +2,9 @@ package com.opendatamask.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.opendatamask.model.ColumnGenerator
-import com.opendatamask.model.ConsistencyMode
-import com.opendatamask.model.GeneratorType
+import com.opendatamask.domain.model.ColumnGenerator
+import com.opendatamask.domain.model.ConsistencyMode
+import com.opendatamask.domain.model.GeneratorType
 import net.datafaker.Faker
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service

@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.ColumnSensitivity
+import com.opendatamask.domain.model.ColumnSensitivity
 
 interface ColumnSensitivityPort {
     fun findByWorkspaceId(workspaceId: Long): List<ColumnSensitivity>

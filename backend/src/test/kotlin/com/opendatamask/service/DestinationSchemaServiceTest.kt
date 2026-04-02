@@ -2,7 +2,7 @@ package com.opendatamask.service
 
 import com.opendatamask.connector.ColumnInfo
 import com.opendatamask.connector.DatabaseConnector
-import com.opendatamask.model.ConnectionType
+import com.opendatamask.domain.model.ConnectionType
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows

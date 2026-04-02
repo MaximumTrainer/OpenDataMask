@@ -1,10 +1,10 @@
 package com.opendatamask.controller
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.opendatamask.model.User
-import com.opendatamask.model.WorkspacePermission
-import com.opendatamask.model.WorkspaceRole
-import com.opendatamask.model.WorkspaceUser
+import com.opendatamask.domain.model.User
+import com.opendatamask.domain.model.WorkspacePermission
+import com.opendatamask.domain.model.WorkspaceRole
+import com.opendatamask.domain.model.WorkspaceUser
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.repository.WorkspaceUserPermissionRepository
 import com.opendatamask.repository.WorkspaceUserRepository
@@ -97,7 +97,7 @@ class WorkspacePermissionControllerTest {
         whenever(workspaceUserRepository.findByWorkspaceIdAndUserId(1L, 2L))
             .thenReturn(Optional.of(targetWorkspaceUser))
         whenever(workspaceUserPermissionRepository.findByWorkspaceUserId(2L)).thenReturn(emptyList())
-        whenever(workspaceUserPermissionRepository.save(any<com.opendatamask.model.WorkspaceUserPermission>())).thenAnswer { it.arguments[0] }
+        whenever(workspaceUserPermissionRepository.save(any<com.opendatamask.domain.model.WorkspaceUserPermission>())).thenAnswer { it.arguments[0] }
         whenever(permissionService.getEffectivePermissions(2L, 1L))
             .thenReturn(
                 setOf(

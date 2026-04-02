@@ -3,9 +3,9 @@ package com.opendatamask.service
 import com.opendatamask.connector.ConnectorFactory
 import com.opendatamask.connector.DatabaseConnector
 import com.opendatamask.connector.ForeignKeyInfo
-import com.opendatamask.model.ConnectionType
-import com.opendatamask.model.DataConnection
-import com.opendatamask.model.ForeignKeyRelationship
+import com.opendatamask.domain.model.ConnectionType
+import com.opendatamask.domain.model.DataConnection
+import com.opendatamask.domain.model.ForeignKeyRelationship
 import com.opendatamask.repository.DataConnectionRepository
 import com.opendatamask.repository.ForeignKeyRelationshipRepository
 import org.junit.jupiter.api.Assertions.*

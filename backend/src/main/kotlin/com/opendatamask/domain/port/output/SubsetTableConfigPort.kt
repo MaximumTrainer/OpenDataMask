@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.SubsetTableConfig
+import com.opendatamask.domain.model.SubsetTableConfig
 import java.util.Optional
 
 interface SubsetTableConfigPort {

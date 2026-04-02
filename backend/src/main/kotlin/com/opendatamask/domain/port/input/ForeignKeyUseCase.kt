@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.ForeignKeyRelationship
+import com.opendatamask.domain.model.ForeignKeyRelationship
 
 interface ForeignKeyUseCase {
     fun discoverForeignKeys(workspaceId: Long): List<ForeignKeyRelationship>

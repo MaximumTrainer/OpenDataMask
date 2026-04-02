@@ -3,7 +3,7 @@ package com.opendatamask.service
 import com.opendatamask.dto.ColumnGeneratorResponse
 import com.opendatamask.dto.GeneratorPresetRequest
 import com.opendatamask.dto.GeneratorPresetResponse
-import com.opendatamask.model.GeneratorPreset
+import com.opendatamask.domain.model.GeneratorPreset
 import com.opendatamask.repository.ColumnGeneratorRepository
 import com.opendatamask.repository.GeneratorPresetRepository
 import com.opendatamask.repository.TableConfigurationRepository
@@ -98,7 +98,7 @@ class GeneratorPresetService(
         createdAt = createdAt
     )
 
-    private fun com.opendatamask.model.ColumnGenerator.toColumnResponse() = ColumnGeneratorResponse(
+    private fun com.opendatamask.domain.model.ColumnGenerator.toColumnResponse() = ColumnGeneratorResponse(
         id = id,
         tableConfigurationId = tableConfigurationId,
         columnName = columnName,

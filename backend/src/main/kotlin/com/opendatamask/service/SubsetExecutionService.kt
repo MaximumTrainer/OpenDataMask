@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
 import com.opendatamask.connector.DatabaseConnector
-import com.opendatamask.model.SubsetLimitType
+import com.opendatamask.domain.model.SubsetLimitType
 import com.opendatamask.repository.ForeignKeyRelationshipRepository
 import com.opendatamask.repository.SubsetTableConfigRepository
 import org.slf4j.LoggerFactory

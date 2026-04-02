@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.ColumnComment
+import com.opendatamask.domain.model.ColumnComment
 
 interface ColumnCommentUseCase {
     fun getComments(workspaceId: Long, tableName: String, columnName: String): List<ColumnComment>

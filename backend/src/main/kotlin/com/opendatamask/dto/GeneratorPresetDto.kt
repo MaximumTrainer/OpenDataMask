@@ -1,6 +1,6 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.GeneratorType
+import com.opendatamask.domain.model.GeneratorType
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import java.time.Instant

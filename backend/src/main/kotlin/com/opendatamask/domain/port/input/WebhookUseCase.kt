@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.input
 
-import com.opendatamask.model.Webhook
+import com.opendatamask.domain.model.Webhook
 import com.opendatamask.service.WebhookRequest
 
 interface WebhookUseCase {

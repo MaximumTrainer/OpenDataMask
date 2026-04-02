@@ -1,6 +1,6 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.GeneratorType
+import com.opendatamask.domain.model.GeneratorType
 
 data class ColumnPreviewResult(
     val tableName: String,

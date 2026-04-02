@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.PrivacyReport
+import com.opendatamask.domain.model.PrivacyReport
 import java.util.Optional
 
 interface PrivacyReportPort {

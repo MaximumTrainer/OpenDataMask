@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
-import com.opendatamask.model.GeneratorPreset
-import com.opendatamask.model.GeneratorType
+import com.opendatamask.domain.model.GeneratorPreset
+import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.repository.GeneratorPresetRepository
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Component

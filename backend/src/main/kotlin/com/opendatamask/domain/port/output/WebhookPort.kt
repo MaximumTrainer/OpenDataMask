@@ -1,7 +1,7 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.Webhook
-import com.opendatamask.model.WebhookTriggerType
+import com.opendatamask.domain.model.Webhook
+import com.opendatamask.domain.model.WebhookTriggerType
 import java.util.Optional
 
 interface WebhookPort {

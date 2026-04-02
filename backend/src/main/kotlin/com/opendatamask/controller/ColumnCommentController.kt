@@ -1,6 +1,6 @@
 package com.opendatamask.controller
 
-import com.opendatamask.model.ColumnComment
+import com.opendatamask.domain.model.ColumnComment
 import com.opendatamask.repository.UserRepository
 import com.opendatamask.service.ColumnCommentService
 import org.springframework.http.HttpStatus

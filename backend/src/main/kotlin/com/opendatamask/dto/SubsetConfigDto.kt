@@ -1,7 +1,7 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.SubsetLimitType
-import com.opendatamask.model.SubsetTableConfig
+import com.opendatamask.domain.model.SubsetLimitType
+import com.opendatamask.domain.model.SubsetTableConfig
 import jakarta.validation.constraints.NotBlank
 
 data class SubsetTableConfigRequest(

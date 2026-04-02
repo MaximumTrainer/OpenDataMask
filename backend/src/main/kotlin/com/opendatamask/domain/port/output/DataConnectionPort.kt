@@ -1,6 +1,6 @@
 package com.opendatamask.domain.port.output
 
-import com.opendatamask.model.DataConnection
+import com.opendatamask.domain.model.DataConnection
 import java.util.Optional
 
 interface DataConnectionPort {

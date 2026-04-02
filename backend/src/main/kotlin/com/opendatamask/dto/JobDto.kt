@@ -1,7 +1,7 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.JobStatus
-import com.opendatamask.model.LogLevel
+import com.opendatamask.domain.model.JobStatus
+import com.opendatamask.domain.model.LogLevel
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDateTime
 

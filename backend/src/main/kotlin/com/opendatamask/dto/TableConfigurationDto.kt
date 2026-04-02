@@ -1,8 +1,8 @@
 package com.opendatamask.dto
 
-import com.opendatamask.model.ConsistencyMode
-import com.opendatamask.model.GeneratorType
-import com.opendatamask.model.TableMode
+import com.opendatamask.domain.model.ConsistencyMode
+import com.opendatamask.domain.model.GeneratorType
+import com.opendatamask.domain.model.TableMode
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDateTime

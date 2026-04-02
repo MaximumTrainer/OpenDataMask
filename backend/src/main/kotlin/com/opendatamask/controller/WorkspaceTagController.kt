@@ -1,6 +1,6 @@
 package com.opendatamask.controller
 
-import com.opendatamask.model.WorkspaceTag
+import com.opendatamask.domain.model.WorkspaceTag
 import com.opendatamask.repository.WorkspaceTagRepository
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

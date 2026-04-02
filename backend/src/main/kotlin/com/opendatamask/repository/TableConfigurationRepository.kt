@@ -1,6 +1,6 @@
 package com.opendatamask.repository
 
-import com.opendatamask.model.TableConfiguration
+import com.opendatamask.domain.model.TableConfiguration
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 import java.util.Optional
