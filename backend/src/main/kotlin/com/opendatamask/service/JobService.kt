@@ -1,7 +1,7 @@
 package com.opendatamask.service
 
 import com.opendatamask.config.EncryptionService
-import com.opendatamask.connector.ConnectorFactory
+import com.opendatamask.adapter.output.connector.ConnectorFactory
 import com.opendatamask.dto.JobLogResponse
 import com.opendatamask.dto.JobResponse
 import com.opendatamask.domain.model.*
@@ -195,8 +195,8 @@ class JobService(
     private fun processTable(
         jobId: Long,
         tableConfig: TableConfiguration,
-        sourceConnector: com.opendatamask.connector.DatabaseConnector,
-        destConnector: com.opendatamask.connector.DatabaseConnector,
+        sourceConnector: com.opendatamask.adapter.output.connector.DatabaseConnector,
+        destConnector: com.opendatamask.adapter.output.connector.DatabaseConnector,
         preComputedRows: Map<String, List<Map<String, Any?>>> = emptyMap()
     ) {
         addLog(jobId, "Processing table: ${tableConfig.tableName} (mode: ${tableConfig.mode})", LogLevel.INFO)

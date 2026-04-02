@@ -1,8 +1,8 @@
 package com.opendatamask.service
 
-import com.opendatamask.connector.ConnectorFactory
-import com.opendatamask.connector.DatabaseConnector
-import com.opendatamask.connector.ForeignKeyInfo
+import com.opendatamask.adapter.output.connector.ConnectorFactory
+import com.opendatamask.adapter.output.connector.DatabaseConnector
+import com.opendatamask.adapter.output.connector.ForeignKeyInfo
 import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.domain.model.DataConnection
 import com.opendatamask.domain.model.ForeignKeyRelationship

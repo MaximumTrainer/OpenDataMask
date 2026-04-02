@@ -1,4 +1,4 @@
-package com.opendatamask.connector
+package com.opendatamask.adapter.output.connector
 
 class FileConnector(
     private val sourceBytes: ByteArray,

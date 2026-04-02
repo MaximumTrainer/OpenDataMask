@@ -14,7 +14,7 @@ class SchemaChangeResolutionServiceTest {
     private val workspaceRepo = mock<WorkspaceRepository>()
     private val snapshotRepo = mock<com.opendatamask.adapter.output.persistence.SchemaSnapshotRepository>()
     private val connectionRepo = mock<com.opendatamask.adapter.output.persistence.DataConnectionRepository>()
-    private val connectorFactory = mock<com.opendatamask.connector.ConnectorFactory>()
+    private val connectorFactory = mock<com.opendatamask.adapter.output.connector.ConnectorFactory>()
     private val webhookService = mock<WebhookService>()
     private val service = SchemaChangeService(snapshotRepo, changeRepo, workspaceRepo, connectionRepo, connectorFactory, webhookService)
 

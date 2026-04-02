@@ -1,4 +1,4 @@
-package com.opendatamask.connector
+package com.opendatamask.adapter.output.connector
 
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings

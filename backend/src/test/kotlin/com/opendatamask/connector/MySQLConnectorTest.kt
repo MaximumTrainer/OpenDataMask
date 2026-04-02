@@ -1,4 +1,4 @@
-package com.opendatamask.connector
+package com.opendatamask.adapter.output.connector
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*

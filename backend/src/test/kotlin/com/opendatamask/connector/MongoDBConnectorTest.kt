@@ -1,4 +1,4 @@
-package com.opendatamask.connector
+package com.opendatamask.adapter.output.connector
 
 import com.mongodb.client.FindIterable
 import com.mongodb.client.MongoClient

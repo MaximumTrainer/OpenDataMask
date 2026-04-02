@@ -1,8 +1,8 @@
 package com.opendatamask.service
 
 import com.opendatamask.config.EncryptionService
-import com.opendatamask.connector.ConnectorFactory
-import com.opendatamask.connector.DatabaseConnector
+import com.opendatamask.adapter.output.connector.ConnectorFactory
+import com.opendatamask.adapter.output.connector.DatabaseConnector
 import com.opendatamask.dto.DataConnectionRequest
 import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.domain.model.DataConnection

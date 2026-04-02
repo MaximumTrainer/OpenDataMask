@@ -1,6 +1,6 @@
 package com.opendatamask.service
 
-import com.opendatamask.connector.DatabaseConnector
+import com.opendatamask.adapter.output.connector.DatabaseConnector
 import com.opendatamask.domain.model.ForeignKeyRelationship
 import com.opendatamask.domain.model.SubsetLimitType
 import com.opendatamask.domain.model.SubsetTableConfig

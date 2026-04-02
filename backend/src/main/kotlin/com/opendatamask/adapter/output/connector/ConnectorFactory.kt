@@ -1,4 +1,4 @@
-package com.opendatamask.connector
+package com.opendatamask.adapter.output.connector
 
 import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.service.FileStorageService

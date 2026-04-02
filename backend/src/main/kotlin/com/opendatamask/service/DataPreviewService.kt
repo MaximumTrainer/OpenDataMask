@@ -3,7 +3,7 @@ package com.opendatamask.service
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.opendatamask.config.EncryptionService
-import com.opendatamask.connector.ConnectorFactory
+import com.opendatamask.adapter.output.connector.ConnectorFactory
 import com.opendatamask.dto.ColumnPreviewResult
 import com.opendatamask.dto.PreviewSample
 import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository

@@ -2,8 +2,8 @@ package com.opendatamask.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.opendatamask.connector.ColumnInfo
-import com.opendatamask.connector.ConnectorFactory
+import com.opendatamask.adapter.output.connector.ColumnInfo
+import com.opendatamask.adapter.output.connector.ConnectorFactory
 import com.opendatamask.domain.model.*
 import com.opendatamask.adapter.output.persistence.*
 import org.slf4j.LoggerFactory
