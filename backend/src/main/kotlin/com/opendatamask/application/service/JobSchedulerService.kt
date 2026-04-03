@@ -4,7 +4,7 @@ import com.opendatamask.domain.port.input.JobScheduleUseCase
 
 import com.opendatamask.domain.model.JobSchedule
 import com.opendatamask.domain.model.ScheduledJobType
-import com.opendatamask.adapter.output.persistence.JobScheduleRepository
+import com.opendatamask.domain.port.output.JobSchedulePort
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.scheduling.support.CronExpression
@@ -14,7 +14,7 @@ import java.time.ZonedDateTime
 
 @Service
 class JobSchedulerService(
-    private val jobScheduleRepository: JobScheduleRepository,
+    private val jobScheduleRepository: JobSchedulePort,
     private val jobService: JobService
 ) : JobScheduleUseCase {
     private val logger = LoggerFactory.getLogger(JobSchedulerService::class.java)

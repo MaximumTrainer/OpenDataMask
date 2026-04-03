@@ -1,13 +1,13 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.adapter.output.connector.ConnectorFactory
-import com.opendatamask.adapter.output.connector.DatabaseConnector
-import com.opendatamask.adapter.output.connector.ForeignKeyInfo
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
+import com.opendatamask.domain.port.output.DatabaseConnector
+import com.opendatamask.domain.port.output.ForeignKeyInfo
 import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.domain.model.DataConnection
 import com.opendatamask.domain.model.ForeignKeyRelationship
-import com.opendatamask.adapter.output.persistence.DataConnectionRepository
-import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
+import com.opendatamask.domain.port.output.DataConnectionPort
+import com.opendatamask.domain.port.output.ForeignKeyRelationshipPort
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
@@ -17,9 +17,9 @@ import java.util.Optional
 @ActiveProfiles("test")
 class ForeignKeyDiscoveryServiceTest {
 
-    private val fkRepo = mock<ForeignKeyRelationshipRepository>()
-    private val dataConnectionRepo = mock<DataConnectionRepository>()
-    private val connectorFactory = mock<ConnectorFactory>()
+    private val fkRepo = mock<ForeignKeyRelationshipPort>()
+    private val dataConnectionRepo = mock<DataConnectionPort>()
+    private val connectorFactory = mock<ConnectorFactoryPort>()
 
     private val service = ForeignKeyDiscoveryService(fkRepo, dataConnectionRepo, connectorFactory)
 
@@ -53,12 +53,12 @@ class ForeignKeyDiscoveryServiceTest {
         whenever(connector.listForeignKeys("orders")).thenReturn(listOf(fkInfo))
         whenever(connector.listForeignKeys("customers")).thenReturn(emptyList())
         whenever(fkRepo.findByWorkspaceId(1L)).thenReturn(emptyList())
-        whenever(fkRepo.saveAll(any<List<ForeignKeyRelationship>>())).thenAnswer { it.arguments[0] as List<ForeignKeyRelationship> }
+        whenever(fkRepo.save(any<ForeignKeyRelationship>())).thenAnswer { it.arguments[0] as ForeignKeyRelationship }
 
         service.discoverForeignKeys(1L)
 
-        verify(fkRepo).saveAll(argThat<List<ForeignKeyRelationship>> { fks ->
-            fks.any { it.fromTable == "orders" && it.fromColumn == "customer_id" && it.toTable == "customers" }
+        verify(fkRepo, atLeastOnce()).save(argThat<ForeignKeyRelationship> { fk ->
+            fk.fromTable == "orders" && fk.fromColumn == "customer_id" && fk.toTable == "customers"
         })
     }
 
@@ -78,12 +78,12 @@ class ForeignKeyDiscoveryServiceTest {
         whenever(connector.listTables()).thenReturn(listOf("orders"))
         whenever(connector.listForeignKeys("orders")).thenReturn(listOf(fkInfo))
         whenever(fkRepo.findByWorkspaceId(1L)).thenReturn(listOf(existing))
-        whenever(fkRepo.saveAll(any<List<ForeignKeyRelationship>>())).thenAnswer { it.arguments[0] as List<ForeignKeyRelationship> }
+        whenever(fkRepo.save(any<ForeignKeyRelationship>())).thenAnswer { it.arguments[0] as ForeignKeyRelationship }
 
         service.discoverForeignKeys(1L)
 
-        // Should not saveAll because FK already exists
-        verify(fkRepo, never()).saveAll(argThat<List<ForeignKeyRelationship>> { list -> list.isNotEmpty() })
+        // Should not save because FK already exists
+        verify(fkRepo, never()).save(argThat<ForeignKeyRelationship> { fk -> fk.fromTable == "orders" })
     }
 
     @Test

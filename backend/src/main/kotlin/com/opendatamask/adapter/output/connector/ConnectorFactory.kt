@@ -1,20 +1,22 @@
 package com.opendatamask.adapter.output.connector
 
 import com.opendatamask.domain.model.ConnectionType
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
+import com.opendatamask.domain.port.output.DatabaseConnector
 import com.opendatamask.application.service.FileStorageService
 import org.springframework.stereotype.Component
 
 @Component
 class ConnectorFactory(
     private val fileStorageService: FileStorageService? = null
-) {
+) : ConnectorFactoryPort {
 
-    fun createConnector(
+    override fun createConnector(
         type: ConnectionType,
         connectionString: String,
-        username: String? = null,
-        password: String? = null,
-        database: String? = null
+        username: String?,
+        password: String?,
+        database: String?
     ): DatabaseConnector {
         return when (type) {
             ConnectionType.POSTGRESQL -> PostgreSQLConnector(

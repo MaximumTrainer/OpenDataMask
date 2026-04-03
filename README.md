@@ -267,6 +267,15 @@ export ENCRYPTION_KEY=$(openssl rand -base64 32)
 - Connection passwords are AES-encrypted before storage
 - User passwords are BCrypt-hashed
 
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [User Guide](docs/user-guide.md) | Setup, configuration, core concepts, CLI usage |
+| [Website](docs/website/index.html) | Static HTML/CSS project website |
+| [API Reference](docs/website/api.html) | Full REST API endpoint reference |
+| [Deployment Guide](docs/website/deployment.html) | Docker, Kubernetes, CI/CD, security |
+
 ## License
 
 Open source — see [LICENSE](LICENSE) for details.

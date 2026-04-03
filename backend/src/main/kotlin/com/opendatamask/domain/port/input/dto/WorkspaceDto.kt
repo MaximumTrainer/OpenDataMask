@@ -35,3 +35,12 @@ data class WorkspaceUserResponse(
     val email: String,
     val role: String
 )
+
+data class WorkspaceStatsResponse(
+    val workspaceId: Long,
+    val connectionCount: Int,
+    val tableConfigCount: Int,
+    val totalJobsRun: Int,
+    val lastJobStatus: String?,
+    val lastJobAt: LocalDateTime?
+)

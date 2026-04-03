@@ -3,15 +3,15 @@ package com.opendatamask.application.service
 import com.opendatamask.domain.port.input.ColumnCommentUseCase
 
 import com.opendatamask.domain.model.ColumnComment
-import com.opendatamask.adapter.output.persistence.ColumnCommentRepository
-import com.opendatamask.adapter.output.persistence.UserRepository
+import com.opendatamask.domain.port.output.ColumnCommentPort
+import com.opendatamask.domain.port.output.UserPort
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class ColumnCommentService(
-    private val commentRepository: ColumnCommentRepository,
-    private val userRepository: UserRepository
+    private val commentRepository: ColumnCommentPort,
+    private val userRepository: UserPort
 ) : ColumnCommentUseCase {
     private val logger = LoggerFactory.getLogger(ColumnCommentService::class.java)
 

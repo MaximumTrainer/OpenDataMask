@@ -50,7 +50,7 @@ class WorkspacePermissionController(
         for (permName in request.grants) {
             val perm = WorkspacePermission.valueOf(permName)
             existingOverrides.find { it.permission == perm }?.let {
-                workspaceUserPermissionRepository.deleteById(it.id)
+                workspaceUserPermissionRepository.delete(it)
             }
             workspaceUserPermissionRepository.save(
                 WorkspaceUserPermission(workspaceUserId = workspaceUser.id, permission = perm, granted = true)
@@ -60,7 +60,7 @@ class WorkspacePermissionController(
         for (permName in request.revocations) {
             val perm = WorkspacePermission.valueOf(permName)
             existingOverrides.find { it.permission == perm }?.let {
-                workspaceUserPermissionRepository.deleteById(it.id)
+                workspaceUserPermissionRepository.delete(it)
             }
             workspaceUserPermissionRepository.save(
                 WorkspaceUserPermission(workspaceUserId = workspaceUser.id, permission = perm, granted = false)

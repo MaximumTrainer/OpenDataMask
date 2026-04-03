@@ -64,7 +64,7 @@ class SchemaChangeController(
         @PathVariable workspaceId: Long,
         @RequestBody body: Map<String, String>
     ): ResponseEntity<Void> {
-        val workspace = workspaceRepository.findById(workspaceId).orElseThrow()
+        val workspace = workspaceRepository.findById(workspaceId).orElseThrow { NoSuchElementException("Workspace $workspaceId not found") }
         workspace.schemaChangeHandling = SchemaChangeHandling.valueOf(
             body["schemaChangeHandling"] ?: SchemaChangeHandling.BLOCK_EXPOSING.name
         )

@@ -95,6 +95,11 @@ class WorkspaceController(
         return ResponseEntity.ok(workspaceService.getUsersInWorkspace(workspaceId))
     }
 
+    @GetMapping("/{workspaceId}/stats")
+    fun getWorkspaceStats(@PathVariable workspaceId: Long): ResponseEntity<WorkspaceStatsResponse> {
+        return ResponseEntity.ok(workspaceService.getStats(workspaceId))
+    }
+
     private fun getUserId(userDetails: UserDetails): Long {
         return userRepository.findByUsername(userDetails.username)
             .orElseThrow { NoSuchElementException("User not found") }.id

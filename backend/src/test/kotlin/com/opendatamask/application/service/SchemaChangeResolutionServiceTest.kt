@@ -77,11 +77,11 @@ class SchemaChangeResolutionServiceTest {
         val notification = makeChange(3L, SchemaChangeType.DROPPED_TABLE)
         whenever(changeRepo.findByWorkspaceIdAndStatus(1L, SchemaChangeStatus.UNRESOLVED))
             .thenReturn(listOf(exposing1, exposing2, notification))
-        whenever(changeRepo.saveAll(any<List<SchemaChange>>())).thenAnswer { it.arguments[0] as List<SchemaChange> }
+        whenever(changeRepo.save(any<SchemaChange>())).thenAnswer { it.arguments[0] as SchemaChange }
 
         service.resolveAll(1L)
 
-        verify(changeRepo).saveAll(argThat<List<SchemaChange>> { size == 2 && all { it.status == SchemaChangeStatus.RESOLVED } })
+        verify(changeRepo, times(2)).save(argThat<SchemaChange> { status == SchemaChangeStatus.RESOLVED })
         assertEquals(SchemaChangeStatus.UNRESOLVED, notification.status)
     }
 
@@ -89,22 +89,22 @@ class SchemaChangeResolutionServiceTest {
     fun `resolveAll resolves NULLABILITY_CHANGED as exposing`() {
         val change = makeChange(1L, SchemaChangeType.NULLABILITY_CHANGED)
         whenever(changeRepo.findByWorkspaceIdAndStatus(1L, SchemaChangeStatus.UNRESOLVED)).thenReturn(listOf(change))
-        whenever(changeRepo.saveAll(any<List<SchemaChange>>())).thenAnswer { it.arguments[0] as List<SchemaChange> }
+        whenever(changeRepo.save(any<SchemaChange>())).thenAnswer { it.arguments[0] as SchemaChange }
 
         service.resolveAll(1L)
 
-        verify(changeRepo).saveAll(argThat<List<SchemaChange>> { size == 1 && first().status == SchemaChangeStatus.RESOLVED })
+        verify(changeRepo).save(argThat<SchemaChange> { status == SchemaChangeStatus.RESOLVED })
     }
 
     @Test
     fun `resolveAll does not resolve NEW_TABLE (notification type)`() {
         val change = makeChange(1L, SchemaChangeType.NEW_TABLE)
         whenever(changeRepo.findByWorkspaceIdAndStatus(1L, SchemaChangeStatus.UNRESOLVED)).thenReturn(listOf(change))
-        whenever(changeRepo.saveAll(any<List<SchemaChange>>())).thenAnswer { it.arguments[0] as List<SchemaChange> }
+        whenever(changeRepo.save(any<SchemaChange>())).thenAnswer { it.arguments[0] as SchemaChange }
 
         service.resolveAll(1L)
 
-        verify(changeRepo).saveAll(argThat<List<SchemaChange>> { isEmpty() })
+        verify(changeRepo, never()).save(argThat<SchemaChange> { status == SchemaChangeStatus.RESOLVED })
     }
 
     // ── dismissAll ─────────────────────────────────────────────────────────
@@ -117,24 +117,22 @@ class SchemaChangeResolutionServiceTest {
         val exposing = makeChange(4L, SchemaChangeType.NEW_COLUMN)
         whenever(changeRepo.findByWorkspaceIdAndStatus(1L, SchemaChangeStatus.UNRESOLVED))
             .thenReturn(listOf(notification1, notification2, notification3, exposing))
-        whenever(changeRepo.saveAll(any<List<SchemaChange>>())).thenAnswer { it.arguments[0] as List<SchemaChange> }
+        whenever(changeRepo.save(any<SchemaChange>())).thenAnswer { it.arguments[0] as SchemaChange }
 
         service.dismissAll(1L)
 
-        verify(changeRepo).saveAll(argThat<List<SchemaChange>> {
-            size == 3 && all { it.status == SchemaChangeStatus.DISMISSED }
-        })
+        verify(changeRepo, times(3)).save(argThat<SchemaChange> { status == SchemaChangeStatus.DISMISSED })
         assertEquals(SchemaChangeStatus.UNRESOLVED, exposing.status)
     }
 
     @Test
     fun `dismissAll does nothing when no notification changes exist`() {
         whenever(changeRepo.findByWorkspaceIdAndStatus(1L, SchemaChangeStatus.UNRESOLVED)).thenReturn(emptyList())
-        whenever(changeRepo.saveAll(any<List<SchemaChange>>())).thenReturn(emptyList())
+        whenever(changeRepo.save(any<SchemaChange>())).thenReturn(mock())
 
         service.dismissAll(1L)
 
-        verify(changeRepo).saveAll(argThat<List<SchemaChange>> { isEmpty() })
+        verify(changeRepo, never()).save(any())
     }
 
     // ── status transitions ─────────────────────────────────────────────────

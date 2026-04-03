@@ -3,11 +3,18 @@ package com.opendatamask.application.service
 import com.opendatamask.domain.port.input.JobUseCase
 
 import com.opendatamask.domain.port.output.EncryptionPort
-import com.opendatamask.adapter.output.connector.ConnectorFactory
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
+import com.opendatamask.domain.port.output.JobPort
+import com.opendatamask.domain.port.output.JobLogPort
+import com.opendatamask.domain.port.output.WorkspacePort
+import com.opendatamask.domain.port.output.DataConnectionPort
+import com.opendatamask.domain.port.output.TableConfigurationPort
+import com.opendatamask.domain.port.output.ColumnGeneratorPort
+import com.opendatamask.domain.port.output.SubsetTableConfigPort
+import com.opendatamask.domain.port.output.DatabaseConnector
 import com.opendatamask.domain.port.input.dto.JobLogResponse
 import com.opendatamask.domain.port.input.dto.JobResponse
 import com.opendatamask.domain.model.*
-import com.opendatamask.adapter.output.persistence.*
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
@@ -16,14 +23,14 @@ import java.time.LocalDateTime
 
 @Service
 class JobService(
-    private val jobRepository: JobRepository,
-    private val jobLogRepository: JobLogRepository,
-    private val workspaceRepository: WorkspaceRepository,
-    private val dataConnectionRepository: DataConnectionRepository,
-    private val tableConfigurationRepository: TableConfigurationRepository,
-    private val columnGeneratorRepository: ColumnGeneratorRepository,
+    private val jobRepository: JobPort,
+    private val jobLogRepository: JobLogPort,
+    private val workspaceRepository: WorkspacePort,
+    private val dataConnectionRepository: DataConnectionPort,
+    private val tableConfigurationRepository: TableConfigurationPort,
+    private val columnGeneratorRepository: ColumnGeneratorPort,
     private val encryptionPort: EncryptionPort,
-    private val connectorFactory: ConnectorFactory,
+    private val connectorFactory: ConnectorFactoryPort,
     private val generatorService: GeneratorService,
     private val destinationSchemaService: DestinationSchemaService,
     private val postJobActionService: PostJobActionService,
@@ -34,7 +41,7 @@ class JobService(
     private var subsetExecutionService: SubsetExecutionService? = null
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private var subsetTableConfigRepository: SubsetTableConfigRepository? = null
+    private var subsetTableConfigPort: SubsetTableConfigPort? = null
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private var privacyReportService: PrivacyReportService? = null
@@ -154,7 +161,7 @@ class JobService(
             val tableConfigs = tableConfigurationRepository.findByWorkspaceId(job.workspaceId)
             addLog(job.id, "Processing ${tableConfigs.size} table(s)", LogLevel.INFO)
 
-            val localSubsetRepo = subsetTableConfigRepository
+            val localSubsetRepo = subsetTableConfigPort
             val localSubsetExec = subsetExecutionService
             val subsetRows: Map<String, List<Map<String, Any?>>> =
                 if (localSubsetRepo != null &&
@@ -204,8 +211,8 @@ class JobService(
     private fun processTable(
         jobId: Long,
         tableConfig: TableConfiguration,
-        sourceConnector: com.opendatamask.adapter.output.connector.DatabaseConnector,
-        destConnector: com.opendatamask.adapter.output.connector.DatabaseConnector,
+        sourceConnector: DatabaseConnector,
+        destConnector: DatabaseConnector,
         preComputedRows: Map<String, List<Map<String, Any?>>> = emptyMap()
     ) {
         addLog(jobId, "Processing table: ${tableConfig.tableName} (mode: ${tableConfig.mode})", LogLevel.INFO)

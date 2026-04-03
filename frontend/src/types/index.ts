@@ -289,3 +289,43 @@ export interface ApiError {
   status: number
   errors?: Record<string, string>
 }
+
+// ── Workspace Stats ───────────────────────────────────────────────────────
+
+export interface WorkspaceStats {
+  workspaceId: number
+  connectionCount: number
+  tableConfigCount: number
+  totalJobsRun: number
+  lastJobStatus: string | null
+  lastJobAt: string | null
+}
+
+// ── Workspace Config Export/Import ────────────────────────────────────────
+
+export interface WorkspaceColumnGeneratorExport {
+  columnName: string
+  generatorType: GeneratorType
+  generatorParams: string | null
+}
+
+export interface WorkspaceTableConfigExport {
+  tableName: string
+  schemaName: string | null
+  mode: TableMode
+  rowLimit: number | null
+  whereClause: string | null
+  columnGenerators: WorkspaceColumnGeneratorExport[]
+}
+
+export interface WorkspaceActionExport {
+  actionType: ActionType
+  config: string
+  enabled: boolean
+}
+
+export interface WorkspaceConfigDto {
+  version: string
+  tables: WorkspaceTableConfigExport[]
+  actions: WorkspaceActionExport[]
+}

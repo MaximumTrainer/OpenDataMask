@@ -7,7 +7,7 @@ import com.opendatamask.domain.port.input.dto.LoginRequest
 import com.opendatamask.domain.port.input.dto.RegisterRequest
 import com.opendatamask.domain.model.User
 import com.opendatamask.domain.model.UserRole
-import com.opendatamask.adapter.output.persistence.UserRepository
+import com.opendatamask.domain.port.output.UserPort
 import com.opendatamask.domain.port.output.TokenPort
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class AuthService(
-    private val userRepository: UserRepository,
+    private val userRepository: UserPort,
     private val passwordEncoder: PasswordEncoder,
     private val tokenPort: TokenPort
 ) : AuthUseCase {
@@ -35,11 +35,12 @@ class AuthService(
             passwordHash = passwordEncoder.encode(request.password),
             role = UserRole.USER
         )
-        userRepository.save(user)
+        val savedUser = userRepository.save(user)
 
         val token = tokenPort.generateToken(user.username)
         return AuthResponse(
             token = token,
+            userId = savedUser.id,
             username = user.username,
             email = user.email,
             role = user.role
@@ -57,6 +58,7 @@ class AuthService(
         val token = tokenPort.generateToken(user.username)
         return AuthResponse(
             token = token,
+            userId = user.id,
             username = user.username,
             email = user.email,
             role = user.role

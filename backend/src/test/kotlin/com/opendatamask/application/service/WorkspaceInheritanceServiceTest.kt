@@ -13,12 +13,14 @@ class WorkspaceInheritanceServiceTest {
     private val tableConfigRepository = mock<TableConfigurationRepository>()
     private val columnGeneratorRepository = mock<ColumnGeneratorRepository>()
     private val inheritedConfigRepository = mock<InheritedConfigRepository>()
+    private val columnSensitivityRepository = mock<ColumnSensitivityRepository>()
 
     private val service = WorkspaceInheritanceService(
         workspaceRepository,
         tableConfigRepository,
         columnGeneratorRepository,
-        inheritedConfigRepository
+        inheritedConfigRepository,
+        columnSensitivityRepository
     )
 
     private fun makeWorkspace(id: Long, parentId: Long? = null) =
@@ -235,4 +237,50 @@ class WorkspaceInheritanceServiceTest {
         verify(tableConfigRepository, never()).save(any<TableConfiguration>())
         verify(inheritedConfigRepository, never()).save(any<InheritedConfig>())
     }
+
+    @Test
+    fun `inheritFromParent copies ColumnSensitivity records from parent to child`() {
+        val parentWsId = 1L
+        val childWsId = 2L
+
+        whenever(tableConfigRepository.findByWorkspaceId(parentWsId)).thenReturn(emptyList())
+
+        val parentSensitivities = listOf(
+            ColumnSensitivity(workspaceId = parentWsId, tableName = "users", columnName = "email",
+                isSensitive = true, sensitivityType = SensitivityType.EMAIL, confidenceLevel = ConfidenceLevel.HIGH),
+            ColumnSensitivity(workspaceId = parentWsId, tableName = "users", columnName = "phone",
+                isSensitive = true, sensitivityType = SensitivityType.PHONE, confidenceLevel = ConfidenceLevel.MEDIUM)
+        )
+        whenever(columnSensitivityRepository.findByWorkspaceId(parentWsId)).thenReturn(parentSensitivities)
+        whenever(columnSensitivityRepository.findByWorkspaceId(childWsId)).thenReturn(emptyList())
+        whenever(columnSensitivityRepository.save(any<ColumnSensitivity>())).thenAnswer { it.arguments[0] }
+
+        service.inheritFromParent(childWsId, parentWsId)
+
+        verify(columnSensitivityRepository, times(2)).save(any<ColumnSensitivity>())
+    }
+
+    @Test
+    fun `inheritFromParent skips ColumnSensitivity records already present in child`() {
+        val parentWsId = 1L
+        val childWsId = 2L
+
+        whenever(tableConfigRepository.findByWorkspaceId(parentWsId)).thenReturn(emptyList())
+
+        val parentSensitivities = listOf(
+            ColumnSensitivity(workspaceId = parentWsId, tableName = "users", columnName = "email",
+                isSensitive = true, sensitivityType = SensitivityType.EMAIL, confidenceLevel = ConfidenceLevel.HIGH)
+        )
+        val existingChildSensitivities = listOf(
+            ColumnSensitivity(workspaceId = childWsId, tableName = "users", columnName = "email",
+                isSensitive = false, sensitivityType = SensitivityType.UNKNOWN, confidenceLevel = ConfidenceLevel.LOW)
+        )
+        whenever(columnSensitivityRepository.findByWorkspaceId(parentWsId)).thenReturn(parentSensitivities)
+        whenever(columnSensitivityRepository.findByWorkspaceId(childWsId)).thenReturn(existingChildSensitivities)
+
+        service.inheritFromParent(childWsId, parentWsId)
+
+        verify(columnSensitivityRepository, never()).save(any<ColumnSensitivity>())
+    }
 }
+

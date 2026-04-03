@@ -5,15 +5,15 @@ import com.opendatamask.domain.port.input.TableConfigurationUseCase
 import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.TableConfiguration
-import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
-import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
+import com.opendatamask.domain.port.output.ColumnGeneratorPort
+import com.opendatamask.domain.port.output.TableConfigurationPort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class TableConfigurationService(
-    private val tableConfigurationRepository: TableConfigurationRepository,
-    private val columnGeneratorRepository: ColumnGeneratorRepository
+    private val tableConfigurationRepository: TableConfigurationPort,
+    private val columnGeneratorRepository: ColumnGeneratorPort
 ) : TableConfigurationUseCase {
 
     @Transactional
@@ -58,7 +58,7 @@ class TableConfigurationService(
     override fun deleteTableConfiguration(workspaceId: Long, tableId: Long) {
         val config = findTableConfig(workspaceId, tableId)
         columnGeneratorRepository.deleteByTableConfigurationId(config.id)
-        tableConfigurationRepository.delete(config)
+        tableConfigurationRepository.deleteById(config.id!!)
     }
 
     @Transactional
@@ -112,7 +112,7 @@ class TableConfigurationService(
         if (generator.tableConfigurationId != tableId) {
             throw NoSuchElementException("Generator $generatorId does not belong to table config $tableId")
         }
-        columnGeneratorRepository.delete(generator)
+        columnGeneratorRepository.deleteById(generator.id!!)
     }
 
     private fun findTableConfig(workspaceId: Long, tableId: Long): TableConfiguration {

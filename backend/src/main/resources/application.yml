@@ -33,3 +33,12 @@ opendatamask:
     expiration: ${JWT_EXPIRATION:86400000}
   encryption:
     key: ${ENCRYPTION_KEY:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

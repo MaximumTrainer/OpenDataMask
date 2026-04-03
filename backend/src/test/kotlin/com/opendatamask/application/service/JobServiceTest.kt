@@ -1,10 +1,8 @@
 package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.output.EncryptionPort
-import com.opendatamask.adapter.output.connector.ConnectorFactory
-import com.opendatamask.adapter.output.connector.DatabaseConnector
+import com.opendatamask.domain.port.output.*
 import com.opendatamask.domain.model.*
-import com.opendatamask.adapter.output.persistence.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -19,14 +17,14 @@ import java.util.Optional
 @ExtendWith(MockitoExtension::class)
 class JobServiceTest {
 
-    @Mock private lateinit var jobRepository: JobRepository
-    @Mock private lateinit var jobLogRepository: JobLogRepository
-    @Mock private lateinit var workspaceRepository: WorkspaceRepository
-    @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
-    @Mock private lateinit var tableConfigurationRepository: TableConfigurationRepository
-    @Mock private lateinit var columnGeneratorRepository: ColumnGeneratorRepository
+    @Mock private lateinit var jobRepository: JobPort
+    @Mock private lateinit var jobLogRepository: JobLogPort
+    @Mock private lateinit var workspaceRepository: WorkspacePort
+    @Mock private lateinit var dataConnectionRepository: DataConnectionPort
+    @Mock private lateinit var tableConfigurationRepository: TableConfigurationPort
+    @Mock private lateinit var columnGeneratorRepository: ColumnGeneratorPort
     @Mock private lateinit var EncryptionPort: EncryptionPort
-    @Mock private lateinit var connectorFactory: ConnectorFactory
+    @Mock private lateinit var connectorFactory: ConnectorFactoryPort
     @Mock private lateinit var generatorService: GeneratorService
     @Mock private lateinit var destinationSchemaService: DestinationSchemaService
     @Mock private lateinit var postJobActionService: PostJobActionService

@@ -3,9 +3,13 @@ package com.opendatamask.application.service
 import com.opendatamask.domain.port.input.SensitivityScanUseCase
 
 import com.opendatamask.domain.port.output.EncryptionPort
-import com.opendatamask.adapter.output.connector.ConnectorFactory
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
 import com.opendatamask.domain.model.*
-import com.opendatamask.adapter.output.persistence.*
+import com.opendatamask.domain.port.output.ColumnSensitivityPort
+import com.opendatamask.domain.port.output.SensitivityScanLogPort
+import com.opendatamask.domain.port.output.SensitivityScanLogEntryPort
+import com.opendatamask.domain.port.output.WorkspacePort
+import com.opendatamask.domain.port.output.DataConnectionPort
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -13,12 +17,12 @@ import java.time.LocalDateTime
 
 @Service
 class SensitivityScanService(
-    private val columnSensitivityRepository: ColumnSensitivityRepository,
-    private val sensitivityScanLogRepository: SensitivityScanLogRepository,
-    private val sensitivityScanLogEntryRepository: SensitivityScanLogEntryRepository,
-    private val workspaceRepository: WorkspaceRepository,
-    private val dataConnectionRepository: DataConnectionRepository,
-    private val connectorFactory: ConnectorFactory,
+    private val columnSensitivityRepository: ColumnSensitivityPort,
+    private val sensitivityScanLogRepository: SensitivityScanLogPort,
+    private val sensitivityScanLogEntryRepository: SensitivityScanLogEntryPort,
+    private val workspaceRepository: WorkspacePort,
+    private val dataConnectionRepository: DataConnectionPort,
+    private val connectorFactory: ConnectorFactoryPort,
     private val encryptionPort: EncryptionPort
 ) : SensitivityScanUseCase {
     private val rules: List<SensitivityRule> = buildRules()

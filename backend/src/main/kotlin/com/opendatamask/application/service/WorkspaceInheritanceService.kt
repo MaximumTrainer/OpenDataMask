@@ -3,16 +3,21 @@ package com.opendatamask.application.service
 import com.opendatamask.domain.port.input.WorkspaceInheritanceUseCase
 
 import com.opendatamask.domain.model.*
-import com.opendatamask.adapter.output.persistence.*
+import com.opendatamask.domain.port.output.WorkspacePort
+import com.opendatamask.domain.port.output.TableConfigurationPort
+import com.opendatamask.domain.port.output.ColumnGeneratorPort
+import com.opendatamask.domain.port.output.InheritedConfigPort
+import com.opendatamask.domain.port.output.ColumnSensitivityPort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class WorkspaceInheritanceService(
-    private val workspaceRepository: WorkspaceRepository,
-    private val tableConfigurationRepository: TableConfigurationRepository,
-    private val columnGeneratorRepository: ColumnGeneratorRepository,
-    private val inheritedConfigRepository: InheritedConfigRepository
+    private val workspaceRepository: WorkspacePort,
+    private val tableConfigurationRepository: TableConfigurationPort,
+    private val columnGeneratorRepository: ColumnGeneratorPort,
+    private val inheritedConfigRepository: InheritedConfigPort,
+    private val columnSensitivityPort: ColumnSensitivityPort
 ) : WorkspaceInheritanceUseCase {
 
     /**
@@ -82,7 +87,27 @@ class WorkspaceInheritanceService(
                 }
             }
         }
-        // TODO: Copy ColumnSensitivity records from parent when ColumnSensitivityRepository is available (R1)
+        val parentSensitivities = columnSensitivityPort.findByWorkspaceId(parentWorkspaceId)
+        val existingChildKeys = columnSensitivityPort.findByWorkspaceId(childWorkspaceId)
+            .map { "${it.tableName}:${it.columnName}" }
+            .toSet()
+
+        for (sensitivity in parentSensitivities) {
+            val key = "${sensitivity.tableName}:${sensitivity.columnName}"
+            if (key !in existingChildKeys) {
+                columnSensitivityPort.save(
+                    ColumnSensitivity(
+                        workspaceId = childWorkspaceId,
+                        tableName = sensitivity.tableName,
+                        columnName = sensitivity.columnName,
+                        isSensitive = sensitivity.isSensitive,
+                        sensitivityType = sensitivity.sensitivityType,
+                        confidenceLevel = sensitivity.confidenceLevel,
+                        recommendedGeneratorType = sensitivity.recommendedGeneratorType
+                    )
+                )
+            }
+        }
     }
 
     /**

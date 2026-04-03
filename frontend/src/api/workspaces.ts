@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { Workspace, WorkspaceRequest } from '@/types'
+import type { Workspace, WorkspaceRequest, WorkspaceStats, WorkspaceConfigDto } from '@/types'
 
 export async function listWorkspaces(): Promise<Workspace[]> {
   const { data } = await apiClient.get<Workspace[]>('/workspaces')
@@ -23,4 +23,22 @@ export async function updateWorkspace(id: number, payload: WorkspaceRequest): Pr
 
 export async function deleteWorkspace(id: number): Promise<void> {
   await apiClient.delete(`/workspaces/${id}`)
+}
+
+export async function exportWorkspace(id: number): Promise<Blob> {
+  const { data } = await apiClient.get(`/workspaces/${id}/export`, { responseType: 'blob' })
+  return data
+}
+
+export async function importWorkspace(
+  id: number,
+  config: WorkspaceConfigDto
+): Promise<{ status: string; version: string }> {
+  const { data } = await apiClient.post(`/workspaces/${id}/import`, config)
+  return data
+}
+
+export async function getWorkspaceStats(id: number): Promise<WorkspaceStats> {
+  const { data } = await apiClient.get<WorkspaceStats>(`/workspaces/${id}/stats`)
+  return data
 }

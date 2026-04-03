@@ -1,11 +1,11 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.adapter.output.connector.DatabaseConnector
+import com.opendatamask.domain.port.output.DatabaseConnector
 import com.opendatamask.domain.model.ForeignKeyRelationship
 import com.opendatamask.domain.model.SubsetLimitType
 import com.opendatamask.domain.model.SubsetTableConfig
-import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
-import com.opendatamask.adapter.output.persistence.SubsetTableConfigRepository
+import com.opendatamask.domain.port.output.ForeignKeyRelationshipPort
+import com.opendatamask.domain.port.output.SubsetTableConfigPort
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
@@ -14,8 +14,8 @@ import org.springframework.test.context.ActiveProfiles
 @ActiveProfiles("test")
 class SubsetExecutionServiceTest {
 
-    private val fkRepo = mock<ForeignKeyRelationshipRepository>()
-    private val subsetConfigRepo = mock<SubsetTableConfigRepository>()
+    private val fkRepo = mock<ForeignKeyRelationshipPort>()
+    private val subsetConfigRepo = mock<SubsetTableConfigPort>()
     private val subsetPlanService = mock<SubsetPlanService>()
     private val connector = mock<DatabaseConnector>()
 

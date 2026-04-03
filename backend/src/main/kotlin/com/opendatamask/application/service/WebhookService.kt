@@ -5,8 +5,8 @@ import com.opendatamask.domain.port.input.WebhookUseCase
 import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.domain.port.input.dto.WebhookRequest
 import com.opendatamask.domain.model.*
-import com.opendatamask.adapter.output.persistence.WebhookRepository
-import com.opendatamask.adapter.output.persistence.WorkspaceRepository
+import com.opendatamask.domain.port.output.WebhookPort
+import com.opendatamask.domain.port.output.WorkspacePort
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -17,8 +17,8 @@ import org.springframework.web.client.RestTemplate
 
 @Service
 class WebhookService(
-    private val webhookRepository: WebhookRepository,
-    private val workspaceRepository: WorkspaceRepository,
+    private val webhookRepository: WebhookPort,
+    private val workspaceRepository: WorkspacePort,
     private val encryptionPort: EncryptionPort,
     private val restTemplate: RestTemplate
 ) : WebhookUseCase {

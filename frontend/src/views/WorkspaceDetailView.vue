@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWorkspaceStore } from '@/store/workspace'
+import { getWorkspaceStats } from '@/api/workspaces'
+import type { WorkspaceStats } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,7 +12,26 @@ const store = useWorkspaceStore()
 const workspaceId = computed(() => Number(route.params.id))
 const ws = computed(() => store.currentWorkspace)
 
-onMounted(() => store.fetchWorkspace(workspaceId.value))
+const stats = ref<WorkspaceStats | null>(null)
+const statsLoading = ref(false)
+const statsError = ref<string | null>(null)
+
+onMounted(async () => {
+  store.fetchWorkspace(workspaceId.value)
+  await fetchStats()
+})
+
+async function fetchStats() {
+  statsLoading.value = true
+  statsError.value = null
+  try {
+    stats.value = await getWorkspaceStats(workspaceId.value)
+  } catch {
+    statsError.value = 'Failed to load workspace statistics'
+  } finally {
+    statsLoading.value = false
+  }
+}
 
 const tabs = [
   { label: 'Overview',    icon: '📋', path: () => `/workspaces/${workspaceId.value}` },
@@ -134,6 +155,36 @@ function formatDate(d: string) {
           </div>
         </div>
       </div>
+
+      <!-- Statistics Card -->
+      <div class="card mt-4">
+        <h3 class="card-title mb-4">Statistics</h3>
+        <div v-if="statsLoading" class="skeleton" style="height: 6rem;" />
+        <div v-else-if="statsError" class="alert alert-error">{{ statsError }}</div>
+        <dl v-else-if="stats" class="detail-list">
+          <dt>Connections</dt>
+          <dd>{{ stats.connectionCount }}</dd>
+          <dt>Table Configurations</dt>
+          <dd>{{ stats.tableConfigCount }}</dd>
+          <dt>Total Jobs Run</dt>
+          <dd>{{ stats.totalJobsRun }}</dd>
+          <dt>Last Job Status</dt>
+          <dd>
+            <span
+              v-if="stats.lastJobStatus"
+              :class="{
+                'stat-status-green': stats.lastJobStatus === 'COMPLETED',
+                'stat-status-red': stats.lastJobStatus === 'FAILED',
+                'stat-status-orange': stats.lastJobStatus === 'RUNNING',
+                'stat-status-gray': !['COMPLETED','FAILED','RUNNING'].includes(stats.lastJobStatus)
+              }"
+            >{{ stats.lastJobStatus }}</span>
+            <span v-else class="stat-status-gray">—</span>
+          </dd>
+          <dt>Last Job Date</dt>
+          <dd>{{ stats.lastJobAt ? formatDate(stats.lastJobAt) : '—' }}</dd>
+        </dl>
+      </div>
     </template>
 
     <!-- Not found -->
@@ -175,4 +226,8 @@ dd {
 }
 .quick-btn:hover { background: #eff6ff; border-color: #93c5fd; }
 .quick-icon { font-size: 1.5rem; flex-shrink: 0; }
+.stat-status-green  { color: #16a34a; font-weight: 500; }
+.stat-status-red    { color: #dc2626; font-weight: 500; }
+.stat-status-orange { color: #ea580c; font-weight: 500; }
+.stat-status-gray   { color: #6b7280; }
 </style>

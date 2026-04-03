@@ -6,17 +6,17 @@ import com.opendatamask.domain.port.input.dto.ColumnGeneratorResponse
 import com.opendatamask.domain.port.input.dto.GeneratorPresetRequest
 import com.opendatamask.domain.port.input.dto.GeneratorPresetResponse
 import com.opendatamask.domain.model.GeneratorPreset
-import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
-import com.opendatamask.adapter.output.persistence.GeneratorPresetRepository
-import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
+import com.opendatamask.domain.port.output.ColumnGeneratorPort
+import com.opendatamask.domain.port.output.GeneratorPresetPort
+import com.opendatamask.domain.port.output.TableConfigurationPort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class GeneratorPresetService(
-    private val generatorPresetRepository: GeneratorPresetRepository,
-    private val columnGeneratorRepository: ColumnGeneratorRepository,
-    private val tableConfigurationRepository: TableConfigurationRepository
+    private val generatorPresetRepository: GeneratorPresetPort,
+    private val columnGeneratorRepository: ColumnGeneratorPort,
+    private val tableConfigurationRepository: TableConfigurationPort
 ) : GeneratorPresetUseCase {
 
     @Transactional(readOnly = true)
@@ -65,7 +65,7 @@ class GeneratorPresetService(
         if (preset.workspaceId != workspaceId) {
             throw NoSuchElementException("Preset $presetId does not belong to workspace $workspaceId")
         }
-        generatorPresetRepository.delete(preset)
+        generatorPresetRepository.deleteById(preset.id!!)
     }
 
     @Transactional

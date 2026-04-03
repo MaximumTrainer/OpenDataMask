@@ -40,6 +40,7 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("com.h2database:h2")
     implementation("net.datafaker:datafaker:2.1.0")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 }
 
@@ -53,6 +54,22 @@ tasks.withType<KotlinCompile> {
 tasks.withType<Test> {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
+}
+
+val verificationTest by tasks.registering(Test::class) {
+    description = "Runs smoke/verification tests tagged with 'smoke'."
+    group = "verification"
+    useJUnitPlatform {
+        includeTags("smoke")
+    }
+    shouldRunAfter(tasks.test)
+    finalizedBy(tasks.jacocoTestReport)
+    reports {
+        junitXml.required.set(true)
+        html.required.set(true)
+        junitXml.outputLocation.set(layout.buildDirectory.dir("reports/tests/verificationTest"))
+        html.outputLocation.set(layout.buildDirectory.dir("reports/tests/verificationTest/html"))
+    }
 }
 
 tasks.jacocoTestReport {

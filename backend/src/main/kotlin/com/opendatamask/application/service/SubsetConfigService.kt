@@ -4,12 +4,12 @@ import com.opendatamask.domain.port.input.SubsetConfigUseCase
 
 import com.opendatamask.domain.port.input.dto.SubsetTableConfigRequest
 import com.opendatamask.domain.model.SubsetTableConfig
-import com.opendatamask.adapter.output.persistence.SubsetTableConfigRepository
+import com.opendatamask.domain.port.output.SubsetTableConfigPort
 import org.springframework.stereotype.Service
 
 @Service
 class SubsetConfigService(
-    private val subsetTableConfigRepository: SubsetTableConfigRepository
+    private val subsetTableConfigRepository: SubsetTableConfigPort
 ) : SubsetConfigUseCase {
     override fun listConfigs(workspaceId: Long): List<SubsetTableConfig> =
         subsetTableConfigRepository.findByWorkspaceId(workspaceId)

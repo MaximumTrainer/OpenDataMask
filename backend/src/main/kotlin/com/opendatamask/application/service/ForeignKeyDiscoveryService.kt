@@ -2,18 +2,18 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.input.ForeignKeyUseCase
 
-import com.opendatamask.adapter.output.connector.ConnectorFactory
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
+import com.opendatamask.domain.port.output.DataConnectionPort
+import com.opendatamask.domain.port.output.ForeignKeyRelationshipPort
 import com.opendatamask.domain.model.ForeignKeyRelationship
-import com.opendatamask.adapter.output.persistence.DataConnectionRepository
-import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class ForeignKeyDiscoveryService(
-    private val foreignKeyRelationshipRepository: ForeignKeyRelationshipRepository,
-    private val dataConnectionRepository: DataConnectionRepository,
-    private val connectorFactory: ConnectorFactory
+    private val foreignKeyRelationshipRepository: ForeignKeyRelationshipPort,
+    private val dataConnectionRepository: DataConnectionPort,
+    private val connectorFactory: ConnectorFactoryPort
 ) : ForeignKeyUseCase {
     private val logger = LoggerFactory.getLogger(ForeignKeyDiscoveryService::class.java)
 
@@ -72,7 +72,7 @@ class ForeignKeyDiscoveryService(
         }
 
         if (discovered.isNotEmpty()) {
-            foreignKeyRelationshipRepository.saveAll(discovered)
+            discovered.forEach { foreignKeyRelationshipRepository.save(it) }
         }
 
         return foreignKeyRelationshipRepository.findByWorkspaceId(workspaceId)

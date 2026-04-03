@@ -3,20 +3,20 @@ package com.opendatamask.application.service
 import com.opendatamask.domain.port.input.DataConnectionUseCase
 
 import com.opendatamask.domain.port.output.EncryptionPort
-import com.opendatamask.adapter.output.connector.ConnectorFactory
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
+import com.opendatamask.domain.port.output.DataConnectionPort
 import com.opendatamask.domain.port.input.dto.ConnectionTestResult
 import com.opendatamask.domain.port.input.dto.DataConnectionRequest
 import com.opendatamask.domain.port.input.dto.DataConnectionResponse
 import com.opendatamask.domain.model.DataConnection
-import com.opendatamask.adapter.output.persistence.DataConnectionRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class DataConnectionService(
-    private val dataConnectionRepository: DataConnectionRepository,
+    private val dataConnectionRepository: DataConnectionPort,
     private val encryptionPort: EncryptionPort,
-    private val connectorFactory: ConnectorFactory
+    private val connectorFactory: ConnectorFactoryPort
 ) : DataConnectionUseCase {
 
     @Transactional
@@ -63,7 +63,7 @@ class DataConnectionService(
     @Transactional
     override fun deleteConnection(workspaceId: Long, connectionId: Long) {
         val connection = findConnection(workspaceId, connectionId)
-        dataConnectionRepository.delete(connection)
+        dataConnectionRepository.deleteById(connection.id!!)
     }
 
     override fun testConnection(workspaceId: Long, connectionId: Long): ConnectionTestResult {

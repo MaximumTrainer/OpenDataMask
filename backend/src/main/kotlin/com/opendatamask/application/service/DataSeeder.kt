@@ -2,13 +2,13 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.model.GeneratorPreset
 import com.opendatamask.domain.model.GeneratorType
-import com.opendatamask.adapter.output.persistence.GeneratorPresetRepository
+import com.opendatamask.domain.port.output.GeneratorPresetPort
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Component
 
 @Component
 class DataSeeder(
-    private val generatorPresetRepository: GeneratorPresetRepository
+    private val generatorPresetRepository: GeneratorPresetPort
 ) {
     private val systemPresets = listOf(
         "First Name" to GeneratorType.FIRST_NAME,

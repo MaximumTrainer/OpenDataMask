@@ -1,12 +1,12 @@
 package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.output.EncryptionPort
-import com.opendatamask.adapter.output.connector.ConnectorFactory
-import com.opendatamask.adapter.output.connector.DatabaseConnector
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
+import com.opendatamask.domain.port.output.DatabaseConnector
+import com.opendatamask.domain.port.output.DataConnectionPort
 import com.opendatamask.domain.port.input.dto.DataConnectionRequest
 import com.opendatamask.domain.model.ConnectionType
 import com.opendatamask.domain.model.DataConnection
-import com.opendatamask.adapter.output.persistence.DataConnectionRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -21,9 +21,9 @@ import java.util.Optional
 @ExtendWith(MockitoExtension::class)
 class DataConnectionServiceTest {
 
-    @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
+    @Mock private lateinit var dataConnectionRepository: DataConnectionPort
     @Mock private lateinit var EncryptionPort: EncryptionPort
-    @Mock private lateinit var connectorFactory: ConnectorFactory
+    @Mock private lateinit var connectorFactory: ConnectorFactoryPort
 
     @InjectMocks
     private lateinit var service: DataConnectionService
@@ -173,7 +173,7 @@ class DataConnectionServiceTest {
 
         service.deleteConnection(10L, 1L)
 
-        verify(dataConnectionRepository).delete(conn)
+        verify(dataConnectionRepository).deleteById(1L)
     }
 
     @Test

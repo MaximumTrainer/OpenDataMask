@@ -4,15 +4,15 @@ import com.opendatamask.domain.port.input.PermissionUseCase
 
 import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.domain.model.WorkspaceUserPermission
-import com.opendatamask.adapter.output.persistence.WorkspaceUserPermissionRepository
-import com.opendatamask.adapter.output.persistence.WorkspaceUserRepository
+import com.opendatamask.domain.port.output.WorkspaceUserPermissionPort
+import com.opendatamask.domain.port.output.WorkspaceUserPort
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 
 @Service
 class PermissionService(
-    private val workspaceUserRepository: WorkspaceUserRepository,
-    private val workspaceUserPermissionRepository: WorkspaceUserPermissionRepository
+    private val workspaceUserRepository: WorkspaceUserPort,
+    private val workspaceUserPermissionRepository: WorkspaceUserPermissionPort
 ) : PermissionUseCase {
     /**
      * Returns the effective permission set for a user in a workspace.

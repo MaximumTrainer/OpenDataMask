@@ -5,20 +5,20 @@ import com.opendatamask.domain.port.input.DataPreviewUseCase
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.opendatamask.domain.port.output.EncryptionPort
-import com.opendatamask.adapter.output.connector.ConnectorFactory
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
+import com.opendatamask.domain.port.output.ColumnGeneratorPort
+import com.opendatamask.domain.port.output.DataConnectionPort
+import com.opendatamask.domain.port.output.TableConfigurationPort
 import com.opendatamask.domain.port.input.dto.ColumnPreviewResult
 import com.opendatamask.domain.port.input.dto.PreviewSample
-import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
-import com.opendatamask.adapter.output.persistence.DataConnectionRepository
-import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
 import org.springframework.stereotype.Service
 
 @Service
 class DataPreviewService(
-    private val connectorFactory: ConnectorFactory,
-    private val dataConnectionRepository: DataConnectionRepository,
-    private val tableConfigurationRepository: TableConfigurationRepository,
-    private val columnGeneratorRepository: ColumnGeneratorRepository,
+    private val connectorFactory: ConnectorFactoryPort,
+    private val dataConnectionRepository: DataConnectionPort,
+    private val tableConfigurationRepository: TableConfigurationPort,
+    private val columnGeneratorRepository: ColumnGeneratorPort,
     private val generatorService: GeneratorService,
     private val encryptionPort: EncryptionPort
 ) : DataPreviewUseCase {

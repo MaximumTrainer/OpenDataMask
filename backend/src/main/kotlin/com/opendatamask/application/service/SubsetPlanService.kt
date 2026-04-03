@@ -1,8 +1,8 @@
 package com.opendatamask.application.service
 
 import com.opendatamask.domain.model.SubsetTableConfig
-import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
-import com.opendatamask.adapter.output.persistence.SubsetTableConfigRepository
+import com.opendatamask.domain.port.output.ForeignKeyRelationshipPort
+import com.opendatamask.domain.port.output.SubsetTableConfigPort
 import org.springframework.stereotype.Service
 
 data class SubsetStep(
@@ -13,8 +13,8 @@ data class SubsetStep(
 
 @Service
 class SubsetPlanService(
-    private val foreignKeyRelationshipRepository: ForeignKeyRelationshipRepository,
-    private val subsetTableConfigRepository: SubsetTableConfigRepository
+    private val foreignKeyRelationshipRepository: ForeignKeyRelationshipPort,
+    private val subsetTableConfigRepository: SubsetTableConfigPort
 ) {
     /**
      * Build topological execution order. Parents (referenced tables) come before children (tables with FKs).

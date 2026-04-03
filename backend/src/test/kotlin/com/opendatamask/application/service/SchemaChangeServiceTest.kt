@@ -1,11 +1,11 @@
 package com.opendatamask.application.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.opendatamask.adapter.output.connector.ColumnInfo
-import com.opendatamask.adapter.output.connector.ConnectorFactory
-import com.opendatamask.adapter.output.connector.DatabaseConnector
+import com.opendatamask.domain.port.output.ColumnInfo
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
+import com.opendatamask.domain.port.output.DatabaseConnector
 import com.opendatamask.domain.model.*
-import com.opendatamask.adapter.output.persistence.*
+import com.opendatamask.domain.port.output.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.mockito.kotlin.*
@@ -13,11 +13,11 @@ import java.util.Optional
 
 class SchemaChangeServiceTest {
 
-    private val snapshotRepo = mock<SchemaSnapshotRepository>()
-    private val changeRepo = mock<SchemaChangeRepository>()
-    private val workspaceRepo = mock<WorkspaceRepository>()
-    private val connectionRepo = mock<DataConnectionRepository>()
-    private val connectorFactory = mock<ConnectorFactory>()
+    private val snapshotRepo = mock<SchemaSnapshotPort>()
+    private val changeRepo = mock<SchemaChangePort>()
+    private val workspaceRepo = mock<WorkspacePort>()
+    private val connectionRepo = mock<DataConnectionPort>()
+    private val connectorFactory = mock<ConnectorFactoryPort>()
     private val webhookService = mock<WebhookService>()
     private val service = SchemaChangeService(snapshotRepo, changeRepo, workspaceRepo, connectionRepo, connectorFactory, webhookService)
     private val mapper = jacksonObjectMapper()
@@ -51,7 +51,7 @@ class SchemaChangeServiceTest {
         ))
         whenever(snapshotRepo.findTopByWorkspaceIdOrderBySnapshotAtDesc(1L)).thenReturn(snapshot)
         whenever(changeRepo.findByWorkspaceIdAndStatus(1L, SchemaChangeStatus.UNRESOLVED)).thenReturn(emptyList())
-        whenever(changeRepo.saveAll(any<List<SchemaChange>>())).thenAnswer { it.arguments[0] as List<SchemaChange> }
+        whenever(changeRepo.save(any<SchemaChange>())).thenAnswer { it.arguments[0] as SchemaChange }
         whenever(snapshotRepo.save(any<SchemaSnapshot>())).thenAnswer { it.arguments[0] as SchemaSnapshot }
 
         val changes = service.detectChanges(1L)

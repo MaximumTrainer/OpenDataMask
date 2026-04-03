@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenDataMask – Open-Source Data Masking Platform</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">🛡️ OpenDataMask</a>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="guide.html">User Guide</a></li>
+        <li><a href="deployment.html">Deployment</a></li>
+        <li><a href="api.html">API Reference</a></li>
+        <li><a href="https://github.com/MaximumTrainer/OpenDataMask" target="_blank">GitHub ↗</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">Open Source · MIT License</div>
+      <h1 class="hero-title">Simplify Data Privacy<br />with Open-Source Masking</h1>
+      <p class="hero-sub">
+        Replace sensitive production data with realistic fake data — automatically.
+        OpenDataMask keeps your development and test environments safe without slowing you down.
+      </p>
+      <div class="hero-actions">
+        <a href="guide.html#quickstart" class="btn btn-primary">Get Started →</a>
+        <a href="https://github.com/MaximumTrainer/OpenDataMask" class="btn btn-outline" target="_blank">View on GitHub</a>
+      </div>
+      <div class="hero-quickstart">
+        <pre><code>git clone https://github.com/MaximumTrainer/OpenDataMask.git
+cd OpenDataMask
+export JWT_SECRET=$(openssl rand -base64 32)
+export ENCRYPTION_KEY=$(openssl rand -base64 32 | head -c 32)
+docker-compose up -d</code></pre>
+        <p class="hero-quickstart-label">Running in under 60 seconds</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Grid -->
+  <section class="features">
+    <div class="container">
+      <h2 class="section-title">Everything you need for data privacy</h2>
+      <p class="section-sub">From automatic PII detection to compliance reports — all in one platform.</p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🗄️</div>
+          <h3>Multi-Database Support</h3>
+          <p>PostgreSQL, MySQL, MongoDB, Azure SQL, Azure Cosmos DB, and flat files — all from one UI.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎭</div>
+          <h3>60+ Generator Types</h3>
+          <p>Names, emails, SSNs, IBANs, ICD codes, GPS coordinates, and more. Realistic data that looks real.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Auto PII Detection</h3>
+          <p>Sensitivity scan automatically identifies columns containing personal data with confidence scoring.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <h3>Compliance Reports</h3>
+          <p>Generate exportable JSON privacy reports for GDPR, CCPA, and HIPAA audit trails.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⏰</div>
+          <h3>Job Scheduling</h3>
+          <p>Cron-based scheduling keeps your test environments refreshed with fresh masked data automatically.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏗️</div>
+          <h3>Workspace Inheritance</h3>
+          <p>Share masking configurations across teams. Child workspaces inherit parent rules and can override as needed.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔗</div>
+          <h3>Webhook Integration</h3>
+          <p>Trigger GitHub Actions, Slack messages, or any HTTP endpoint when masking jobs complete.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⌨️</div>
+          <h3>REST API + CLI</h3>
+          <p>Full programmatic access via REST API and a lightweight Go CLI for scripting and CI pipelines.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how-it-works">
+    <div class="container">
+      <h2 class="section-title">How it works</h2>
+      <ol class="steps">
+        <li class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Connect your databases</h3>
+            <p>Add your source (production-like) and target (dev/test) database connections in seconds.</p>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Auto-detect sensitive columns</h3>
+            <p>Run the sensitivity scan and let OpenDataMask identify PII columns automatically.</p>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Configure masking rules</h3>
+            <p>Pick a generator type per column or apply pre-built presets. One click to apply recommendations.</p>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Run &amp; schedule jobs</h3>
+            <p>Execute masking on demand or schedule it with cron. Monitor progress in real time.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container">
+      <h2>Ready to protect your data?</h2>
+      <p>OpenDataMask is free, open-source, and ready to deploy in minutes.</p>
+      <a href="guide.html" class="btn btn-primary btn-lg">Read the full guide →</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <p>🛡️ <strong>OpenDataMask</strong> — Open-source data masking platform.</p>
+      <p>
+        <a href="https://github.com/MaximumTrainer/OpenDataMask" target="_blank">GitHub</a> ·
+        <a href="guide.html">User Guide</a> ·
+        <a href="deployment.html">Deployment</a> ·
+        <a href="api.html">API</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

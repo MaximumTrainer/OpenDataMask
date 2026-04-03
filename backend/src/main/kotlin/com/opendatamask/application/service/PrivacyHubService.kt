@@ -7,16 +7,16 @@ import com.opendatamask.domain.port.input.dto.PrivacyRecommendation
 import com.opendatamask.domain.port.input.dto.TableProtectionSummary
 import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.GeneratorType
-import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
-import com.opendatamask.adapter.output.persistence.ColumnSensitivityRepository
-import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
+import com.opendatamask.domain.port.output.ColumnGeneratorPort
+import com.opendatamask.domain.port.output.ColumnSensitivityPort
+import com.opendatamask.domain.port.output.TableConfigurationPort
 import org.springframework.stereotype.Service
 
 @Service
 class PrivacyHubService(
-    private val columnSensitivityRepository: ColumnSensitivityRepository,
-    private val columnGeneratorRepository: ColumnGeneratorRepository,
-    private val tableConfigurationRepository: TableConfigurationRepository
+    private val columnSensitivityRepository: ColumnSensitivityPort,
+    private val columnGeneratorRepository: ColumnGeneratorPort,
+    private val tableConfigurationRepository: TableConfigurationPort
 ) : PrivacyHubUseCase {
 
     override fun getSummary(workspaceId: Long): PrivacyHubSummary {

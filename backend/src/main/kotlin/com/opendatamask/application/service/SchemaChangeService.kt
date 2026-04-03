@@ -4,10 +4,13 @@ import com.opendatamask.domain.port.input.SchemaChangeUseCase
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.opendatamask.adapter.output.connector.ColumnInfo
-import com.opendatamask.adapter.output.connector.ConnectorFactory
+import com.opendatamask.domain.port.output.ColumnInfo
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
 import com.opendatamask.domain.model.*
-import com.opendatamask.adapter.output.persistence.*
+import com.opendatamask.domain.port.output.SchemaSnapshotPort
+import com.opendatamask.domain.port.output.SchemaChangePort
+import com.opendatamask.domain.port.output.WorkspacePort
+import com.opendatamask.domain.port.output.DataConnectionPort
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
@@ -18,11 +21,11 @@ data class WorkspaceSchema(val tables: List<TableSchema>)
 
 @Service
 class SchemaChangeService(
-    private val schemaSnapshotRepository: SchemaSnapshotRepository,
-    private val schemaChangeRepository: SchemaChangeRepository,
-    private val workspaceRepository: WorkspaceRepository,
-    private val dataConnectionRepository: DataConnectionRepository,
-    private val connectorFactory: ConnectorFactory,
+    private val schemaSnapshotRepository: SchemaSnapshotPort,
+    private val schemaChangeRepository: SchemaChangePort,
+    private val workspaceRepository: WorkspacePort,
+    private val dataConnectionRepository: DataConnectionPort,
+    private val connectorFactory: ConnectorFactoryPort,
     private val webhookService: WebhookService
 ) : SchemaChangeUseCase {
     private val logger = LoggerFactory.getLogger(SchemaChangeService::class.java)
@@ -79,7 +82,7 @@ class SchemaChangeService(
         val toSave = newChanges.filter { c ->
             "${c.changeType}|${c.tableName}|${c.columnName}" !in existingKeys
         }
-        val savedChanges = schemaChangeRepository.saveAll(toSave)
+        val savedChanges = toSave.map { schemaChangeRepository.save(it) }
         if (savedChanges.isNotEmpty()) {
             webhookService.triggerForSchemaChange(workspaceId, savedChanges)
         }
@@ -147,7 +150,7 @@ class SchemaChangeService(
         val unresolved = schemaChangeRepository.findByWorkspaceIdAndStatus(workspaceId, SchemaChangeStatus.UNRESOLVED)
             .filter { it.changeType in exposingTypes }
         unresolved.forEach { it.status = SchemaChangeStatus.RESOLVED }
-        schemaChangeRepository.saveAll(unresolved)
+        unresolved.forEach { schemaChangeRepository.save(it) }
     }
 
     override fun dismissAll(workspaceId: Long) {
@@ -155,7 +158,7 @@ class SchemaChangeService(
         val unresolved = schemaChangeRepository.findByWorkspaceIdAndStatus(workspaceId, SchemaChangeStatus.UNRESOLVED)
             .filter { it.changeType in notificationTypes }
         unresolved.forEach { it.status = SchemaChangeStatus.DISMISSED }
-        schemaChangeRepository.saveAll(unresolved)
+        unresolved.forEach { schemaChangeRepository.save(it) }
     }
 
     override fun isBlockingJobRun(workspaceId: Long): Boolean {

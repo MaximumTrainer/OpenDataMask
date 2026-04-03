@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deployment – OpenDataMask</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">🛡️ OpenDataMask</a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="guide.html">User Guide</a></li>
+        <li><a href="deployment.html" class="active">Deployment</a></li>
+        <li><a href="api.html">API Reference</a></li>
+        <li><a href="https://github.com/MaximumTrainer/OpenDataMask" target="_blank">GitHub ↗</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="page-hero">
+    <h1>Deployment &amp; Installation</h1>
+    <p>Docker Compose, Kubernetes, or bare-metal — deploy anywhere.</p>
+  </section>
+
+  <div class="content-layout">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <h4>Contents</h4>
+        <ul>
+          <li><a href="#docker-compose">Docker Compose</a></li>
+          <li><a href="#docker-images">Docker Images</a></li>
+          <li><a href="#environment">Environment Variables</a></li>
+          <li><a href="#database">Database Setup</a></li>
+          <li><a href="#kubernetes">Kubernetes</a></li>
+          <li><a href="#cicd">CI / CD Pipelines</a></li>
+          <li><a href="#security">Security Notes</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <h2 id="docker-compose">Docker Compose (Recommended)</h2>
+      <p>The simplest way to run OpenDataMask in any environment:</p>
+      <pre><code>git clone https://github.com/MaximumTrainer/OpenDataMask.git
+cd OpenDataMask
+
+# Generate and export secrets
+export JWT_SECRET=$(openssl rand -base64 32)
+export ENCRYPTION_KEY=$(openssl rand -base64 32 | head -c 32)
+
+# Start all services
+docker-compose up -d
+
+# Check status
+docker-compose ps
+docker-compose logs -f backend</code></pre>
+      <p>Services started:</p>
+      <ul>
+        <li><strong>frontend</strong> — Vue 3 UI served by nginx on port <code>80</code></li>
+        <li><strong>backend</strong> — Spring Boot REST API on port <code>8080</code></li>
+        <li><strong>postgres</strong> — PostgreSQL 16 database on port <code>5432</code></li>
+      </ul>
+
+      <h2 id="docker-images">Docker Images</h2>
+      <p>Pre-built images are published to the GitHub Container Registry on every push to <code>main</code>:</p>
+      <pre><code># Backend
+docker pull ghcr.io/maximumtrainer/opendatamask/backend:latest
+
+# Frontend
+docker pull ghcr.io/maximumtrainer/opendatamask/frontend:latest
+
+# CLI
+docker pull ghcr.io/maximumtrainer/opendatamask/cli:latest</code></pre>
+
+      <h3>Building locally</h3>
+      <pre><code>docker build -t opendatamask-backend ./backend
+docker build -t opendatamask-frontend ./frontend
+docker build -t opendatamask-cli ./cli</code></pre>
+
+      <h2 id="environment">Environment Variables</h2>
+      <table>
+        <tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>DATABASE_URL</code></td><td>Yes</td><td>—</td><td>JDBC URL for PostgreSQL metadata store</td></tr>
+        <tr><td><code>DATABASE_USERNAME</code></td><td>Yes</td><td>—</td><td>PostgreSQL username</td></tr>
+        <tr><td><code>DATABASE_PASSWORD</code></td><td>Yes</td><td>—</td><td>PostgreSQL password</td></tr>
+        <tr><td><code>JWT_SECRET</code></td><td>Yes</td><td>—</td><td>JWT signing secret. Generate with <code>openssl rand -base64 32</code></td></tr>
+        <tr><td><code>ENCRYPTION_KEY</code></td><td>Yes</td><td>—</td><td>Credential encryption key, exactly 16 or 32 characters</td></tr>
+        <tr><td><code>SERVER_PORT</code></td><td>No</td><td>8080</td><td>Backend HTTP listen port</td></tr>
+        <tr><td><code>JWT_EXPIRATION</code></td><td>No</td><td>86400000</td><td>Token expiry in milliseconds (default 24 h)</td></tr>
+        <tr><td><code>MONGODB_URI</code></td><td>No</td><td>—</td><td>MongoDB connection URI (only needed when masking MongoDB sources)</td></tr>
+      </table>
+
+      <h2 id="database">Database Setup</h2>
+      <p>OpenDataMask uses <strong>PostgreSQL 15+</strong> for its metadata store. On first startup, Hibernate automatically creates the required schema (<code>ddl-auto: update</code>). No manual migration is needed.</p>
+      <pre><code># Create database manually (if not using docker-compose)
+psql -U postgres -c "CREATE DATABASE opendatamask;"
+psql -U postgres -c "CREATE USER opendatamask WITH PASSWORD 'secret';"
+psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE opendatamask TO opendatamask;"</code></pre>
+
+      <h2 id="kubernetes">Kubernetes</h2>
+      <p>A basic Kubernetes deployment uses standard <code>Deployment</code> and <code>Service</code> resources. Store secrets with <code>kubectl create secret</code>:</p>
+      <pre><code>kubectl create secret generic opendatamask-secrets \
+  --from-literal=JWT_SECRET="$(openssl rand -base64 32)" \
+  --from-literal=ENCRYPTION_KEY="$(openssl rand -base64 32 | head -c 32)" \
+  --from-literal=DATABASE_PASSWORD="your-db-password"</code></pre>
+      <p>Reference the secret in your Deployment <code>envFrom</code> block. A PostgreSQL StatefulSet or a managed cloud database (AWS RDS, Azure Database for PostgreSQL, Google Cloud SQL) is recommended for production.</p>
+
+      <h2 id="cicd">CI / CD Pipelines</h2>
+      <p>OpenDataMask ships with four GitHub Actions workflows:</p>
+      <table>
+        <tr><th>Workflow</th><th>File</th><th>Trigger</th><th>Purpose</th></tr>
+        <tr><td>CI</td><td><code>ci.yml</code></td><td>push / PR to main</td><td>Build, lint, test backend + frontend + CLI</td></tr>
+        <tr><td>Docker Build</td><td><code>docker.yml</code></td><td>push to main</td><td>Build and push images to GHCR</td></tr>
+        <tr><td>CodeQL</td><td><code>codeql.yml</code></td><td>push / PR / weekly</td><td>Static security analysis for Kotlin, JS/TS, Go</td></tr>
+        <tr><td>Deployment Verification</td><td><code>verify-deployment.yml</code></td><td>manual / after CI</td><td>Smoke tests (health check + masking operation)</td></tr>
+      </table>
+      <p>Run smoke tests manually from the <em>Actions</em> tab → <em>Deployment Verification</em> → <em>Run workflow</em>.</p>
+
+      <h2 id="security">Security Notes</h2>
+      <ul>
+        <li>Never commit <code>JWT_SECRET</code> or <code>ENCRYPTION_KEY</code> to source control. Use GitHub Secrets or a secrets manager.</li>
+        <li>The health endpoint (<code>/actuator/health</code>) is publicly accessible by default. Restrict it at the network level in production.</li>
+        <li>All connection passwords are encrypted at rest using AES-256 keyed by <code>ENCRYPTION_KEY</code>.</li>
+        <li>HTTPS termination should be handled by a reverse proxy (nginx, Cloudflare, ALB) in front of the backend.</li>
+        <li>JWT tokens expire after 24 hours by default (<code>JWT_EXPIRATION</code>).</li>
+      </ul>
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>🛡️ <strong>OpenDataMask</strong> — Open-source data masking platform.</p>
+      <p><a href="https://github.com/MaximumTrainer/OpenDataMask" target="_blank">GitHub</a> · <a href="guide.html">User Guide</a> · <a href="deployment.html">Deployment</a> · <a href="api.html">API</a></p>
+    </div>
+  </footer>
+</body>
+</html>

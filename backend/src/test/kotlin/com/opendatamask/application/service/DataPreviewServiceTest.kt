@@ -1,12 +1,12 @@
 package com.opendatamask.application.service
 
 import com.opendatamask.domain.port.output.EncryptionPort
-import com.opendatamask.adapter.output.connector.ConnectorFactory
-import com.opendatamask.adapter.output.connector.DatabaseConnector
+import com.opendatamask.domain.port.output.ConnectorFactoryPort
+import com.opendatamask.domain.port.output.DatabaseConnector
 import com.opendatamask.domain.model.*
-import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
-import com.opendatamask.adapter.output.persistence.DataConnectionRepository
-import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
+import com.opendatamask.domain.port.output.ColumnGeneratorPort
+import com.opendatamask.domain.port.output.DataConnectionPort
+import com.opendatamask.domain.port.output.TableConfigurationPort
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -19,10 +19,10 @@ import java.util.Optional
 @ExtendWith(MockitoExtension::class)
 class DataPreviewServiceTest {
 
-    @Mock private lateinit var connectorFactory: ConnectorFactory
-    @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
-    @Mock private lateinit var tableConfigurationRepository: TableConfigurationRepository
-    @Mock private lateinit var columnGeneratorRepository: ColumnGeneratorRepository
+    @Mock private lateinit var connectorFactory: ConnectorFactoryPort
+    @Mock private lateinit var dataConnectionRepository: DataConnectionPort
+    @Mock private lateinit var tableConfigurationRepository: TableConfigurationPort
+    @Mock private lateinit var columnGeneratorRepository: ColumnGeneratorPort
     @Mock private lateinit var EncryptionPort: EncryptionPort
 
     private lateinit var generatorService: GeneratorService

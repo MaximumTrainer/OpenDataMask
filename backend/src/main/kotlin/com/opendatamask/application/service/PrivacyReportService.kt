@@ -4,19 +4,19 @@ import com.opendatamask.domain.port.input.PrivacyReportUseCase
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.opendatamask.domain.model.PrivacyReport
-import com.opendatamask.adapter.output.persistence.ColumnGeneratorRepository
-import com.opendatamask.adapter.output.persistence.ColumnSensitivityRepository
-import com.opendatamask.adapter.output.persistence.PrivacyReportRepository
-import com.opendatamask.adapter.output.persistence.TableConfigurationRepository
+import com.opendatamask.domain.port.output.ColumnGeneratorPort
+import com.opendatamask.domain.port.output.ColumnSensitivityPort
+import com.opendatamask.domain.port.output.PrivacyReportPort
+import com.opendatamask.domain.port.output.TableConfigurationPort
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
 class PrivacyReportService(
-    private val privacyReportRepository: PrivacyReportRepository,
-    private val columnSensitivityRepository: ColumnSensitivityRepository,
-    private val columnGeneratorRepository: ColumnGeneratorRepository,
-    private val tableConfigurationRepository: TableConfigurationRepository,
+    private val privacyReportRepository: PrivacyReportPort,
+    private val columnSensitivityRepository: ColumnSensitivityPort,
+    private val columnGeneratorRepository: ColumnGeneratorPort,
+    private val tableConfigurationRepository: TableConfigurationPort,
     private val objectMapper: ObjectMapper
 ) : PrivacyReportUseCase {
 

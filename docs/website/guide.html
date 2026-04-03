@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Guide – OpenDataMask</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">🛡️ OpenDataMask</a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="guide.html" class="active">User Guide</a></li>
+        <li><a href="deployment.html">Deployment</a></li>
+        <li><a href="api.html">API Reference</a></li>
+        <li><a href="https://github.com/MaximumTrainer/OpenDataMask" target="_blank">GitHub ↗</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="page-hero">
+    <h1>User Guide</h1>
+    <p>Everything you need to set up, configure, and operate OpenDataMask.</p>
+  </section>
+
+  <div class="content-layout">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <h4>Contents</h4>
+        <ul>
+          <li><a href="#quickstart">Quick Start</a></li>
+          <li><a href="#prerequisites">Prerequisites</a></li>
+          <li><a href="#installation">Installation</a></li>
+          <li><a href="#configuration">Configuration</a></li>
+          <li><a href="#concepts">Core Concepts</a></li>
+          <li><a href="#workflow">Operational Workflow</a></li>
+          <li><a href="#generators">Generator Types</a></li>
+          <li><a href="#cli">CLI Usage</a></li>
+          <li><a href="#privacy">Privacy &amp; Compliance</a></li>
+          <li><a href="#troubleshooting">Troubleshooting</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <h2 id="quickstart">Quick Start</h2>
+      <p>The fastest way to run OpenDataMask is with Docker Compose:</p>
+      <pre><code>git clone https://github.com/MaximumTrainer/OpenDataMask.git
+cd OpenDataMask
+
+# Generate secrets
+export JWT_SECRET=$(openssl rand -base64 32)
+export ENCRYPTION_KEY=$(openssl rand -base64 32 | head -c 32)
+
+# Start all services
+docker-compose up -d
+
+# Open the UI
+open http://localhost</code></pre>
+      <div class="alert"><strong>Note:</strong> Default ports — Frontend: 80, Backend API: 8080, PostgreSQL: 5432.</div>
+
+      <h2 id="prerequisites">Prerequisites</h2>
+      <table>
+        <tr><th>Requirement</th><th>Version</th><th>Notes</th></tr>
+        <tr><td>JDK</td><td>17+</td><td>Temurin/OpenJDK recommended</td></tr>
+        <tr><td>Docker &amp; Docker Compose</td><td>20.10+</td><td>For containerised deployment</td></tr>
+        <tr><td>PostgreSQL</td><td>15+</td><td>Production metadata store</td></tr>
+        <tr><td>Node.js</td><td>20+</td><td>Frontend development only</td></tr>
+        <tr><td>Go</td><td>1.21+</td><td>CLI build from source only</td></tr>
+      </table>
+
+      <h2 id="installation">Installation &amp; Build</h2>
+      <h3>Backend (Kotlin / Spring Boot)</h3>
+      <pre><code>cd backend
+./gradlew build --no-daemon          # build + test
+./gradlew bootRun --no-daemon        # run locally</code></pre>
+
+      <h3>Frontend (Vue 3)</h3>
+      <pre><code>cd frontend
+npm ci                               # install dependencies
+npm run dev                          # dev server (port 5173)
+npm run build                        # production build</code></pre>
+
+      <h3>CLI (Go)</h3>
+      <pre><code>cd cli
+go build -o opendatamask-cli ./...
+./opendatamask-cli --help</code></pre>
+
+      <h2 id="configuration">Configuration</h2>
+      <p>All sensitive configuration is supplied via environment variables:</p>
+      <table>
+        <tr><th>Variable</th><th>Required</th><th>Description</th></tr>
+        <tr><td><code>DATABASE_URL</code></td><td>Yes</td><td>JDBC URL for PostgreSQL</td></tr>
+        <tr><td><code>DATABASE_USERNAME</code></td><td>Yes</td><td>PostgreSQL username</td></tr>
+        <tr><td><code>DATABASE_PASSWORD</code></td><td>Yes</td><td>PostgreSQL password</td></tr>
+        <tr><td><code>JWT_SECRET</code></td><td>Yes</td><td>JWT signing secret (min 32 chars)</td></tr>
+        <tr><td><code>ENCRYPTION_KEY</code></td><td>Yes</td><td>Credential encryption key (16 or 32 chars)</td></tr>
+        <tr><td><code>SERVER_PORT</code></td><td>No</td><td>Backend port (default: 8080)</td></tr>
+        <tr><td><code>MONGODB_URI</code></td><td>No</td><td>MongoDB URI when masking MongoDB sources</td></tr>
+      </table>
+
+      <h2 id="concepts">Core Concepts</h2>
+      <h3>Workspaces</h3>
+      <p>A <strong>Workspace</strong> is the top-level scope for a masking project. It contains connections, table configurations, jobs, and team members. Workspaces can inherit configuration from a parent workspace.</p>
+
+      <h3>Masking Modes</h3>
+      <table>
+        <tr><th>Mode</th><th>Description</th></tr>
+        <tr><td><code>MASK</code></td><td>Replace column values with generated fake data</td></tr>
+        <tr><td><code>GENERATE</code></td><td>Generate an entirely new row set</td></tr>
+        <tr><td><code>PASSTHROUGH</code></td><td>Copy data without modification</td></tr>
+        <tr><td><code>SUBSET</code></td><td>Copy a filtered/sampled subset of rows</td></tr>
+        <tr><td><code>SKIP</code></td><td>Exclude the table from processing</td></tr>
+      </table>
+
+      <h2 id="workflow">Operational Workflow</h2>
+      <ol>
+        <li><strong>Register &amp; log in</strong> — Create an account at <code>http://localhost</code></li>
+        <li><strong>Create a Workspace</strong> — Name your project</li>
+        <li><strong>Add Data Connections</strong> — Source (production-like) and target (dev/test) databases</li>
+        <li><strong>Run Sensitivity Scan</strong> — Auto-detect PII columns</li>
+        <li><strong>Configure Tables &amp; Columns</strong> — Set masking mode and generator per column</li>
+        <li><strong>Run a Job</strong> — Execute masking and monitor progress in real time</li>
+        <li><strong>Review Privacy Report</strong> — Verify all sensitive data is protected</li>
+      </ol>
+
+      <h2 id="generators">Generator Types</h2>
+      <p>OpenDataMask includes 60+ built-in generators covering personal, financial, medical, and network data:</p>
+      <table>
+        <tr><th>Category</th><th>Generators</th></tr>
+        <tr><td>Personal</td><td>NAME, FIRST_NAME, LAST_NAME, EMAIL, PHONE, BIRTH_DATE, GENDER</td></tr>
+        <tr><td>Address</td><td>ADDRESS, STREET_ADDRESS, CITY, STATE, ZIP_CODE, COUNTRY, GPS_COORDINATES</td></tr>
+        <tr><td>Identity</td><td>SSN, PASSPORT_NUMBER, DRIVERS_LICENSE, MEDICAL_RECORD_NUMBER</td></tr>
+        <tr><td>Financial</td><td>CREDIT_CARD, IBAN, SWIFT_CODE, MONEY_AMOUNT, BTC_ADDRESS, ACCOUNT_NUMBER</td></tr>
+        <tr><td>Network</td><td>IP_ADDRESS, IPV6_ADDRESS, MAC_ADDRESS, URL</td></tr>
+        <tr><td>Medical</td><td>ICD_CODE, HEALTH_PLAN_NUMBER</td></tr>
+        <tr><td>Control</td><td>NULL, CONSTANT, PARTIAL_MASK, FORMAT_PRESERVING, SEQUENTIAL, RANDOM_INT</td></tr>
+      </table>
+
+      <h2 id="cli">CLI Usage</h2>
+      <pre><code># Authenticate
+opendatamask-cli auth login --url http://localhost:8080 \
+  --username admin --password secret
+
+# Workspaces
+opendatamask-cli workspace list
+opendatamask-cli workspace get &lt;workspace-id&gt;
+
+# Jobs
+opendatamask-cli job list --workspace &lt;workspace-id&gt;
+opendatamask-cli job run  --workspace &lt;workspace-id&gt;</code></pre>
+
+      <h2 id="privacy">Privacy &amp; Compliance</h2>
+      <p>The <strong>Privacy Hub</strong> dashboard shows:</p>
+      <ul>
+        <li>Total sensitive columns detected vs. masked</li>
+        <li>Actionable recommendations (e.g., "Add EMAIL generator to <code>users.email</code>")</li>
+        <li>Exportable JSON compliance reports for GDPR/CCPA/HIPAA audits</li>
+      </ul>
+      <p>Run <em>Apply Recommendations</em> to automatically assign generators to all unmasked sensitive columns in one click.</p>
+
+      <h2 id="troubleshooting">Troubleshooting</h2>
+      <table>
+        <tr><th>Symptom</th><th>Fix</th></tr>
+        <tr><td><code>JWT_SECRET must be set</code></td><td>Set the <code>JWT_SECRET</code> env var before starting</td></tr>
+        <tr><td>Backend fails to start</td><td>Ensure PostgreSQL is running and <code>DATABASE_URL</code> is correct</td></tr>
+        <tr><td>Connection refused on port 8080</td><td>Run <code>docker-compose logs backend</code> to check for errors</td></tr>
+        <tr><td>Sensitivity scan finds nothing</td><td>Add table configurations first, then re-run the scan</td></tr>
+      </table>
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>🛡️ <strong>OpenDataMask</strong> — Open-source data masking platform.</p>
+      <p><a href="https://github.com/MaximumTrainer/OpenDataMask" target="_blank">GitHub</a> · <a href="guide.html">User Guide</a> · <a href="deployment.html">Deployment</a> · <a href="api.html">API</a></p>
+    </div>
+  </footer>
+</body>
+</html>

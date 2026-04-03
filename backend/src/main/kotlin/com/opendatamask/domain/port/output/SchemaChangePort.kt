@@ -9,6 +9,5 @@ interface SchemaChangePort {
     fun findByWorkspaceId(workspaceId: Long): List<SchemaChange>
     fun findByWorkspaceIdAndStatus(workspaceId: Long, status: SchemaChangeStatus): List<SchemaChange>
     fun save(change: SchemaChange): SchemaChange
-    fun saveAll(changes: List<SchemaChange>): List<SchemaChange>
     fun deleteByWorkspaceId(workspaceId: Long)
 }

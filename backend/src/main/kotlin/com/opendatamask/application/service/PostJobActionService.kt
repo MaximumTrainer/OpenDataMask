@@ -8,7 +8,7 @@ import com.opendatamask.domain.model.ActionType
 import com.opendatamask.domain.model.Job
 import com.opendatamask.domain.model.PostJobAction
 import com.opendatamask.domain.port.input.dto.PostJobActionRequest
-import com.opendatamask.adapter.output.persistence.PostJobActionRepository
+import com.opendatamask.domain.port.output.PostJobActionPort
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.net.URI
@@ -19,7 +19,7 @@ import java.time.Duration
 
 @Service
 class PostJobActionService(
-    private val repository: PostJobActionRepository
+    private val repository: PostJobActionPort
 ) : PostJobActionUseCase {
     private val logger = LoggerFactory.getLogger(PostJobActionService::class.java)
     private val mapper = jacksonObjectMapper()

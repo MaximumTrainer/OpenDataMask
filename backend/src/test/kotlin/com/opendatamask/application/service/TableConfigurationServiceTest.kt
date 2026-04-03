@@ -154,7 +154,7 @@ class TableConfigurationServiceTest {
         service.deleteTableConfiguration(10L, 1L)
 
         verify(columnGeneratorRepository).deleteByTableConfigurationId(1L)
-        verify(tableConfigurationRepository).delete(config)
+        verify(tableConfigurationRepository).deleteById(1L)
     }
 
     @Test
@@ -254,7 +254,7 @@ class TableConfigurationServiceTest {
 
         service.deleteColumnGenerator(1L, 1L)
 
-        verify(columnGeneratorRepository).delete(generator)
+        verify(columnGeneratorRepository).deleteById(1L)
     }
 
     @Test

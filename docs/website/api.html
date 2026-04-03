@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference – OpenDataMask</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">🛡️ OpenDataMask</a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="guide.html">User Guide</a></li>
+        <li><a href="deployment.html">Deployment</a></li>
+        <li><a href="api.html" class="active">API Reference</a></li>
+        <li><a href="https://github.com/MaximumTrainer/OpenDataMask" target="_blank">GitHub ↗</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="page-hero">
+    <h1>API Reference</h1>
+    <p>Full REST API reference for all OpenDataMask endpoints. Base URL: <code>http://&lt;host&gt;:8080/api</code>.</p>
+  </section>
+
+  <div class="content-layout">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="#auth">Auth</a></li>
+          <li><a href="#workspaces">Workspaces</a></li>
+          <li><a href="#connections">Data Connections</a></li>
+          <li><a href="#tables">Table Config</a></li>
+          <li><a href="#jobs">Jobs</a></li>
+          <li><a href="#sensitivity">Sensitivity Scans</a></li>
+          <li><a href="#privacy">Privacy Hub</a></li>
+          <li><a href="#schema">Schema Changes</a></li>
+          <li><a href="#subsets">Subset Config</a></li>
+          <li><a href="#presets">Generator Presets</a></li>
+          <li><a href="#schedules">Job Schedules</a></li>
+          <li><a href="#webhooks">Webhooks</a></li>
+          <li><a href="#comments">Column Comments</a></li>
+          <li><a href="#preview">Data Preview</a></li>
+          <li><a href="#export">Workspace Export</a></li>
+          <li><a href="#health">Health</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <div class="alert"><strong>Authentication:</strong> All <code>/api/*</code> endpoints (except <code>/api/auth/*</code>) require a Bearer token in the <code>Authorization</code> header.</div>
+
+      <h2 id="auth">Auth</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/auth/register</code></td><td>Register a new user</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/auth/login</code></td><td>Authenticate and receive JWT</td></tr>
+      </table>
+
+      <h2 id="workspaces">Workspaces</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces</code></td><td>List workspaces for current user</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces</code></td><td>Create workspace</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}</code></td><td>Get workspace details</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}</code></td><td>Update workspace</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}</code></td><td>Delete workspace</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/stats</code></td><td>Get workspace statistics</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/inherit</code></td><td>Inherit configuration from parent workspace</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/export</code></td><td>Export workspace config as JSON</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/import</code></td><td>Import workspace config from JSON</td></tr>
+      </table>
+
+      <h2 id="connections">Data Connections</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/connections</code></td><td>List connections</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/connections</code></td><td>Create connection</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/connections/{cid}</code></td><td>Get connection details</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}/connections/{cid}</code></td><td>Update connection</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/connections/{cid}</code></td><td>Delete connection</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/connections/{cid}/test</code></td><td>Test connection</td></tr>
+      </table>
+
+      <h2 id="tables">Table Configuration</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/tables</code></td><td>List table configurations</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/tables</code></td><td>Create table configuration</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}/tables/{tid}</code></td><td>Update table configuration</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/tables/{tid}</code></td><td>Delete table configuration</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/tables/{tid}/columns</code></td><td>List column generators</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}/tables/{tid}/columns/{col}</code></td><td>Set column generator</td></tr>
+      </table>
+
+      <h2 id="jobs">Jobs</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/jobs</code></td><td>List jobs</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/jobs</code></td><td>Run a new job</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/jobs/{jid}</code></td><td>Get job status &amp; progress</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/jobs/{jid}</code></td><td>Cancel / delete job</td></tr>
+      </table>
+
+      <h2 id="sensitivity">Sensitivity Scans</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/sensitivity-scan/run</code></td><td>Run sensitivity scan</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/sensitivity-scan/status</code></td><td>Get scan status</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/sensitivity-scan/results</code></td><td>Get scan results</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/sensitivity-scan/log</code></td><td>Get scan log</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/sensitivity-scan/log/download</code></td><td>Download scan log as file</td></tr>
+        <tr><td><span class="badge badge-patch">PATCH</span></td><td><code>/api/workspaces/{id}/sensitivity-scan/columns/{table}/{col}</code></td><td>Update column sensitivity level</td></tr>
+      </table>
+
+      <h2 id="privacy">Privacy Hub</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-hub</code></td><td>Get privacy summary</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-hub/recommendations</code></td><td>Get masking recommendations</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/privacy-hub/apply-recommendations</code></td><td>Apply all recommendations</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-report</code></td><td>Get current privacy report</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-report/download</code></td><td>Download report as JSON</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-report/jobs/{jid}</code></td><td>Get report for specific job</td></tr>
+      </table>
+
+      <h2 id="schema">Schema Changes</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/schema-changes</code></td><td>List schema changes</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/schema-changes/detect</code></td><td>Run schema change detection</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/schema-changes/{cid}/resolve</code></td><td>Resolve a change</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/schema-changes/{cid}/dismiss</code></td><td>Dismiss a change</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/schema-changes/resolve-all</code></td><td>Resolve all changes</td></tr>
+        <tr><td><span class="badge badge-patch">PATCH</span></td><td><code>/api/workspaces/{id}/schema-changes/settings</code></td><td>Update schema-change notification settings</td></tr>
+      </table>
+
+      <h2 id="subsets">Subset Configuration</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/subset-config</code></td><td>List subset configs</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/subset-config</code></td><td>Create or update subset config</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}/subset-config/{cid}</code></td><td>Update subset config</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/subset-config/{cid}</code></td><td>Delete subset config</td></tr>
+      </table>
+
+      <h2 id="presets">Generator Presets</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/generator-presets/system</code></td><td>List built-in system presets</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/generator-presets</code></td><td>List workspace presets</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/generator-presets</code></td><td>Create workspace preset</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}/generator-presets/{pid}</code></td><td>Update workspace preset</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/generator-presets/{pid}</code></td><td>Delete workspace preset</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/generator-presets/{pid}/apply</code></td><td>Apply preset to column</td></tr>
+      </table>
+
+      <h2 id="schedules">Job Schedules</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/schedules</code></td><td>List job schedules</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/schedules</code></td><td>Create schedule</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}/schedules/{sid}</code></td><td>Update schedule</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/schedules/{sid}</code></td><td>Delete schedule</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/schedules/validate-cron</code></td><td>Validate cron expression</td></tr>
+      </table>
+
+      <h2 id="webhooks">Webhooks</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/webhooks</code></td><td>List webhooks</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/webhooks</code></td><td>Create webhook</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}/webhooks/{wid}</code></td><td>Update webhook</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/webhooks/{wid}</code></td><td>Delete webhook</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/webhooks/{wid}/test</code></td><td>Send a test payload</td></tr>
+      </table>
+
+      <h2 id="comments">Column Comments</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/comments/{table}/{col}</code></td><td>List comments for a column</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/comments/{table}/{col}</code></td><td>Add a comment</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/comments/{table}/{col}/{cid}</code></td><td>Delete a comment</td></tr>
+      </table>
+
+      <h2 id="preview">Data Preview</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/preview/{table}/{col}</code></td><td>Preview masked output for a column. Query param: <code>sampleSize</code> (default 5)</td></tr>
+      </table>
+
+      <h2 id="export">Workspace Export / Import</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/export</code></td><td>Download workspace config as JSON (attachment)</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/import</code></td><td>Upload and apply a workspace config JSON</td></tr>
+      </table>
+
+      <h2 id="health">Health</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/actuator/health</code></td><td>Liveness / readiness check. Returns <code>{"status":"UP"}</code></td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/actuator/info</code></td><td>Application info</td></tr>
+      </table>
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>🛡️ <strong>OpenDataMask</strong> — Open-source data masking platform.</p>
+      <p><a href="https://github.com/MaximumTrainer/OpenDataMask" target="_blank">GitHub</a> · <a href="guide.html">User Guide</a> · <a href="deployment.html">Deployment</a> · <a href="api.html">API</a></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,16 +1,16 @@
 package com.opendatamask.application.service
 
-import com.opendatamask.adapter.output.connector.DatabaseConnector
+import com.opendatamask.domain.port.output.DatabaseConnector
+import com.opendatamask.domain.port.output.ForeignKeyRelationshipPort
+import com.opendatamask.domain.port.output.SubsetTableConfigPort
 import com.opendatamask.domain.model.SubsetLimitType
-import com.opendatamask.adapter.output.persistence.ForeignKeyRelationshipRepository
-import com.opendatamask.adapter.output.persistence.SubsetTableConfigRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class SubsetExecutionService(
-    private val foreignKeyRelationshipRepository: ForeignKeyRelationshipRepository,
-    private val subsetTableConfigRepository: SubsetTableConfigRepository,
+    private val foreignKeyRelationshipRepository: ForeignKeyRelationshipPort,
+    private val subsetTableConfigRepository: SubsetTableConfigPort,
     private val subsetPlanService: SubsetPlanService
 ) {
     private val logger = LoggerFactory.getLogger(SubsetExecutionService::class.java)

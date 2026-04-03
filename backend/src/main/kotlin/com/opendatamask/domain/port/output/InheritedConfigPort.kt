@@ -7,8 +7,8 @@ interface InheritedConfigPort {
     fun findById(id: Long): Optional<InheritedConfig>
     fun findByChildWorkspaceId(childWorkspaceId: Long): List<InheritedConfig>
     fun findByChildWorkspaceIdAndTableName(childWorkspaceId: Long, tableName: String): List<InheritedConfig>
+    fun existsById(id: Long): Boolean
     fun save(config: InheritedConfig): InheritedConfig
-    fun saveAll(configs: List<InheritedConfig>): List<InheritedConfig>
     fun deleteById(id: Long)
     fun deleteByChildWorkspaceId(childWorkspaceId: Long)
 }

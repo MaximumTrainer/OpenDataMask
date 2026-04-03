@@ -6,19 +6,25 @@ import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.domain.model.Workspace
 import com.opendatamask.domain.model.WorkspaceRole
 import com.opendatamask.domain.model.WorkspaceUser
-import com.opendatamask.adapter.output.persistence.UserRepository
-import com.opendatamask.adapter.output.persistence.WorkspaceRepository
-import com.opendatamask.adapter.output.persistence.WorkspaceUserRepository
+import com.opendatamask.domain.port.output.UserPort
+import com.opendatamask.domain.port.output.WorkspacePort
+import com.opendatamask.domain.port.output.WorkspaceUserPort
+import com.opendatamask.domain.port.output.DataConnectionPort
+import com.opendatamask.domain.port.output.TableConfigurationPort
+import com.opendatamask.domain.port.output.JobPort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class WorkspaceService(
-    private val workspaceRepository: WorkspaceRepository,
-    private val workspaceUserRepository: WorkspaceUserRepository,
-    private val userRepository: UserRepository,
+    private val workspaceRepository: WorkspacePort,
+    private val workspaceUserRepository: WorkspaceUserPort,
+    private val userRepository: UserPort,
     private val workspaceInheritanceService: WorkspaceInheritanceService,
-    private val sensitivityScanService: SensitivityScanService
+    private val sensitivityScanService: SensitivityScanService,
+    private val dataConnectionPort: DataConnectionPort,
+    private val tableConfigurationPort: TableConfigurationPort,
+    private val jobPort: JobPort,
 ) : WorkspaceUseCase {
 
     @Transactional
@@ -150,8 +156,25 @@ class WorkspaceService(
         }
     }
 
-    fun requireWorkspaceMember(workspaceId: Long, userId: Long) {
-        workspaceUserRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
+    @Transactional(readOnly = true)
+    override fun getStats(workspaceId: Long): WorkspaceStatsResponse {
+        workspaceRepository.findById(workspaceId)
+            .orElseThrow { NoSuchElementException("Workspace not found: $workspaceId") }
+        val connectionCount = dataConnectionPort.findByWorkspaceId(workspaceId).size
+        val tableConfigCount = tableConfigurationPort.findByWorkspaceId(workspaceId).size
+        val jobs = jobPort.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId)
+        val lastJob = jobs.firstOrNull()
+        return WorkspaceStatsResponse(
+            workspaceId = workspaceId,
+            connectionCount = connectionCount,
+            tableConfigCount = tableConfigCount,
+            totalJobsRun = jobs.size,
+            lastJobStatus = lastJob?.status?.name,
+            lastJobAt = lastJob?.completedAt ?: lastJob?.startedAt
+        )
+    }
+
+    fun requireWorkspaceMember(workspaceId: Long, userId: Long) {        workspaceUserRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
             .orElseThrow { SecurityException("User $userId is not a member of workspace $workspaceId") }
     }
 

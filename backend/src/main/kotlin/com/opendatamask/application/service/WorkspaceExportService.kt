@@ -4,15 +4,18 @@ import com.opendatamask.domain.port.input.WorkspaceExportUseCase
 
 import com.opendatamask.domain.port.input.dto.*
 import com.opendatamask.domain.model.*
-import com.opendatamask.adapter.output.persistence.*
+import com.opendatamask.domain.port.output.TableConfigurationPort
+import com.opendatamask.domain.port.output.ColumnGeneratorPort
+import com.opendatamask.domain.port.output.PostJobActionPort
+import com.opendatamask.domain.port.output.WorkspacePort
 import org.springframework.stereotype.Service
 
 @Service
 class WorkspaceExportService(
-    private val tableConfigurationRepository: TableConfigurationRepository,
-    private val columnGeneratorRepository: ColumnGeneratorRepository,
-    private val postJobActionRepository: PostJobActionRepository,
-    private val workspaceRepository: WorkspaceRepository
+    private val tableConfigurationRepository: TableConfigurationPort,
+    private val columnGeneratorRepository: ColumnGeneratorPort,
+    private val postJobActionRepository: PostJobActionPort,
+    private val workspaceRepository: WorkspacePort
 ) : WorkspaceExportUseCase {
     override fun export(workspaceId: Long): WorkspaceConfigDto {
         val tables = tableConfigurationRepository.findByWorkspaceId(workspaceId)

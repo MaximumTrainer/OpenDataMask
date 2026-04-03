@@ -5,7 +5,7 @@ import com.opendatamask.domain.port.input.RetrievedFile
 
 import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.domain.model.StoredFile
-import com.opendatamask.adapter.output.persistence.StoredFileRepository
+import com.opendatamask.domain.port.output.StoredFilePort
 import org.springframework.stereotype.Service
 import java.util.Base64
 
@@ -13,7 +13,7 @@ import java.util.Base64
 @Service
 class FileStorageService(
     private val encryptionPort: EncryptionPort,
-    private val storedFileRepository: StoredFileRepository
+    private val storedFileRepository: StoredFilePort
 ) : FileStorageUseCase {
     override fun storeFile(workspaceId: Long, filename: String, contentType: String, content: ByteArray, isSource: Boolean): StoredFile {
         val base64Content = Base64.getEncoder().encodeToString(content)
