@@ -259,6 +259,109 @@ POST /api/auth/login
 docker-compose up -d
 ```
 
+### Infrastructure as Code (Terraform + AWS)
+
+The `infra/` directory contains Terraform configuration to provision a production-ready AWS environment. The setup creates:
+
+- **VPC** with a public subnet, internet gateway, and route tables
+- **EC2 instance** (Amazon Linux 2023, default `t3.small`) running docker-compose
+- **Security group** allowing HTTP (80), HTTPS (443), API (8080), and SSH (22)
+- **Elastic IP** for a stable public address
+- **S3 + DynamoDB** remote state backend for team collaboration
+
+#### Terraform Prerequisites
+
+| Tool | Version | Notes |
+|---|---|---|
+| Terraform | 1.6+ | [Install](https://developer.hashicorp.com/terraform/install) |
+| AWS CLI | 2.x | Configured with IAM credentials |
+| AWS account | – | IAM user with EC2, VPC, S3, DynamoDB permissions |
+
+**One-time state backend bootstrap** (run locally, once per AWS account):
+
+```bash
+# Create S3 bucket for Terraform state
+aws s3api create-bucket --bucket my-opendatamask-tfstate --region us-east-1
+aws s3api put-bucket-versioning \
+  --bucket my-opendatamask-tfstate \
+  --versioning-configuration Status=Enabled
+
+# Create DynamoDB table for state locking
+aws dynamodb create-table \
+  --table-name opendatamask-tf-locks \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST
+```
+
+#### Local Terraform Usage
+
+```bash
+cd infra
+
+# Copy and fill in the example variables
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars — set public_key_material and any overrides
+
+# Initialise with your state backend
+terraform init \
+  -backend-config="bucket=my-opendatamask-tfstate" \
+  -backend-config="dynamodb_table=opendatamask-tf-locks" \
+  -backend-config="region=us-east-1"
+
+# Preview changes
+terraform plan
+
+# Apply (provisions the EC2 instance and networking)
+terraform apply
+
+# Get the server IP
+terraform output server_public_ip
+
+# Tear down
+terraform destroy
+```
+
+#### Required GitHub Secrets (for CI/CD pipeline)
+
+Configure these in **GitHub → Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | AWS IAM access key ID |
+| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret access key |
+| `AWS_REGION` | AWS region (e.g. `us-east-1`) |
+| `EC2_SSH_PRIVATE_KEY` | PEM private key matching `EC2_SSH_PUBLIC_KEY` |
+| `EC2_SSH_PUBLIC_KEY` | SSH public key content (`~/.ssh/id_ed25519.pub`) |
+| `JWT_SECRET` | 32+ char JWT signing secret |
+| `ENCRYPTION_KEY` | 32 char field encryption key |
+| `TF_STATE_BUCKET` | S3 bucket name for Terraform state |
+| `TF_STATE_DYNAMODB_TABLE` | DynamoDB table name for state locking |
+
+#### CI/CD Pipeline (GitHub Actions)
+
+The full automated pipeline runs in 4 sequential stages after every push to `main`:
+
+```
+CI (tests pass)
+    └─► Docker Build & Push (images → GHCR)
+            └─► Deploy workflow:
+                    ├─ Job 1: terraform apply (provision/update infrastructure)
+                    ├─ Job 2: docker push (parallel with Job 1)
+                    ├─ Job 3: SSH deploy (write .env, docker-compose pull && up)
+                    └─ Job 4: verify (curl /actuator/health, assert HTTP 200)
+```
+
+| Workflow file | Purpose |
+|---|---|
+| `.github/workflows/ci.yml` | Build, lint, test all three components |
+| `.github/workflows/docker.yml` | Build and push images to GHCR |
+| `.github/workflows/deploy.yml` | **Full deploy pipeline** (terraform → docker → deploy → verify) |
+| `.github/workflows/verify-deployment.yml` | Spring Boot smoke tests + optional live server health check |
+| `.github/workflows/codeql.yml` | Weekly security analysis |
+
+GitHub **Environments** (`staging`, `production`) are used for deployment tracking, enabling Copilot and the GitHub UI to display live deployment status, history, and URL.
+
 ### Kubernetes
 
 Build and push Docker images, then deploy using standard Kubernetes manifests or Helm. Each component (backend, frontend) has its own `Dockerfile`.
@@ -268,17 +371,6 @@ Build and push Docker images, then deploy using standard Kubernetes manifests or
 docker build -t opendatamask-backend ./backend
 docker build -t opendatamask-frontend ./frontend
 ```
-
-### CI / CD
-
-OpenDataMask includes three GitHub Actions workflows:
-
-| Workflow | File | Description |
-|---|---|---|
-| CI | `.github/workflows/ci.yml` | Build, lint, test on every push/PR |
-| Docker Build | `.github/workflows/docker.yml` | Build and push images to GHCR |
-| CodeQL | `.github/workflows/codeql.yml` | Weekly security analysis |
-| Deployment Verification | `.github/workflows/verify-deployment.yml` | Smoke tests after CI passes |
 
 ---
 

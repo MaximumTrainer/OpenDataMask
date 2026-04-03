@@ -72,7 +72,7 @@ OpenDataMask connects to your source databases, applies configurable masking/gen
 | App DB    | PostgreSQL |
 | Test DB   | H2 (PostgreSQL mode, in-memory) |
 | Tests     | JUnit 5 + Mockito + MockMvc (400+ tests) |
-| Deploy    | Docker + Docker Compose |
+| Deploy    | Docker + Docker Compose + Terraform (AWS) |
 
 ## Quick Start
 
@@ -266,6 +266,21 @@ export ENCRYPTION_KEY=$(openssl rand -base64 32)
 - Use HTTPS in production (the CLI supports `--insecure` only for development)
 - Connection passwords are AES-encrypted before storage
 - User passwords are BCrypt-hashed
+
+## Infrastructure
+
+Deploy to AWS with Terraform:
+
+```bash
+cd infra
+cp terraform.tfvars.example terraform.tfvars  # fill in your SSH public key
+terraform init -backend-config="bucket=<your-bucket>" \
+               -backend-config="dynamodb_table=<your-table>" \
+               -backend-config="region=us-east-1"
+terraform apply
+```
+
+See [Deployment Guide](docs/user-guide.md#infrastructure--terraform-deployment) for the full setup including GitHub Secrets for the CI/CD pipeline.
 
 ## Documentation
 

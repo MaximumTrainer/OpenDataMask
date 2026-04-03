@@ -6,9 +6,14 @@ on:
       environment:
         description: 'Target environment to verify'
         required: false
-        default: 'test'
+        default: 'staging'
         type: choice
-        options: [test, staging]
+        options: [staging, production]
+      server_url:
+        description: 'Live server base URL to health-check after smoke tests (optional, e.g. http://1.2.3.4)'
+        required: false
+        default: ''
+        type: string
   workflow_run:
     workflows: ["CI"]
     branches: [main]
@@ -19,6 +24,8 @@ jobs:
     name: Smoke Tests
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: ${{ github.event.inputs.environment || 'staging' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +59,27 @@ jobs:
         with:
           name: smoke-test-junit-xml
           path: backend/build/reports/tests/verificationTest/**/*.xml
+
+      - name: Verify live server health (if SERVER_URL provided)
+        if: ${{ github.event.inputs.server_url != '' }}
+        run: |
+          SERVER_URL="${{ github.event.inputs.server_url }}"
+          HEALTH_URL="${SERVER_URL}:8080/actuator/health"
+          echo "Checking live server: ${HEALTH_URL}"
+          for i in $(seq 1 10); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_URL}" || true)
+            if [ "${STATUS}" = "200" ]; then
+              echo "✅ Live server health check passed (HTTP 200)"
+              echo "### Live Server Verification" >> "$GITHUB_STEP_SUMMARY"
+              echo "- **URL**: ${HEALTH_URL}" >> "$GITHUB_STEP_SUMMARY"
+              echo "- **Status**: ✅ HTTP 200 OK" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP ${STATUS} – retrying in 10s..."
+            sleep 10
+          done
+          echo "::error::Live server health check failed after 10 attempts: ${HEALTH_URL}"
+          exit 1
 
       - name: Notify on failure
         if: failure()

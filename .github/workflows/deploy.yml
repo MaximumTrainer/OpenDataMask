@@ -1,0 +1,254 @@
+name: Deploy
+
+# Triggers after the Docker build workflow completes successfully on main,
+# or can be run manually for a specific environment.
+on:
+  workflow_run:
+    workflows: ["Docker Build & Push"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options: [staging, production]
+      terraform_action:
+        description: 'Terraform action'
+        required: true
+        default: 'apply'
+        type: choice
+        options: [plan, apply]
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  # ── Job 1: Terraform ────────────────────────────────────────────────────────────
+  terraform:
+    name: Terraform – Provision Infrastructure
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: ${{ github.event.inputs.environment || 'staging' }}
+    defaults:
+      run:
+        working-directory: infra
+
+    outputs:
+      server_ip: ${{ steps.tf-output.outputs.server_ip }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.6"
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="dynamodb_table=${{ secrets.TF_STATE_DYNAMODB_TABLE }}" \
+            -backend-config="region=${{ secrets.AWS_REGION }}"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var="public_key_material=${{ secrets.EC2_SSH_PUBLIC_KEY }}" \
+            -var="environment=${{ github.event.inputs.environment || 'staging' }}" \
+            -out=tfplan
+        env:
+          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Apply
+        if: ${{ github.event_name == 'workflow_run' || github.event.inputs.terraform_action == 'apply' }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get Terraform outputs
+        id: tf-output
+        if: ${{ github.event_name == 'workflow_run' || github.event.inputs.terraform_action == 'apply' }}
+        run: |
+          SERVER_IP=$(terraform output -raw server_public_ip)
+          echo "server_ip=${SERVER_IP}" >> "$GITHUB_OUTPUT"
+          echo "### Infrastructure" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Server IP**: ${SERVER_IP}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Frontend URL**: http://${SERVER_IP}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **API URL**: http://${SERVER_IP}:8080" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Job 2: Docker (parallel with Terraform) ─────────────────────────────────────
+  docker:
+    name: Docker – Build & Push Images
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/backend:latest
+            ${{ env.IMAGE_PREFIX }}/backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/frontend:latest
+            ${{ env.IMAGE_PREFIX }}/frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Job 3: Deploy ────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy – Start Application
+    runs-on: ubuntu-latest
+    needs: [terraform, docker]
+    if: ${{ needs.terraform.outputs.server_ip != '' }}
+    environment:
+      name: ${{ github.event.inputs.environment || 'staging' }}
+      url: http://${{ needs.terraform.outputs.server_ip }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write SSH private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ needs.terraform.outputs.server_ip }}" >> ~/.ssh/known_hosts
+
+      - name: Wait for SSH to be available
+        run: |
+          for i in $(seq 1 30); do
+            ssh -i ~/.ssh/deploy_key -o ConnectTimeout=5 \
+              "ec2-user@${{ needs.terraform.outputs.server_ip }}" "echo ok" && break
+            echo "Waiting for SSH... attempt $i"
+            sleep 10
+          done
+
+      - name: Copy docker-compose.yml to server
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            docker-compose.yml \
+            "ec2-user@${{ needs.terraform.outputs.server_ip }}:/opt/opendatamask/docker-compose.yml"
+
+      - name: Write .env file on server
+        run: |
+          ssh -i ~/.ssh/deploy_key "ec2-user@${{ needs.terraform.outputs.server_ip }}" << 'ENVCMD'
+          cat > /opt/opendatamask/.env << ENVEOF
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
+          ENVEOF
+          chmod 600 /opt/opendatamask/.env
+          ENVCMD
+
+      - name: Pull latest images and restart services
+        run: |
+          ssh -i ~/.ssh/deploy_key "ec2-user@${{ needs.terraform.outputs.server_ip }}" \
+            "cd /opt/opendatamask && \
+             docker-compose pull && \
+             docker-compose up -d --remove-orphans"
+
+      - name: Record deployment summary
+        run: |
+          echo "### Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Server**: ${{ needs.terraform.outputs.server_ip }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit**: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Frontend**: http://${{ needs.terraform.outputs.server_ip }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **API**: http://${{ needs.terraform.outputs.server_ip }}:8080" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Job 4: Verify ────────────────────────────────────────────────────────────────
+  verify:
+    name: Verify – Health Check
+    runs-on: ubuntu-latest
+    needs: [terraform, deploy]
+
+    steps:
+      - name: Wait for application to become healthy
+        run: |
+          SERVER_IP="${{ needs.terraform.outputs.server_ip }}"
+          HEALTH_URL="http://${SERVER_IP}:8080/actuator/health"
+          echo "Polling ${HEALTH_URL}..."
+          for i in $(seq 1 20); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_URL}" || true)
+            if [ "${STATUS}" = "200" ]; then
+              echo "✅ Health check passed (HTTP 200)"
+              break
+            fi
+            echo "Attempt $i: HTTP ${STATUS} – retrying in 15s..."
+            sleep 15
+            if [ "$i" = "20" ]; then
+              echo "❌ Health check failed after 20 attempts"
+              exit 1
+            fi
+          done
+
+      - name: Verify actuator info endpoint
+        run: |
+          SERVER_IP="${{ needs.terraform.outputs.server_ip }}"
+          curl -sf "http://${SERVER_IP}:8080/actuator/info" | \
+            python3 -c "import sys, json; d=json.load(sys.stdin); print('App info:', json.dumps(d, indent=2))" || true
+
+      - name: Verify frontend is serving
+        run: |
+          SERVER_IP="${{ needs.terraform.outputs.server_ip }}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${SERVER_IP}" || true)
+          if [ "${STATUS}" = "200" ]; then
+            echo "✅ Frontend serving (HTTP 200)"
+          else
+            echo "⚠️  Frontend returned HTTP ${STATUS}"
+          fi
+
+      - name: Deployment verification summary
+        run: |
+          SERVER_IP="${{ needs.terraform.outputs.server_ip }}"
+          echo "### Verification Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | URL | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
+          HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "http://${SERVER_IP}:8080/actuator/health" || echo "FAIL")
+          FRONT=$(curl -s -o /dev/null -w "%{http_code}" "http://${SERVER_IP}" || echo "FAIL")
+          echo "| Backend health | http://${SERVER_IP}:8080/actuator/health | HTTP ${HEALTH} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Frontend | http://${SERVER_IP} | HTTP ${FRONT} |" >> "$GITHUB_STEP_SUMMARY"
+          [ "${HEALTH}" = "200" ] || exit 1
