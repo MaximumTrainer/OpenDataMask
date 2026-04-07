@@ -58,9 +58,17 @@ class GeneratorServiceTest {
     }
 
     @Test
-    fun `DATE generates a non-null date string`() {
+    fun `DATE generates a java sql Date`() {
         val result = service.generateValue(GeneratorType.DATE, "2024-01-01", null)
         assertNotNull(result)
+        assertInstanceOf(java.sql.Date::class.java, result)
+    }
+
+    @Test
+    fun `BIRTH_DATE generates a java sql Date`() {
+        val result = service.generateValue(GeneratorType.BIRTH_DATE, "1990-01-15", null)
+        assertNotNull(result)
+        assertInstanceOf(java.sql.Date::class.java, result)
     }
 
     @Test

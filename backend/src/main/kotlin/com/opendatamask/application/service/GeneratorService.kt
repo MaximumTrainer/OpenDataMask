@@ -68,7 +68,7 @@ class GeneratorService(
             GeneratorType.ADDRESS -> faker.address().fullAddress()
             GeneratorType.SSN -> faker.idNumber().ssnValid()
             GeneratorType.CREDIT_CARD -> faker.finance().creditCard()
-            GeneratorType.DATE -> faker.date().past(365 * 10, TimeUnit.DAYS).toString()
+            GeneratorType.DATE -> java.sql.Date(faker.date().past(365 * 10, TimeUnit.DAYS).time)
             GeneratorType.UUID -> UUID.randomUUID().toString()
             GeneratorType.CONSTANT -> params?.get("value") ?: ""
             GeneratorType.NULL -> null
