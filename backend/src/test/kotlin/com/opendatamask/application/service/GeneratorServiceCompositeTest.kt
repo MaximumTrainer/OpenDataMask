@@ -142,55 +142,53 @@ class GeneratorServiceCompositeTest {
             null,
             mapOf("start" to "10", "step" to "1"),
             columnKey = "test:seq_col_start"
-        ) as String
-        assertEquals("10", result)
+        ) as Long
+        assertEquals(10L, result)
     }
 
     @Test
     fun `SEQUENTIAL increments by step`() {
         val key = "test:seq_col_step"
-        val r1 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "5"), columnKey = key) as String
-        val r2 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "5"), columnKey = key) as String
-        val r3 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "5"), columnKey = key) as String
-        assertEquals("1", r1)
-        assertEquals("6", r2)
-        assertEquals("11", r3)
+        val r1 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "5"), columnKey = key) as Long
+        val r2 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "5"), columnKey = key) as Long
+        val r3 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "5"), columnKey = key) as Long
+        assertEquals(1L, r1)
+        assertEquals(6L, r2)
+        assertEquals(11L, r3)
     }
 
     @Test
     fun `SEQUENTIAL uses separate counters per column key`() {
-        val r1 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "1"), columnKey = "table:col_a") as String
-        val r2 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "1"), columnKey = "table:col_b") as String
-        assertEquals("1", r1)
-        assertEquals("1", r2, "Different column keys should have independent counters")
+        val r1 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "1"), columnKey = "table:col_a") as Long
+        val r2 = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "1"), columnKey = "table:col_b") as Long
+        assertEquals(1L, r1)
+        assertEquals(1L, r2, "Different column keys should have independent counters")
     }
 
     // ── RANDOM_INT ────────────────────────────────────────────────────────────
 
     @Test
-    fun `RANDOM_INT returns string within range`() {
+    fun `RANDOM_INT returns Long within range`() {
         val result = service.generateValue(
             GeneratorType.RANDOM_INT,
             null,
             mapOf("min" to "1000", "max" to "9999999")
-        ) as String
-        val num = result.toLong()
-        assertTrue(num >= 1000, "Result $num should be >= 1000")
-        assertTrue(num <= 9999999, "Result $num should be <= 9999999")
+        ) as Long
+        assertTrue(result >= 1000, "Result $result should be >= 1000")
+        assertTrue(result <= 9999999, "Result $result should be <= 9999999")
     }
 
     @Test
-    fun `RANDOM_INT returns a string not an integer`() {
+    fun `RANDOM_INT returns a Long not a String`() {
         val result = service.generateValue(GeneratorType.RANDOM_INT, null, mapOf("min" to "1", "max" to "100"))
         assertNotNull(result)
-        assertTrue(result is String, "RANDOM_INT should return a String, got ${result?.javaClass}")
+        assertTrue(result is Long, "RANDOM_INT should return a Long, got ${result?.javaClass}")
     }
 
     @Test
     fun `RANDOM_INT uses defaults when no params`() {
-        val result = service.generateValue(GeneratorType.RANDOM_INT, null, null) as String
-        val num = result.toLong()
-        assertTrue(num >= 1)
-        assertTrue(num <= 999999)
+        val result = service.generateValue(GeneratorType.RANDOM_INT, null, null) as Long
+        assertTrue(result >= 1)
+        assertTrue(result <= 999999)
     }
 }

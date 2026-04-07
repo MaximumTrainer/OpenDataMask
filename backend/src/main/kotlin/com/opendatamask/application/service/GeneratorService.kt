@@ -68,7 +68,7 @@ class GeneratorService(
             GeneratorType.ADDRESS -> faker.address().fullAddress()
             GeneratorType.SSN -> faker.idNumber().ssnValid()
             GeneratorType.CREDIT_CARD -> faker.finance().creditCard()
-            GeneratorType.DATE -> faker.date().past(365 * 10, TimeUnit.DAYS).toString()
+            GeneratorType.DATE -> java.sql.Date(faker.date().past(365 * 10, TimeUnit.DAYS).time)
             GeneratorType.UUID -> UUID.randomUUID().toString()
             GeneratorType.CONSTANT -> params?.get("value") ?: ""
             GeneratorType.NULL -> null
@@ -87,11 +87,11 @@ class GeneratorService(
             GeneratorType.PASSWORD -> faker.internet().password(8, 20, true, true, true)
             GeneratorType.IBAN -> faker.finance().iban()
             GeneratorType.SWIFT_CODE -> faker.finance().bic()
-            GeneratorType.MONEY_AMOUNT -> faker.commerce().price()
+            GeneratorType.MONEY_AMOUNT -> java.math.BigDecimal(faker.commerce().price())
             GeneratorType.BTC_ADDRESS -> faker.regexify("1[A-HJ-NP-Za-km-z1-9]{33}")
             GeneratorType.PASSPORT_NUMBER -> faker.regexify("[A-Z]{2}[0-9]{7}")
             GeneratorType.DRIVERS_LICENSE -> faker.regexify("[A-Z][0-9]{7}")
-            GeneratorType.BIRTH_DATE -> faker.date().birthday().toString()
+            GeneratorType.BIRTH_DATE -> java.sql.Date(faker.date().birthday().time)
             GeneratorType.GENDER -> listOf("Male", "Female", "Non-binary", "Prefer not to say").random()
             GeneratorType.ICD_CODE -> faker.regexify("[A-Z][0-9]{2}\\.[0-9]{1,2}")
             GeneratorType.MEDICAL_RECORD_NUMBER -> faker.regexify("MRN-[0-9]{8}")
@@ -136,12 +136,12 @@ class GeneratorService(
                 val step = params?.get("step")?.toLongOrNull() ?: 1L
                 val key = columnKey ?: "default"
                 val counter = sequentialCounters.computeIfAbsent(key) { AtomicLong(start - step) }
-                counter.addAndGet(step).toString()
+                counter.addAndGet(step)
             }
             GeneratorType.RANDOM_INT -> {
                 val min = params?.get("min")?.toLongOrNull() ?: 1L
                 val max = params?.get("max")?.toLongOrNull() ?: 999999L
-                faker.number().numberBetween(min, max).toString()
+                faker.number().numberBetween(min, max)
             }
             GeneratorType.CONDITIONAL -> {
                 val jsonParams = rawParams?.let {
