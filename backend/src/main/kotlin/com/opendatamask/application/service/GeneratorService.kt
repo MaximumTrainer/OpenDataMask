@@ -91,7 +91,7 @@ class GeneratorService(
             GeneratorType.BTC_ADDRESS -> faker.regexify("1[A-HJ-NP-Za-km-z1-9]{33}")
             GeneratorType.PASSPORT_NUMBER -> faker.regexify("[A-Z]{2}[0-9]{7}")
             GeneratorType.DRIVERS_LICENSE -> faker.regexify("[A-Z][0-9]{7}")
-            GeneratorType.BIRTH_DATE -> faker.date().birthday().toString()
+            GeneratorType.BIRTH_DATE -> java.sql.Date(faker.date().birthday().time)
             GeneratorType.GENDER -> listOf("Male", "Female", "Non-binary", "Prefer not to say").random()
             GeneratorType.ICD_CODE -> faker.regexify("[A-Z][0-9]{2}\\.[0-9]{1,2}")
             GeneratorType.MEDICAL_RECORD_NUMBER -> faker.regexify("MRN-[0-9]{8}")
