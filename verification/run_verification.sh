@@ -166,11 +166,20 @@ info "Table configuration created: id=${TABLE_ID}"
 # The 'id' column has no generator → it is passed through unchanged (PK preserved).
 
 add_generator() {
-    local col="$1" gtype="$2" params="${3:-null}"
-    if [ "$params" = "null" ]; then
-        BODY="{\"columnName\":\"${col}\",\"generatorType\":\"${gtype}\"}"
+    local col="$1" gtype="$2" params="${3:-}"
+    # Build JSON payload via Python so that generatorParams is properly serialised
+    # as a JSON *string* value (the backend field is String?, not an embedded object).
+    # sys.argv avoids any shell-quoting issues with special characters in params.
+    if [ -z "$params" ]; then
+        BODY=$(python3 -c "
+import json, sys
+print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2]}))
+" -- "$col" "$gtype")
     else
-        BODY="{\"columnName\":\"${col}\",\"generatorType\":\"${gtype}\",\"generatorParams\":${params}}"
+        BODY=$(python3 -c "
+import json, sys
+print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2], 'generatorParams': sys.argv[3]}))
+" -- "$col" "$gtype" "$params")
     fi
     api_post "/api/workspaces/${WS_ID}/tables/${TABLE_ID}/generators" "$BODY" > /dev/null
     info "  Generator added: ${col} → ${gtype}"

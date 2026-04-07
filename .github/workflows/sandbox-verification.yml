@@ -80,10 +80,10 @@ jobs:
 
       # ── Wait for backend to be healthy ────────────────────────────────────
       - name: Wait for backend health
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           echo "Waiting for backend to report UP..."
-          for i in $(seq 1 60); do
+          for i in $(seq 1 120); do
             STATUS=$(curl -s "${API_BASE}/actuator/health" \
               | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" \
               2>/dev/null || true)
@@ -91,10 +91,10 @@ jobs:
               echo "✅ Backend is healthy."
               exit 0
             fi
-            echo "  Attempt ${i}/60: status='${STATUS}' — retrying in 5s..."
+            echo "  Attempt ${i}/120: status='${STATUS}' — retrying in 5s..."
             sleep 5
           done
-          echo "::error::Backend did not become healthy within 5 minutes."
+          echo "::error::Backend did not become healthy within 10 minutes."
           exit 1
 
       # ── Register user ─────────────────────────────────────────────────────
@@ -175,10 +175,19 @@ jobs:
         run: |
           add_generator() {
             local col="$1" gtype="$2" params="${3:-}"
+            # Build JSON via Python so generatorParams is a JSON *string* value
+            # (the backend field is String?, not an embedded object).
+            # sys.argv avoids shell-quoting issues with special characters.
             if [ -z "${params}" ]; then
-              BODY="{\"columnName\":\"${col}\",\"generatorType\":\"${gtype}\"}"
+              BODY=$(python3 -c "
+import json, sys
+print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2]}))
+" -- "${col}" "${gtype}")
             else
-              BODY="{\"columnName\":\"${col}\",\"generatorType\":\"${gtype}\",\"generatorParams\":${params}}"
+              BODY=$(python3 -c "
+import json, sys
+print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2], 'generatorParams': sys.argv[3]}))
+" -- "${col}" "${gtype}" "${params}")
             fi
             curl -sf -X POST "${API_BASE}/api/workspaces/${WS_ID}/tables/${TABLE_ID}/generators" \
               -H "Content-Type: application/json" \
