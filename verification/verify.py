@@ -62,6 +62,7 @@ TABLE = "users"
 class Check:
     PASS = "PASS"
     FAIL = "FAIL"
+    SKIP = "SKIP"
 
     def __init__(self, name: str):
         self.name = name
@@ -72,11 +73,21 @@ class Check:
         self.status = Check.FAIL
         self.messages.append(msg)
 
+    def skip(self, msg: str) -> None:
+        self.status = Check.SKIP
+        self.messages.append(msg)
+
     def info(self, msg: str) -> None:
         self.messages.append(msg)
 
+    @property
+    def info_messages(self) -> list[str]:
+        """Return messages that are not status-constant strings."""
+        _statuses = {Check.PASS, Check.FAIL, Check.SKIP}
+        return [m for m in self.messages if m not in _statuses]
+
     def __str__(self) -> str:
-        icon = "✓" if self.status == Check.PASS else "✗"
+        icon = "✓" if self.status == Check.PASS else ("–" if self.status == Check.SKIP else "✗")
         lines = [f"  [{icon}] {self.name}: {self.status}"]
         for m in self.messages:
             lines.append(f"       {m}")
@@ -203,7 +214,7 @@ def check_human_readability(tgt_conn, masking_passed: bool = True) -> Check:
     chk = Check("Human Readability (sample of 5 masked records)")
 
     if not masking_passed:
-        chk.fail(
+        chk.skip(
             "Sample skipped: masking effectiveness check did not pass. "
             "Printing TARGET_DB rows could expose real PII."
         )
@@ -258,11 +269,13 @@ def check_human_readability(tgt_conn, masking_passed: bool = True) -> Check:
 def write_junit_xml(checks: list, elapsed: float, path: str) -> None:
     """Write a JUnit-compatible XML report to *path* for CI consumption."""
     failures = sum(1 for c in checks if c.status == Check.FAIL)
+    skipped = sum(1 for c in checks if c.status == Check.SKIP)
     suite = ET.Element(
         "testsuite",
         name="OpenDataMask Sandbox Verification",
         tests=str(len(checks)),
         failures=str(failures),
+        skipped=str(skipped),
         errors="0",
         time=f"{elapsed:.3f}",
     )
@@ -274,14 +287,14 @@ def write_junit_xml(checks: list, elapsed: float, path: str) -> None:
             classname="verify",
         )
         if chk.status == Check.FAIL:
-            failure_msg = "; ".join(
-                m for m in chk.messages if m not in (Check.PASS, Check.FAIL)
-            )
+            failure_msg = "; ".join(chk.info_messages)
             ET.SubElement(tc, "failure", message=failure_msg).text = failure_msg
+        elif chk.status == Check.SKIP:
+            skip_msg = "; ".join(chk.info_messages)
+            ET.SubElement(tc, "skipped", message=skip_msg)
         # Attach informational messages as system-out so they appear in the report.
-        info_lines = [m for m in chk.messages if m not in (Check.PASS, Check.FAIL)]
-        if info_lines:
-            ET.SubElement(tc, "system-out").text = "\n".join(info_lines)
+        if chk.info_messages:
+            ET.SubElement(tc, "system-out").text = "\n".join(chk.info_messages)
 
     # Indent for readability (Python ≥ 3.9).
     if hasattr(ET, "indent"):
@@ -356,12 +369,16 @@ def main() -> int:
 
     passed = sum(1 for c in checks if c.status == Check.PASS)
     failed = sum(1 for c in checks if c.status == Check.FAIL)
+    skipped = sum(1 for c in checks if c.status == Check.SKIP)
 
     print("\n" + "=" * 60)
     if failed == 0:
-        print(f"  OK  ALL {passed}/{len(checks)} CHECKS PASSED")
+        summary = f"  OK  {passed}/{len(checks)} CHECKS PASSED"
+        if skipped:
+            summary += f"  ({skipped} skipped)"
+        print(summary)
     else:
-        print(f"  FAIL  {failed}/{len(checks)} CHECK(S) FAILED  ({passed} passed)")
+        print(f"  FAIL  {failed}/{len(checks)} CHECK(S) FAILED  ({passed} passed, {skipped} skipped)")
     print("=" * 60 + "\n")
 
     if args.junit_xml:

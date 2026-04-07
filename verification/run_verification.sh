@@ -3,7 +3,7 @@
 #
 # This script:
 #   1. Starts the sandboxed Docker environment (source_db, target_db, app_db, backend).
-#   2. Waits for all services to become healthy.
+#   2. Waits for the backend service API to become healthy.
 #   3. Configures OpenDataMask via its REST API (workspace, connections,
 #      table configuration, column generators).
 #   4. Triggers a masking job and waits for it to complete.
@@ -24,6 +24,19 @@ info()    { echo -e "${GREEN}[INFO]${NC}  $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 die()     { error "$*"; exit 1; }
+
+# backend_is_healthy  —  returns 0 when /actuator/health reports status=UP, else 1.
+backend_is_healthy() {
+    curl -sf "${API_BASE}/actuator/health" \
+        | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    sys.exit(0 if isinstance(d, dict) and d.get("status") == "UP" else 1)
+except Exception:
+    sys.exit(1)
+'
+}
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 API_BASE="http://localhost:8080"
@@ -67,7 +80,7 @@ $DC -f docker-compose.yml up -d --build
 info "Waiting for OpenDataMask backend to become healthy (up to 3 min)…"
 MAX_WAIT=180
 ELAPSED=0
-until curl -sf "${API_BASE}/actuator/health" | grep -q '"status":"UP"'; do
+until backend_is_healthy; do
     if [ $ELAPSED -ge $MAX_WAIT ]; then
         die "Backend did not become healthy within ${MAX_WAIT}s."
     fi
