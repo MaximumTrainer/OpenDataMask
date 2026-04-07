@@ -179,15 +179,9 @@ jobs:
             # (the backend field is String?, not an embedded object).
             # sys.argv avoids shell-quoting issues with special characters.
             if [ -z "${params}" ]; then
-              BODY=$(python3 -c "
-import json, sys
-print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2]}))
-" -- "${col}" "${gtype}")
+              BODY=$(python3 -c "import json, sys; print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2]}))" -- "${col}" "${gtype}")
             else
-              BODY=$(python3 -c "
-import json, sys
-print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2], 'generatorParams': sys.argv[3]}))
-" -- "${col}" "${gtype}" "${params}")
+              BODY=$(python3 -c "import json, sys; print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2], 'generatorParams': sys.argv[3]}))" -- "${col}" "${gtype}" "${params}")
             fi
             curl -sf -X POST "${API_BASE}/api/workspaces/${WS_ID}/tables/${TABLE_ID}/generators" \
               -H "Content-Type: application/json" \
