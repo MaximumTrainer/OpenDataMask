@@ -210,8 +210,15 @@ echo ""
 # ── Run Python verification ───────────────────────────────────────────────────
 # Use `if/else` so that a non-zero exit from verify.py is caught by our
 # explicit handler — not by `set -e` — ensuring the result banner always prints.
+#
+# Set VERIFY_JUNIT_XML to a file path to also write a JUnit XML report, e.g.:
+#   VERIFY_JUNIT_XML=/tmp/report.xml ./run_verification.sh
 info "Running verification script…"
-if python3 verify.py; then
+JUNIT_ARGS=()
+if [ -n "${VERIFY_JUNIT_XML:-}" ]; then
+    JUNIT_ARGS=(--junit-xml "${VERIFY_JUNIT_XML}")
+fi
+if python3 verify.py "${JUNIT_ARGS[@]}"; then
     echo ""
     echo -e "${GREEN}════════════════════════════════════════${NC}"
     echo -e "${GREEN}  ✓  ALL VERIFICATION CHECKS PASSED     ${NC}"

@@ -21,8 +21,11 @@ Environment variables (with defaults matching docker-compose.yml):
   TARGET_DB_USER   / TARGET_DB_PASS
 """
 
+import argparse
 import os
 import sys
+import time
+import xml.etree.ElementTree as ET
 
 try:
     import psycopg2
@@ -250,10 +253,62 @@ def check_human_readability(tgt_conn, masking_passed: bool = True) -> Check:
 
     return chk
 
+# ── JUnit XML writer ──────────────────────────────────────────────────────────
+
+def write_junit_xml(checks: list, elapsed: float, path: str) -> None:
+    """Write a JUnit-compatible XML report to *path* for CI consumption."""
+    failures = sum(1 for c in checks if c.status == Check.FAIL)
+    suite = ET.Element(
+        "testsuite",
+        name="OpenDataMask Sandbox Verification",
+        tests=str(len(checks)),
+        failures=str(failures),
+        errors="0",
+        time=f"{elapsed:.3f}",
+    )
+    for chk in checks:
+        tc = ET.SubElement(
+            suite,
+            "testcase",
+            name=chk.name,
+            classname="verify",
+        )
+        if chk.status == Check.FAIL:
+            failure_msg = "; ".join(
+                m for m in chk.messages if m not in (Check.PASS, Check.FAIL)
+            )
+            ET.SubElement(tc, "failure", message=failure_msg).text = failure_msg
+        # Attach informational messages as system-out so they appear in the report.
+        info_lines = [m for m in chk.messages if m not in (Check.PASS, Check.FAIL)]
+        if info_lines:
+            ET.SubElement(tc, "system-out").text = "\n".join(info_lines)
+
+    # Indent for readability (Python ≥ 3.9).
+    if hasattr(ET, "indent"):
+        ET.indent(suite, space="  ")
+
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        fh.write(ET.tostring(suite, encoding="unicode"))
+        fh.write("\n")
+
+    print(f"  JUnit XML report written to: {path}")
+
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="OpenDataMask sandboxed verification script."
+    )
+    parser.add_argument(
+        "--junit-xml",
+        metavar="PATH",
+        default=None,
+        help="Write a JUnit-compatible XML report to PATH for CI consumption.",
+    )
+    args = parser.parse_args()
+
     print("\n" + "=" * 60)
     print("  OpenDataMask -- Verification Report")
     print("=" * 60)
@@ -270,6 +325,8 @@ def main() -> int:
     )
     tgt_conn = connect(TARGET)
 
+    t_start = time.monotonic()
+
     checks = [
         check_record_integrity(src_conn, tgt_conn),
         check_key_persistence(src_conn, tgt_conn),
@@ -285,6 +342,8 @@ def main() -> int:
             tgt_conn, masking_passed=(masking_chk.status == Check.PASS)
         )
     )
+
+    elapsed = time.monotonic() - t_start
 
     src_conn.close()
     tgt_conn.close()
@@ -304,6 +363,9 @@ def main() -> int:
     else:
         print(f"  FAIL  {failed}/{len(checks)} CHECK(S) FAILED  ({passed} passed)")
     print("=" * 60 + "\n")
+
+    if args.junit_xml:
+        write_junit_xml(checks, elapsed, args.junit_xml)
 
     return 0 if failed == 0 else 1
 
