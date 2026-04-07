@@ -202,4 +202,102 @@ class GeneratorServiceTest {
         assertNotNull(result)
         assertInstanceOf(java.math.BigDecimal::class.java, result)
     }
+
+    @Test
+    fun `TITLE generates a non-blank name prefix`() {
+        val result = service.generateValue(GeneratorType.TITLE, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `JOB_TITLE generates a non-blank job title`() {
+        val result = service.generateValue(GeneratorType.JOB_TITLE, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `NATIONALITY generates a non-blank nationality`() {
+        val result = service.generateValue(GeneratorType.NATIONALITY, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `COMPANY_NAME generates a non-blank company name`() {
+        val result = service.generateValue(GeneratorType.COMPANY_NAME, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `DEPARTMENT generates a non-blank department`() {
+        val result = service.generateValue(GeneratorType.DEPARTMENT, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `CURRENCY_CODE generates a non-blank currency code`() {
+        val result = service.generateValue(GeneratorType.CURRENCY_CODE, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `DOMAIN_NAME generates a non-blank domain`() {
+        val result = service.generateValue(GeneratorType.DOMAIN_NAME, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `USER_AGENT generates a non-blank user agent`() {
+        val result = service.generateValue(GeneratorType.USER_AGENT, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `LATITUDE generates a non-blank latitude`() {
+        val result = service.generateValue(GeneratorType.LATITUDE, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `LONGITUDE generates a non-blank longitude`() {
+        val result = service.generateValue(GeneratorType.LONGITUDE, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `TIME_ZONE generates a non-blank timezone`() {
+        val result = service.generateValue(GeneratorType.TIME_ZONE, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `BOOLEAN generates a Boolean value`() {
+        val result = service.generateValue(GeneratorType.BOOLEAN, null, null)
+        assertNotNull(result)
+        assertInstanceOf(java.lang.Boolean::class.java, result)
+    }
+
+    @Test
+    fun `LOREM generates a non-blank paragraph`() {
+        val result = service.generateValue(GeneratorType.LOREM, null, null)
+        assertNotNull(result)
+        assertTrue((result as String).isNotBlank())
+    }
+
+    @Test
+    fun `TIMESTAMP generates a java sql Timestamp`() {
+        val result = service.generateValue(GeneratorType.TIMESTAMP, null, null)
+        assertNotNull(result)
+        assertInstanceOf(java.sql.Timestamp::class.java, result)
+    }
 }

@@ -175,6 +175,26 @@ export enum GeneratorType {
   // Other
   ORGANIZATION = 'ORGANIZATION',
   ACCOUNT_NUMBER = 'ACCOUNT_NUMBER',
+  // Personal extended
+  TITLE = 'TITLE',
+  JOB_TITLE = 'JOB_TITLE',
+  NATIONALITY = 'NATIONALITY',
+  // Business
+  COMPANY_NAME = 'COMPANY_NAME',
+  DEPARTMENT = 'DEPARTMENT',
+  // Financial extended
+  CURRENCY_CODE = 'CURRENCY_CODE',
+  // Network extended
+  DOMAIN_NAME = 'DOMAIN_NAME',
+  USER_AGENT = 'USER_AGENT',
+  // Location extended
+  LATITUDE = 'LATITUDE',
+  LONGITUDE = 'LONGITUDE',
+  TIME_ZONE = 'TIME_ZONE',
+  // Data utilities
+  BOOLEAN = 'BOOLEAN',
+  LOREM = 'LOREM',
+  TIMESTAMP = 'TIMESTAMP',
   // Composite / PK generators
   CONDITIONAL = 'CONDITIONAL',
   PARTIAL_MASK = 'PARTIAL_MASK',

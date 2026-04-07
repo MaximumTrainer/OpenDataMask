@@ -159,6 +159,10 @@ OpenDataMask includes 60+ built-in generators. Key examples:
 | `IP_ADDRESS` | `192.168.1.42` |
 | `ICD_CODE` | `J45.909` |
 | `IBAN` | `GB29NWBK60161331926819` |
+| `JOB_TITLE` | `Senior Software Engineer` |
+| `NATIONALITY` | `Canadian` |
+| `DOMAIN_NAME` | `example.com` |
+| `TIMESTAMP` | `2024-06-15 14:30:00` |
 | `PARTIAL_MASK` | `J*** D***` (preserves format) |
 | `NULL` | `null` |
 | `CONSTANT` | Fixed value (configured in params) |

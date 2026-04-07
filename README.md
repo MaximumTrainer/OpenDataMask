@@ -30,7 +30,7 @@ OpenDataMask connects to your source databases, applies configurable masking/gen
 - **File (CSV/JSON)** — AES-encrypted upload/download, multipart REST endpoints
 
 ### Data Masking & Generation
-- **47 generator types** powered by [Datafaker](https://datafaker.net/): names, addresses, emails, phones, SSNs, credit cards, IBANs, IPs, VINs, medical codes, and more
+- **61 generator types** powered by [Datafaker](https://datafaker.net/): names, addresses, emails, phones, SSNs, credit cards, IBANs, IPs, VINs, medical codes, job titles, nationalities, and more
 - **Composite generators**: `PARTIAL_MASK`, `FORMAT_PRESERVING`, `CONDITIONAL`, `SEQUENTIAL`
 - **Deterministic consistency**: HMAC-SHA256 seeding ensures same input → same output across runs; linked columns share a Faker instance
 - **Generator presets**: 24 built-in system presets; workspace-level custom presets; one-click apply

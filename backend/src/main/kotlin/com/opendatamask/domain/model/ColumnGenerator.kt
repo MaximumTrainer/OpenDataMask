@@ -24,6 +24,18 @@ enum class GeneratorType {
     VIN, LICENSE_PLATE,
     // Other
     ORGANIZATION, ACCOUNT_NUMBER,
+    // Personal extended
+    TITLE, JOB_TITLE, NATIONALITY,
+    // Business
+    COMPANY_NAME, DEPARTMENT,
+    // Financial extended
+    CURRENCY_CODE,
+    // Network extended
+    DOMAIN_NAME, USER_AGENT,
+    // Location extended
+    LATITUDE, LONGITUDE, TIME_ZONE,
+    // Data utilities
+    BOOLEAN, LOREM, TIMESTAMP,
     // Composite / PK generators
     CONDITIONAL, PARTIAL_MASK, FORMAT_PRESERVING, SEQUENTIAL, RANDOM_INT
 }

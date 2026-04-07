@@ -130,12 +130,14 @@ go build -o opendatamask-cli ./...
       <p>OpenDataMask includes 60+ built-in generators covering personal, financial, medical, and network data:</p>
       <table>
         <tr><th>Category</th><th>Generators</th></tr>
-        <tr><td>Personal</td><td>NAME, FIRST_NAME, LAST_NAME, EMAIL, PHONE, BIRTH_DATE, GENDER</td></tr>
-        <tr><td>Address</td><td>ADDRESS, STREET_ADDRESS, CITY, STATE, ZIP_CODE, COUNTRY, GPS_COORDINATES</td></tr>
+        <tr><td>Personal</td><td>NAME, FIRST_NAME, LAST_NAME, EMAIL, PHONE, BIRTH_DATE, GENDER, TITLE, JOB_TITLE, NATIONALITY</td></tr>
+        <tr><td>Address</td><td>ADDRESS, STREET_ADDRESS, CITY, STATE, ZIP_CODE, COUNTRY, GPS_COORDINATES, LATITUDE, LONGITUDE, TIME_ZONE</td></tr>
         <tr><td>Identity</td><td>SSN, PASSPORT_NUMBER, DRIVERS_LICENSE, MEDICAL_RECORD_NUMBER</td></tr>
-        <tr><td>Financial</td><td>CREDIT_CARD, IBAN, SWIFT_CODE, MONEY_AMOUNT, BTC_ADDRESS, ACCOUNT_NUMBER</td></tr>
-        <tr><td>Network</td><td>IP_ADDRESS, IPV6_ADDRESS, MAC_ADDRESS, URL</td></tr>
+        <tr><td>Financial</td><td>CREDIT_CARD, IBAN, SWIFT_CODE, MONEY_AMOUNT, BTC_ADDRESS, ACCOUNT_NUMBER, CURRENCY_CODE</td></tr>
+        <tr><td>Network</td><td>IP_ADDRESS, IPV6_ADDRESS, MAC_ADDRESS, URL, DOMAIN_NAME, USER_AGENT</td></tr>
+        <tr><td>Business</td><td>ORGANIZATION, COMPANY_NAME, DEPARTMENT</td></tr>
         <tr><td>Medical</td><td>ICD_CODE, HEALTH_PLAN_NUMBER</td></tr>
+        <tr><td>Data Utilities</td><td>BOOLEAN, LOREM, TIMESTAMP</td></tr>
         <tr><td>Control</td><td>NULL, CONSTANT, PARTIAL_MASK, FORMAT_PRESERVING, SEQUENTIAL, RANDOM_INT</td></tr>
       </table>
 
