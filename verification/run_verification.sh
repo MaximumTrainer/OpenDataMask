@@ -9,7 +9,7 @@
 #   4. Triggers a masking job and waits for it to complete.
 #   5. Invokes verify.py to validate masking results.
 #
-# Prerequisites: docker compose (v2), curl, python3, pip3.
+# Prerequisites: docker compose (v2), curl, python3 (with pip module).
 # Run from the repository root or from the verification/ directory.
 
 set -euo pipefail
@@ -31,6 +31,14 @@ ODM_USER="verifier"
 ODM_PASS="Verif1cation!Pass"
 ODM_EMAIL="verifier@odm-sandbox.local"
 
+# ── DB credentials — read from env with same defaults as docker-compose.yml ──
+SOURCE_DB_NAME="${SOURCE_DB_NAME:-source_db}"
+SOURCE_DB_USER="${SOURCE_DB_USER:-source_user}"
+SOURCE_DB_PASS="${SOURCE_DB_PASS:-source_pass}"
+TARGET_DB_NAME="${TARGET_DB_NAME:-target_db}"
+TARGET_DB_USER="${TARGET_DB_USER:-target_user}"
+TARGET_DB_PASS="${TARGET_DB_PASS:-target_pass}"
+
 # ── Prerequisites check ───────────────────────────────────────────────────────
 info "Checking prerequisites…"
 command -v docker   >/dev/null 2>&1 || die "docker is required but not installed."
@@ -47,8 +55,9 @@ else
 fi
 
 # ── Install Python dependencies ───────────────────────────────────────────────
+# Use `python3 -m pip` to avoid a hard dependency on a separately-installed pip3.
 info "Installing Python dependencies…"
-pip3 install -q -r requirements.txt
+python3 -m pip install -q -r requirements.txt
 
 # ── Start Docker environment ──────────────────────────────────────────────────
 info "Starting Docker environment…"
@@ -116,20 +125,20 @@ info "Workspace created: id=${WS_ID}"
 # ── Create source connection ──────────────────────────────────────────────────
 info "Creating source data connection (SOURCE_DB)…"
 SRC_RESP=$(api_post "/api/workspaces/${WS_ID}/connections" \
-    '{"name":"source-db","type":"POSTGRESQL",
-      "connectionString":"jdbc:postgresql://source_db:5432/source_db",
-      "username":"source_user","password":"source_pass",
-      "isSource":true,"isDestination":false}')
+    "{\"name\":\"source-db\",\"type\":\"POSTGRESQL\",
+      \"connectionString\":\"jdbc:postgresql://source_db:5432/${SOURCE_DB_NAME}\",
+      \"username\":\"${SOURCE_DB_USER}\",\"password\":\"${SOURCE_DB_PASS}\",
+      \"isSource\":true,\"isDestination\":false}")
 SRC_CONN_ID=$(echo "$SRC_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
 info "Source connection created: id=${SRC_CONN_ID}"
 
 # ── Create destination connection ─────────────────────────────────────────────
 info "Creating destination data connection (TARGET_DB)…"
 DST_RESP=$(api_post "/api/workspaces/${WS_ID}/connections" \
-    '{"name":"target-db","type":"POSTGRESQL",
-      "connectionString":"jdbc:postgresql://target_db:5432/target_db",
-      "username":"target_user","password":"target_pass",
-      "isSource":false,"isDestination":true}')
+    "{\"name\":\"target-db\",\"type\":\"POSTGRESQL\",
+      \"connectionString\":\"jdbc:postgresql://target_db:5432/${TARGET_DB_NAME}\",
+      \"username\":\"${TARGET_DB_USER}\",\"password\":\"${TARGET_DB_PASS}\",
+      \"isSource\":false,\"isDestination\":true}")
 DST_CONN_ID=$(echo "$DST_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
 info "Destination connection created: id=${DST_CONN_ID}"
 
@@ -199,11 +208,10 @@ done
 echo ""
 
 # ── Run Python verification ───────────────────────────────────────────────────
+# Use `if/else` so that a non-zero exit from verify.py is caught by our
+# explicit handler — not by `set -e` — ensuring the result banner always prints.
 info "Running verification script…"
-python3 verify.py
-
-EXIT_CODE=$?
-if [ $EXIT_CODE -eq 0 ]; then
+if python3 verify.py; then
     echo ""
     echo -e "${GREEN}════════════════════════════════════════${NC}"
     echo -e "${GREEN}  ✓  ALL VERIFICATION CHECKS PASSED     ${NC}"
@@ -213,5 +221,5 @@ else
     echo -e "${RED}════════════════════════════════════════${NC}"
     echo -e "${RED}  ✗  ONE OR MORE VERIFICATION CHECKS FAILED ${NC}"
     echo -e "${RED}════════════════════════════════════════${NC}"
-    exit $EXIT_CODE
+    exit 1
 fi

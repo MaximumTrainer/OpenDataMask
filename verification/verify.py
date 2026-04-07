@@ -112,7 +112,11 @@ def check_record_integrity(src_conn, tgt_conn) -> Check:
     tgt_count = count_rows(tgt_conn, TABLE)
     chk.info(f"Source row count : {src_count}")
     chk.info(f"Target row count : {tgt_count}")
-    if src_count != tgt_count:
+    if src_count == 0:
+        chk.fail(
+            f"Source table '{TABLE}' is empty; verification cannot pass with 0 source rows"
+        )
+    elif src_count != tgt_count:
         chk.fail(
             f"Row count mismatch: source={src_count}, target={tgt_count}"
         )
@@ -170,27 +174,42 @@ def check_masking_effectiveness(src_conn, tgt_conn) -> Check:
     chk.info(f"Name unchanged  (should be 0) : {unmasked_name}")
     chk.info(f"Email unchanged (should be 0) : {unmasked_email}")
 
-    if unmasked_name > 0:
-        chk.fail(f"{unmasked_name} row(s) have the same full_name in source and target.")
-    if unmasked_email > 0:
-        chk.fail(f"{unmasked_email} row(s) have the same email in source and target.")
+    if checked == 0:
+        chk.fail("No rows could be compared (source or target may be empty).")
+    else:
+        if unmasked_name > 0:
+            chk.fail(f"{unmasked_name} row(s) have the same full_name in source and target.")
+        if unmasked_email > 0:
+            chk.fail(f"{unmasked_email} row(s) have the same email in source and target.")
 
     return chk
 
 
-def check_human_readability(tgt_conn) -> Check:
+def check_human_readability(tgt_conn, masking_passed: bool = True) -> Check:
     """
     Print a sample of masked records for visual human inspection.
 
-    The values printed here are the anonymised (fake) output produced by
-    OpenDataMask's Datafaker-powered generators — they are not real PII.
-    Logging them is the explicit purpose of this verification check.
+    The sample is only printed when *masking_passed* is True.  If masking
+    effectiveness failed, the target may still contain real source data, so
+    printing it here could expose genuine PII — in that case we skip the
+    sample and report the reason.
+
+    When masking has passed, the values printed are the anonymised (fake)
+    output produced by OpenDataMask's Datafaker-powered generators.
     """
     chk = Check("Human Readability (sample of 5 masked records)")
 
+    if not masking_passed:
+        chk.fail(
+            "Sample skipped: masking effectiveness check did not pass. "
+            "Printing TARGET_DB rows could expose real PII."
+        )
+        return chk
+
+    # ORDER BY id gives a stable, deterministic sample across runs.
     sample_query = pgsql.SQL(
         "SELECT id, full_name, email, phone_number, date_of_birth, salary "
-        "FROM {} LIMIT 5"
+        "FROM {} ORDER BY id LIMIT 5"
     ).format(pgsql.Identifier(TABLE))
     # Values retrieved here are already-anonymised fakes, not real sensitive data.
     sample = fetch_all(tgt_conn, sample_query)
@@ -254,9 +273,18 @@ def main() -> int:
     checks = [
         check_record_integrity(src_conn, tgt_conn),
         check_key_persistence(src_conn, tgt_conn),
-        check_masking_effectiveness(src_conn, tgt_conn),
-        check_human_readability(tgt_conn),
     ]
+
+    masking_chk = check_masking_effectiveness(src_conn, tgt_conn)
+    checks.append(masking_chk)
+
+    # Only print TARGET_DB sample when masking has been confirmed effective —
+    # if masking failed the target may still hold real source data.
+    checks.append(
+        check_human_readability(
+            tgt_conn, masking_passed=(masking_chk.status == Check.PASS)
+        )
+    )
 
     src_conn.close()
     tgt_conn.close()
