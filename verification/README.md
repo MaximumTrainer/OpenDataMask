@@ -33,8 +33,7 @@ verification/
 | Docker Engine | ≥ 24 |
 | Docker Compose | v2 (`docker compose`) or v1 (`docker-compose`) |
 | curl | any |
-| Python 3 | ≥ 3.10 |
-| pip3 | any |
+| Python 3 | ≥ 3.10 (must include `pip` module — standard in most distributions) |
 
 ## Quick Start
 
@@ -60,9 +59,23 @@ The script will:
 If the environment is already running and the masking job has already completed:
 
 ```bash
-pip3 install -r requirements.txt
+python3 -m pip install -r requirements.txt
 python3 verify.py
 ```
+
+### JUnit XML Output
+
+Both the orchestration script and the standalone script support a JUnit-compatible XML report (no external dependencies — uses stdlib `xml.etree.ElementTree`):
+
+```bash
+# Via the orchestration script (sets --junit-xml automatically):
+VERIFY_JUNIT_XML=report.xml ./run_verification.sh
+
+# Directly against an already-running environment:
+python3 verify.py --junit-xml report.xml
+```
+
+The XML report contains one `<testcase>` per check. Skipped checks (e.g., Human Readability when masking didn't pass) are written as `<skipped/>` rather than `<failure/>` so CI tools count them correctly.
 
 ### Environment Variables (optional overrides)
 
@@ -78,6 +91,7 @@ python3 verify.py
 | `TARGET_DB_NAME` | `target_db` | Target DB database name |
 | `TARGET_DB_USER` | `target_user` | Target DB username |
 | `TARGET_DB_PASS` | `target_pass` | Target DB password |
+| `VERIFY_JUNIT_XML` | *(unset)* | If set, `run_verification.sh` writes a JUnit XML report to this path |
 
 ## Verification Checks
 
@@ -99,9 +113,9 @@ source.email != target.email
 ```
 
 ### 4 · Human Readability
-Prints a sample of 5 masked records to the console so a human can visually
-confirm the output looks realistic (e.g., a real-looking name and a valid
-e-mail address rather than random strings like `asdfghjkl`).
+Prints a sample of 5 masked records (ordered by `id`, for deterministic output) so a human can visually confirm the output looks realistic (e.g., a real-looking name and a valid e-mail address rather than random strings like `asdfghjkl`).
+
+The sample is only printed when Masking Effectiveness has already passed. If masking failed, this check is reported as **SKIP** (not FAIL) to avoid exposing potential real PII and to prevent it inflating the failure count in CI reports.
 
 ### Sample Report Output
 
@@ -113,7 +127,7 @@ e-mail address rather than random strings like `asdfghjkl`).
 Connecting to SOURCE_DB (localhost:5433/source_db)…
 Connecting to TARGET_DB (localhost:5434/target_db)…
 
-  ── Masked Record Sample (TARGET_DB) ──────────────────────
+  -- Masked Record Sample (TARGET_DB) ----------------------------------
   [1] id            : a1b2c3d4-0001-4000-8000-000000000001
        full_name     : Johnathan Mraz
        email         : cordell.okon@yahoo.com
@@ -121,9 +135,9 @@ Connecting to TARGET_DB (localhost:5434/target_db)…
        date_of_birth : Mon Jan 15 00:00:00 UTC 1990
        salary        : 97432
 
-────────────────────────────────────────────────────────────
+------------------------------------------------------------
   Results
-────────────────────────────────────────────────────────────
+------------------------------------------------------------
   [✓] Record Integrity (row count matches): PASS
        Source row count : 50
        Target row count : 50
@@ -136,9 +150,20 @@ Connecting to TARGET_DB (localhost:5434/target_db)…
        Email unchanged (should be 0) : 0
   [✓] Human Readability (sample of 5 masked records): PASS
 
-════════════════════════════════════════════════════════════
-  OK  ALL 4/4 CHECKS PASSED
-════════════════════════════════════════════════════════════
+============================================================
+  OK  4/4 CHECKS PASSED
+============================================================
+```
+
+When Masking Effectiveness fails the Human Readability check is skipped instead:
+
+```
+  [–] Human Readability (sample of 5 masked records): SKIP
+       Sample skipped: masking effectiveness check did not pass. Printing TARGET_DB rows could expose real PII.
+
+============================================================
+  FAIL  1/4 CHECK(S) FAILED  (2 passed, 1 skipped)
+============================================================
 ```
 
 ## Masking Rules Applied
@@ -161,3 +186,18 @@ docker compose -f docker-compose.yml down -v
 
 The `-v` flag also removes the named volume (`app_db_data`) so the next run
 starts with a clean OpenDataMask application database.
+
+## GitHub Actions
+
+The workflow `.github/workflows/sandbox-verification.yml` runs this full verification suite automatically on every push and pull request to `main`, and can be triggered on demand via `workflow_dispatch`.
+
+It:
+
+1. Builds the backend Docker image from source (with layer caching).
+2. Starts `source_db`, `target_db`, `app_db`, and `backend` via `docker compose`.
+3. Orchestrates the masking job through the REST API (register → login → workspace → connections → table config → generators → trigger → poll).
+4. Runs `verify.py --junit-xml` to produce a structured test report.
+5. Publishes the report as a **workflow check** via `dorny/test-reporter` (per-check annotations on PRs).
+6. Uploads the JUnit XML as a **downloadable artifact** (`sandbox-verification-report`, 30-day retention).
+7. Writes a **markdown job summary** with overall pass/fail status.
+8. Always tears down the sandbox; collects Docker container logs on failure.

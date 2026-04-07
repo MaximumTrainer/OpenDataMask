@@ -287,9 +287,35 @@ See [Deployment Guide](docs/user-guide.md#infrastructure--terraform-deployment) 
 | Doc | Description |
 |-----|-------------|
 | [User Guide](docs/user-guide.md) | Setup, configuration, core concepts, CLI usage |
+| [Verification Guide](verification/README.md) | Sandboxed end-to-end verification of masking correctness |
 | [Website](docs/website/index.html) | Static HTML/CSS project website |
 | [API Reference](docs/website/api.html) | Full REST API endpoint reference |
 | [Deployment Guide](docs/website/deployment.html) | Docker, Kubernetes, CI/CD, security |
+
+## Sandbox Verification
+
+OpenDataMask ships with a self-contained Docker-based verification suite that proves the masking pipeline correctly anonymises PII while preserving referential integrity.
+
+```bash
+cd verification/
+./run_verification.sh        # build → start → configure → mask → verify
+
+# With JUnit XML output:
+VERIFY_JUNIT_XML=report.xml ./run_verification.sh
+```
+
+Four automated checks are performed:
+
+| Check | What it validates |
+|---|---|
+| **Record Integrity** | `COUNT(*)` matches across source and target (fails if source is empty) |
+| **Key Persistence** | Every source UUID exists unchanged in target |
+| **Masking Effectiveness** | `full_name` and `email` differ for every matched row |
+| **Human Readability** | 5-record sample + format heuristics; skipped (not failed) if masking didn't pass |
+
+The GitHub Actions workflow `.github/workflows/sandbox-verification.yml` runs this suite on every push/PR to `main` and publishes a JUnit report as a workflow check and downloadable artifact.
+
+See [verification/README.md](verification/README.md) for full details.
 
 ## License
 

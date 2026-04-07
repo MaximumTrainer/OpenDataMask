@@ -358,6 +358,7 @@ CI (tests pass)
 | `.github/workflows/docker.yml` | Build and push images to GHCR |
 | `.github/workflows/deploy.yml` | **Full deploy pipeline** (terraform → docker → deploy → verify) |
 | `.github/workflows/verify-deployment.yml` | Spring Boot smoke tests + optional live server health check |
+| `.github/workflows/sandbox-verification.yml` | **End-to-end masking verification** — proves PII masking correctness; publishes JUnit report |
 | `.github/workflows/codeql.yml` | Weekly security analysis |
 
 GitHub **Environments** (`staging`, `production`) are used for deployment tracking, enabling Copilot and the GitHub UI to display live deployment status, history, and URL.
@@ -371,6 +372,60 @@ Build and push Docker images, then deploy using standard Kubernetes manifests or
 docker build -t opendatamask-backend ./backend
 docker build -t opendatamask-frontend ./frontend
 ```
+
+---
+
+## Sandbox Verification Environment
+
+The `verification/` directory contains a self-contained Docker-based environment that automatically proves OpenDataMask correctly masks PII while preserving referential integrity.
+
+### Quick Start
+
+```bash
+cd verification/
+chmod +x run_verification.sh
+./run_verification.sh
+```
+
+The script builds images, starts all services, configures a masking job via the REST API, runs the job, and then validates the output.
+
+### What Gets Verified
+
+| Check | Description |
+|---|---|
+| **Record Integrity** | Source and target row counts must match; fails if source is empty |
+| **Key Persistence** | Every source UUID primary key must exist unchanged in the target |
+| **Masking Effectiveness** | `full_name` and `email` must differ for every matched row; fails if no rows were compared |
+| **Human Readability** | Samples 5 masked records (ordered by `id`) and checks format heuristics; skipped (not failed) when masking didn't pass to avoid exposing potential PII |
+
+### JUnit XML Reports
+
+Both the script and the standalone Python verifier support JUnit XML output:
+
+```bash
+# Via the orchestration script:
+VERIFY_JUNIT_XML=report.xml ./run_verification.sh
+
+# Directly (when environment is already running):
+python3 -m pip install -r requirements.txt
+python3 verify.py --junit-xml report.xml
+```
+
+### GitHub Actions Integration
+
+`.github/workflows/sandbox-verification.yml` runs the full suite on every push and pull request to `main`. It publishes:
+- A **workflow check** (per-check pass/fail annotations via `dorny/test-reporter`)
+- A **downloadable artifact** (`sandbox-verification-report`, 30-day retention)
+- A **markdown job summary** with overall pass/fail status
+
+### Teardown
+
+```bash
+cd verification/
+docker compose -f docker-compose.yml down -v
+```
+
+See [verification/README.md](../verification/README.md) for the full reference, including all environment variable overrides.
 
 ---
 
