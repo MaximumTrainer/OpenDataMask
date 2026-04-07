@@ -87,7 +87,7 @@ class GeneratorService(
             GeneratorType.PASSWORD -> faker.internet().password(8, 20, true, true, true)
             GeneratorType.IBAN -> faker.finance().iban()
             GeneratorType.SWIFT_CODE -> faker.finance().bic()
-            GeneratorType.MONEY_AMOUNT -> faker.commerce().price()
+            GeneratorType.MONEY_AMOUNT -> java.math.BigDecimal(faker.commerce().price())
             GeneratorType.BTC_ADDRESS -> faker.regexify("1[A-HJ-NP-Za-km-z1-9]{33}")
             GeneratorType.PASSPORT_NUMBER -> faker.regexify("[A-Z]{2}[0-9]{7}")
             GeneratorType.DRIVERS_LICENSE -> faker.regexify("[A-Z][0-9]{7}")
@@ -136,12 +136,12 @@ class GeneratorService(
                 val step = params?.get("step")?.toLongOrNull() ?: 1L
                 val key = columnKey ?: "default"
                 val counter = sequentialCounters.computeIfAbsent(key) { AtomicLong(start - step) }
-                counter.addAndGet(step).toString()
+                counter.addAndGet(step)
             }
             GeneratorType.RANDOM_INT -> {
                 val min = params?.get("min")?.toLongOrNull() ?: 1L
                 val max = params?.get("max")?.toLongOrNull() ?: 999999L
-                faker.number().numberBetween(min, max).toString()
+                faker.number().numberBetween(min, max)
             }
             GeneratorType.CONDITIONAL -> {
                 val jsonParams = rawParams?.let {

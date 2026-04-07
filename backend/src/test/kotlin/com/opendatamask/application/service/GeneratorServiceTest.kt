@@ -178,4 +178,28 @@ class GeneratorServiceTest {
         val result = service.generateValue(GeneratorType.CUSTOM, "fallback", null)
         assertEquals("fallback", result)
     }
+
+    @Test
+    fun `RANDOM_INT generates a Long`() {
+        val result = service.generateValue(GeneratorType.RANDOM_INT, null, mapOf("min" to "30000", "max" to "200000"))
+        assertNotNull(result)
+        assertInstanceOf(java.lang.Long::class.java, result)
+        val value = result as Long
+        assertTrue(value in 30000..199999)
+    }
+
+    @Test
+    fun `SEQUENTIAL generates a Long`() {
+        val result = service.generateValue(GeneratorType.SEQUENTIAL, null, mapOf("start" to "1", "step" to "1"), columnKey = "test:seq")
+        assertNotNull(result)
+        assertInstanceOf(java.lang.Long::class.java, result)
+        assertEquals(1L, result)
+    }
+
+    @Test
+    fun `MONEY_AMOUNT generates a BigDecimal`() {
+        val result = service.generateValue(GeneratorType.MONEY_AMOUNT, null, null)
+        assertNotNull(result)
+        assertInstanceOf(java.math.BigDecimal::class.java, result)
+    }
 }
