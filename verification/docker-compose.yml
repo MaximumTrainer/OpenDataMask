@@ -1,0 +1,123 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OpenDataMask — Sandboxed Verification Environment
+#
+# Services
+#   source_db   PostgreSQL database pre-seeded with 50 sensitive user records.
+#   target_db   Empty PostgreSQL database; receives the masked data.
+#   app_db      PostgreSQL database used by the OpenDataMask backend for its
+#               own application state (workspaces, jobs, configs, etc.).
+#   backend     OpenDataMask Spring Boot backend.
+#   frontend    OpenDataMask Vue.js frontend (optional for visual inspection).
+#
+# Secrets are loaded from a .env file (copy .env.example → .env).
+# The defaults shown are for the sandbox ONLY — never reuse in production.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Source database ────────────────────────────────────────────────────────
+  source_db:
+    image: postgres:16-alpine
+    container_name: odm_source_db
+    environment:
+      POSTGRES_DB:       ${SOURCE_DB_NAME:-source_db}
+      POSTGRES_USER:     ${SOURCE_DB_USER:-source_user}
+      POSTGRES_PASSWORD: ${SOURCE_DB_PASS:-source_pass}
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d   # runs source_db.sql on first start
+    networks:
+      - odm_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Target (destination) database ─────────────────────────────────────────
+  target_db:
+    image: postgres:16-alpine
+    container_name: odm_target_db
+    environment:
+      POSTGRES_DB:       ${TARGET_DB_NAME:-target_db}
+      POSTGRES_USER:     ${TARGET_DB_USER:-target_user}
+      POSTGRES_PASSWORD: ${TARGET_DB_PASS:-target_pass}
+    ports:
+      - "5434:5432"
+    networks:
+      - odm_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── OpenDataMask application database ─────────────────────────────────────
+  app_db:
+    image: postgres:16-alpine
+    container_name: odm_app_db
+    environment:
+      POSTGRES_DB:       opendatamask
+      POSTGRES_USER:     opendatamask
+      POSTGRES_PASSWORD: opendatamask
+    volumes:
+      - app_db_data:/var/lib/postgresql/data
+    networks:
+      - odm_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opendatamask"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── OpenDataMask backend ───────────────────────────────────────────────────
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: odm_backend
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL:      jdbc:postgresql://app_db:5432/opendatamask
+      DATABASE_USERNAME: opendatamask
+      DATABASE_PASSWORD: opendatamask
+      # NOTE: these secrets are loaded from .env (see .env.example).
+      # The fallback values are for the verification sandbox ONLY — never reuse in production.
+      JWT_SECRET:        ${ODM_JWT_SECRET:-odm-verification-jwt-secret-sandbox-not-for-production-use-xyz}
+      ENCRYPTION_KEY:    ${ODM_ENCRYPTION_KEY:-odm-verify-enc-key-sandbox-only}
+      SERVER_PORT:       "8080"
+    depends_on:
+      app_db:
+        condition: service_healthy
+    networks:
+      - odm_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 90s
+
+  # ── OpenDataMask frontend (optional) ──────────────────────────────────────
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: odm_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - odm_net
+
+networks:
+  odm_net:
+    driver: bridge
+
+volumes:
+  app_db_data:

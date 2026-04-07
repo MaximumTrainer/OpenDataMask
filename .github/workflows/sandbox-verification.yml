@@ -1,0 +1,308 @@
+name: Sandbox Masking Verification
+
+# Runs the full sandboxed Docker verification suite to prove that OpenDataMask
+# correctly anonymises PII while preserving referential integrity.
+#
+# What it does
+# ────────────
+#  1. Builds the backend image from source (with Docker layer caching).
+#  2. Starts source_db, target_db, app_db, and backend via docker compose.
+#  3. Orchestrates a masking job through the REST API (workspace → connections
+#     → table config → column generators → job → poll to completion).
+#  4. Runs verify.py to perform four automated checks and writes a JUnit XML
+#     report that is published as a workflow check and uploaded as an artifact.
+#  5. Always tears down containers and uploads Docker logs on failure.
+#
+# Triggers
+# ────────
+#  • Every push / PR to main.
+#  • Manual dispatch from the Actions UI (workflow_dispatch).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sandbox-verification:
+    name: Sandbox PII Masking Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      checks: write        # required by dorny/test-reporter to publish check results
+
+    env:
+      # Sandbox-only secrets — safe to inline here; never reuse in production.
+      ODM_JWT_SECRET: odm-verification-jwt-secret-sandbox-not-for-production-use-xyz
+      ODM_ENCRYPTION_KEY: odm-verify-enc-key-sandbox-only
+      SOURCE_DB_NAME: source_db
+      SOURCE_DB_USER: source_user
+      SOURCE_DB_PASS: source_pass
+      TARGET_DB_NAME: target_db
+      TARGET_DB_USER: target_user
+      TARGET_DB_PASS: target_pass
+      API_BASE: http://localhost:8080
+      ODM_USER: verifier
+      ODM_PASS: "Verif1cation!Pass"
+      ODM_EMAIL: verifier@odm-sandbox.local
+      JUNIT_XML: verification-report.xml
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Python (for verify.py) ────────────────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: verification/requirements.txt
+
+      - name: Install Python dependencies
+        run: python3 -m pip install -q -r verification/requirements.txt
+
+      # ── Docker build cache ────────────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── Start Docker Compose sandbox (no frontend needed for API tests) ───
+      - name: Start sandbox services
+        working-directory: verification
+        run: |
+          docker compose up -d --build \
+            source_db target_db app_db backend
+
+      # ── Wait for backend to be healthy ────────────────────────────────────
+      - name: Wait for backend health
+        timeout-minutes: 10
+        run: |
+          echo "Waiting for backend to report UP..."
+          for i in $(seq 1 120); do
+            STATUS=$(curl -s "${API_BASE}/actuator/health" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" \
+              2>/dev/null || true)
+            if [ "${STATUS}" = "UP" ]; then
+              echo "✅ Backend is healthy."
+              exit 0
+            fi
+            echo "  Attempt ${i}/120: status='${STATUS}' — retrying in 5s..."
+            sleep 5
+          done
+          echo "::error::Backend did not become healthy within 10 minutes."
+          exit 1
+
+      # ── Register user ─────────────────────────────────────────────────────
+      - name: Register ODM user
+        run: |
+          curl -sf -X POST "${API_BASE}/api/auth/register" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${ODM_USER}\",\"email\":\"${ODM_EMAIL}\",\"password\":\"${ODM_PASS}\"}" \
+            > /dev/null 2>&1 || true   # continue if user already exists
+
+      # ── Login & capture token ─────────────────────────────────────────────
+      - name: Login and obtain JWT
+        run: |
+          LOGIN_RESP=$(curl -sf -X POST "${API_BASE}/api/auth/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${ODM_USER}\",\"password\":\"${ODM_PASS}\"}")
+          TOKEN=$(echo "${LOGIN_RESP}" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))")
+          if [ -z "${TOKEN}" ]; then
+            echo "::error::Failed to obtain JWT token."
+            exit 1
+          fi
+          echo "TOKEN=${TOKEN}" >> "$GITHUB_ENV"
+          echo "✅ Authenticated."
+
+      # ── Create workspace ──────────────────────────────────────────────────
+      - name: Create verification workspace
+        run: |
+          WS_RESP=$(curl -sf -X POST "${API_BASE}/api/workspaces" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -d '{"name":"Verification Workspace","description":"Automated PII masking verification"}')
+          WS_ID=$(echo "${WS_RESP}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+          echo "WS_ID=${WS_ID}" >> "$GITHUB_ENV"
+          echo "✅ Workspace created: id=${WS_ID}"
+
+      # ── Wire source connection ────────────────────────────────────────────
+      - name: Create source connection
+        run: |
+          SRC_RESP=$(curl -sf -X POST "${API_BASE}/api/workspaces/${WS_ID}/connections" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -d "{\"name\":\"source-db\",\"type\":\"POSTGRESQL\",
+                 \"connectionString\":\"jdbc:postgresql://source_db:5432/${SOURCE_DB_NAME}\",
+                 \"username\":\"${SOURCE_DB_USER}\",\"password\":\"${SOURCE_DB_PASS}\",
+                 \"isSource\":true,\"isDestination\":false}")
+          SRC_CONN_ID=$(echo "${SRC_RESP}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+          echo "SRC_CONN_ID=${SRC_CONN_ID}" >> "$GITHUB_ENV"
+          echo "✅ Source connection: id=${SRC_CONN_ID}"
+
+      # ── Wire destination connection ───────────────────────────────────────
+      - name: Create destination connection
+        run: |
+          DST_RESP=$(curl -sf -X POST "${API_BASE}/api/workspaces/${WS_ID}/connections" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -d "{\"name\":\"target-db\",\"type\":\"POSTGRESQL\",
+                 \"connectionString\":\"jdbc:postgresql://target_db:5432/${TARGET_DB_NAME}\",
+                 \"username\":\"${TARGET_DB_USER}\",\"password\":\"${TARGET_DB_PASS}\",
+                 \"isSource\":false,\"isDestination\":true}")
+          DST_CONN_ID=$(echo "${DST_RESP}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+          echo "DST_CONN_ID=${DST_CONN_ID}" >> "$GITHUB_ENV"
+          echo "✅ Destination connection: id=${DST_CONN_ID}"
+
+      # ── Configure table in MASK mode ──────────────────────────────────────
+      - name: Configure users table (MASK mode)
+        run: |
+          TABLE_RESP=$(curl -sf -X POST "${API_BASE}/api/workspaces/${WS_ID}/tables" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -d '{"tableName":"users","mode":"MASK"}')
+          TABLE_ID=$(echo "${TABLE_RESP}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+          echo "TABLE_ID=${TABLE_ID}" >> "$GITHUB_ENV"
+          echo "✅ Table config: id=${TABLE_ID}"
+
+      # ── Add column generators ─────────────────────────────────────────────
+      - name: Add column generators
+        run: |
+          add_generator() {
+            local col="$1" gtype="$2" params="${3:-}"
+            # Build JSON via Python so generatorParams is a JSON *string* value
+            # (the backend field is String?, not an embedded object).
+            # sys.argv avoids shell-quoting issues with special characters.
+            if [ -z "${params}" ]; then
+              BODY=$(python3 -c "
+import json, sys
+print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2]}))
+" -- "${col}" "${gtype}")
+            else
+              BODY=$(python3 -c "
+import json, sys
+print(json.dumps({'columnName': sys.argv[1], 'generatorType': sys.argv[2], 'generatorParams': sys.argv[3]}))
+" -- "${col}" "${gtype}" "${params}")
+            fi
+            curl -sf -X POST "${API_BASE}/api/workspaces/${WS_ID}/tables/${TABLE_ID}/generators" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -d "${BODY}" > /dev/null
+            echo "  ✅ ${col} → ${gtype}"
+          }
+          add_generator "full_name"     "FULL_NAME"
+          add_generator "email"         "EMAIL"
+          add_generator "phone_number"  "PHONE"
+          add_generator "date_of_birth" "BIRTH_DATE"
+          add_generator "salary"        "RANDOM_INT" '{"min":"30000","max":"200000"}'
+
+      # ── Trigger masking job ───────────────────────────────────────────────
+      - name: Trigger masking job
+        run: |
+          JOB_RESP=$(curl -sf -X POST "${API_BASE}/api/workspaces/${WS_ID}/jobs" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -d '{}')
+          JOB_ID=$(echo "${JOB_RESP}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+          echo "JOB_ID=${JOB_ID}" >> "$GITHUB_ENV"
+          echo "✅ Job started: id=${JOB_ID}"
+
+      # ── Poll until job completes ──────────────────────────────────────────
+      - name: Wait for masking job to complete
+        timeout-minutes: 5
+        run: |
+          echo "Polling job ${JOB_ID}..."
+          for i in $(seq 1 60); do
+            STATUS=$(curl -sf "${API_BASE}/api/workspaces/${WS_ID}/jobs/${JOB_ID}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
+            echo "  [${i}/60] status=${STATUS}"
+            if [ "${STATUS}" = "COMPLETED" ]; then
+              echo "✅ Job completed."
+              exit 0
+            elif [ "${STATUS}" = "FAILED" ] || [ "${STATUS}" = "CANCELLED" ]; then
+              echo "::error::Masking job ended with status=${STATUS}"
+              # Fetch job logs for debugging
+              curl -sf "${API_BASE}/api/workspaces/${WS_ID}/jobs/${JOB_ID}/logs" \
+                -H "Authorization: Bearer ${TOKEN}" \
+                | python3 -c "
+          import sys, json
+          for l in json.load(sys.stdin):
+              print(f'[{l[\"level\"]}] {l[\"message\"]}')
+          " || true
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "::error::Job did not complete within the timeout."
+          exit 1
+
+      # ── Run verification checks (produces JUnit XML) ───────────────────────
+      - name: Run verify.py
+        id: verify
+        run: |
+          python3 verification/verify.py --junit-xml "${JUNIT_XML}"
+        env:
+          SOURCE_DB_HOST: localhost
+          SOURCE_DB_PORT: "5433"
+          TARGET_DB_HOST: localhost
+          TARGET_DB_PORT: "5434"
+
+      # ── Publish test report as a workflow check ───────────────────────────
+      - name: Publish verification report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Sandbox Masking Verification Results
+          path: ${{ env.JUNIT_XML }}
+          reporter: java-junit
+          fail-on-error: false
+
+      # ── Upload JUnit XML as a downloadable artifact ───────────────────────
+      - name: Upload verification report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sandbox-verification-report
+          path: ${{ env.JUNIT_XML }}
+          retention-days: 30
+
+      # ── Write job summary ─────────────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Sandbox Masking Verification" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.verify.outcome }}" = "success" ]; then
+            echo "✅ **All verification checks passed.**" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ **One or more verification checks failed.** See the report for details." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | What it validates |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Record Integrity | \`COUNT(*)\` matches across source and target |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Key Persistence | Every source UUID exists unchanged in target |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Masking Effectiveness | \`full_name\` and \`email\` differ for every matched row |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Human Readability | 5-record sample + heuristics (name has space, email has \`@\`) |" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Collect container logs on failure (always run) ────────────────────
+      - name: Collect Docker logs on failure
+        if: failure()
+        working-directory: verification
+        run: |
+          echo "=== backend logs ===" && docker compose logs backend  || true
+          echo "=== app_db logs ===" && docker compose logs app_db    || true
+          echo "=== source_db logs ===" && docker compose logs source_db || true
+          echo "=== target_db logs ===" && docker compose logs target_db || true
+
+      # ── Tear down sandbox ─────────────────────────────────────────────────
+      - name: Tear down sandbox
+        if: always()
+        working-directory: verification
+        run: docker compose down --volumes --remove-orphans
