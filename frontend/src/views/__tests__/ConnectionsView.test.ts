@@ -17,8 +17,8 @@ describe('ConnectionType enum', () => {
 })
 
 describe('GeneratorType enum', () => {
-  it('includes all 47 generator types', () => {
-    expect(Object.keys(GeneratorType).length).toBe(47)
+  it('includes all 61 generator types', () => {
+    expect(Object.keys(GeneratorType).length).toBe(61)
     expect(GeneratorType.NAME).toBe('NAME')
     expect(GeneratorType.EMAIL).toBe('EMAIL')
     expect(GeneratorType.NULL).toBe('NULL')

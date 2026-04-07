@@ -104,6 +104,20 @@ class GeneratorService(
             GeneratorType.LICENSE_PLATE -> faker.vehicle().licensePlate()
             GeneratorType.ORGANIZATION -> faker.company().name()
             GeneratorType.ACCOUNT_NUMBER -> faker.regexify("[0-9]{10}")
+            GeneratorType.TITLE -> faker.name().prefix()
+            GeneratorType.JOB_TITLE -> faker.job().title()
+            GeneratorType.NATIONALITY -> faker.nation().nationality()
+            GeneratorType.COMPANY_NAME -> faker.company().name()
+            GeneratorType.DEPARTMENT -> faker.commerce().department()
+            GeneratorType.CURRENCY_CODE -> faker.currency().code()
+            GeneratorType.DOMAIN_NAME -> faker.internet().domainName()
+            GeneratorType.USER_AGENT -> faker.internet().userAgent().replace(Regex("\\s+"), " ")
+            GeneratorType.LATITUDE -> faker.address().latitude()
+            GeneratorType.LONGITUDE -> faker.address().longitude()
+            GeneratorType.TIME_ZONE -> faker.address().timeZone()
+            GeneratorType.BOOLEAN -> faker.bool().bool()
+            GeneratorType.LOREM -> faker.lorem().paragraph()
+            GeneratorType.TIMESTAMP -> java.sql.Timestamp(faker.date().past(365 * 10, java.util.concurrent.TimeUnit.DAYS).time)
             GeneratorType.PARTIAL_MASK -> {
                 val s = originalValue?.toString() ?: return null
                 val maskChar = (params?.get("maskChar") ?: "*").firstOrNull() ?: '*'

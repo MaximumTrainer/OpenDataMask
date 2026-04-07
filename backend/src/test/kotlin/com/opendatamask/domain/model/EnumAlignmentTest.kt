@@ -34,6 +34,12 @@ class EnumAlignmentTest {
             "IP_ADDRESS", "IPV6_ADDRESS", "MAC_ADDRESS", "URL",
             "VIN", "LICENSE_PLATE",
             "ORGANIZATION", "ACCOUNT_NUMBER",
+            "TITLE", "JOB_TITLE", "NATIONALITY",
+            "COMPANY_NAME", "DEPARTMENT",
+            "CURRENCY_CODE",
+            "DOMAIN_NAME", "USER_AGENT",
+            "LATITUDE", "LONGITUDE", "TIME_ZONE",
+            "BOOLEAN", "LOREM", "TIMESTAMP",
             "CONDITIONAL", "PARTIAL_MASK", "FORMAT_PRESERVING", "SEQUENTIAL", "RANDOM_INT"
         )
         assertEquals(expected, values, "GeneratorType values do not match canonical set")
