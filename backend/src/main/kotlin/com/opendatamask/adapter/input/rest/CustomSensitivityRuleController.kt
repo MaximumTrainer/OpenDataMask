@@ -5,6 +5,7 @@ import com.opendatamask.domain.port.input.dto.CustomRulePreviewResult
 import com.opendatamask.domain.port.input.dto.CustomSensitivityRuleRequest
 import com.opendatamask.domain.port.input.dto.CustomSensitivityRuleResponse
 import com.opendatamask.application.service.CustomSensitivityRuleService
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -25,7 +26,7 @@ class CustomSensitivityRuleController(
 
     @PostMapping
     fun createRule(
-        @RequestBody request: CustomSensitivityRuleRequest
+        @Valid @RequestBody request: CustomSensitivityRuleRequest
     ): ResponseEntity<CustomSensitivityRuleResponse> =
         ResponseEntity.status(HttpStatus.CREATED)
             .body(customSensitivityRuleService.createRule(request))
@@ -33,7 +34,7 @@ class CustomSensitivityRuleController(
     @PutMapping("/{id}")
     fun updateRule(
         @PathVariable id: Long,
-        @RequestBody request: CustomSensitivityRuleRequest
+        @Valid @RequestBody request: CustomSensitivityRuleRequest
     ): ResponseEntity<CustomSensitivityRuleResponse> =
         ResponseEntity.ok(customSensitivityRuleService.updateRule(id, request))
 
@@ -45,7 +46,7 @@ class CustomSensitivityRuleController(
 
     @PostMapping("/preview")
     fun previewRule(
-        @RequestBody request: CustomRulePreviewRequest
+        @Valid @RequestBody request: CustomRulePreviewRequest
     ): ResponseEntity<List<CustomRulePreviewResult>> =
         ResponseEntity.ok(customSensitivityRuleService.previewRule(request))
 }

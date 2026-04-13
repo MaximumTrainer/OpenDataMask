@@ -165,6 +165,7 @@ class SensitivityScanServiceTest {
         )).thenReturn(null)
         whenever(columnSensitivityRepository.save(any<ColumnSensitivity>()))
             .thenAnswer { it.arguments[0] as ColumnSensitivity }
+        whenever(customSensitivityRuleRepository.findByIsActiveTrue()).thenReturn(emptyList())
 
         val result = sensitivityScanService.scanWorkspace(1L)
 

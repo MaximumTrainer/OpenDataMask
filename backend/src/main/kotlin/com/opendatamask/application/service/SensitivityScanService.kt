@@ -83,6 +83,10 @@ class SensitivityScanService(
                         emptyList()
                     }
                     val builtInResult = detectSensitivity(column, samples)
+                    // Evaluate custom rules for every column so a linked preset can be attached
+                    // even when a built-in rule already detected sensitivity.
+                    val customMatch = detectCustomRuleSensitivity(column, columnInfo.type, activeCustomRules)
+
                     if (builtInResult != null) {
                         log.sensitiveColumnsFound++
                         val existing = columnSensitivityRepository
@@ -96,8 +100,15 @@ class SensitivityScanService(
                         entity.sensitivityType = builtInResult.sensitivityType
                         entity.confidenceLevel = builtInResult.confidence
                         entity.recommendedGeneratorType = builtInResult.recommendedGenerator
-                        entity.customSensitivityLabel = null
-                        entity.recommendedPresetId = null
+                        // Custom rule match may supply a linked preset while keeping the built-in type label
+                        if (customMatch != null) {
+                            val (matchedRule, _) = customMatch
+                            entity.customSensitivityLabel = matchedRule.name
+                            entity.recommendedPresetId = matchedRule.linkedPresetId
+                        } else {
+                            entity.customSensitivityLabel = null
+                            entity.recommendedPresetId = null
+                        }
                         columnSensitivityRepository.save(entity)
                         sensitivityScanLogEntryRepository.save(
                             SensitivityScanLogEntry(
@@ -110,49 +121,46 @@ class SensitivityScanService(
                                 scannedAt = LocalDateTime.now()
                             )
                         )
-                    } else {
-                        val customMatch = detectCustomRuleSensitivity(column, columnInfo.type, activeCustomRules)
-                        if (customMatch != null) {
-                            val (matchedRule, _) = customMatch
-                            log.sensitiveColumnsFound++
-                            val existing = columnSensitivityRepository
-                                .findByWorkspaceIdAndTableNameAndColumnName(workspaceId, table, column)
-                            val entity = existing ?: ColumnSensitivity(
-                                workspaceId = workspaceId,
+                    } else if (customMatch != null) {
+                        val (matchedRule, _) = customMatch
+                        log.sensitiveColumnsFound++
+                        val existing = columnSensitivityRepository
+                            .findByWorkspaceIdAndTableNameAndColumnName(workspaceId, table, column)
+                        val entity = existing ?: ColumnSensitivity(
+                            workspaceId = workspaceId,
+                            tableName = table,
+                            columnName = column
+                        )
+                        entity.isSensitive = true
+                        entity.sensitivityType = SensitivityType.UNKNOWN
+                        entity.confidenceLevel = ConfidenceLevel.HIGH
+                        entity.recommendedGeneratorType = null
+                        entity.customSensitivityLabel = matchedRule.name
+                        entity.recommendedPresetId = matchedRule.linkedPresetId
+                        columnSensitivityRepository.save(entity)
+                        sensitivityScanLogEntryRepository.save(
+                            SensitivityScanLogEntry(
+                                scanLogId = log.id!!,
                                 tableName = table,
-                                columnName = column
+                                columnName = column,
+                                detectedType = matchedRule.name,
+                                confidenceLevel = ConfidenceLevel.HIGH.name,
+                                recommendedGenerator = null,
+                                scannedAt = LocalDateTime.now()
                             )
-                            entity.isSensitive = true
-                            entity.sensitivityType = SensitivityType.UNKNOWN
-                            entity.confidenceLevel = ConfidenceLevel.HIGH
-                            entity.recommendedGeneratorType = null
-                            entity.customSensitivityLabel = matchedRule.name
-                            entity.recommendedPresetId = matchedRule.linkedPresetId
-                            columnSensitivityRepository.save(entity)
-                            sensitivityScanLogEntryRepository.save(
-                                SensitivityScanLogEntry(
-                                    scanLogId = log.id!!,
-                                    tableName = table,
-                                    columnName = column,
-                                    detectedType = matchedRule.name,
-                                    confidenceLevel = ConfidenceLevel.HIGH.name,
-                                    recommendedGenerator = null,
-                                    scannedAt = LocalDateTime.now()
-                                )
+                        )
+                    } else {
+                        sensitivityScanLogEntryRepository.save(
+                            SensitivityScanLogEntry(
+                                scanLogId = log.id!!,
+                                tableName = table,
+                                columnName = column,
+                                detectedType = null,
+                                confidenceLevel = null,
+                                recommendedGenerator = null,
+                                scannedAt = LocalDateTime.now()
                             )
-                        } else {
-                            sensitivityScanLogEntryRepository.save(
-                                SensitivityScanLogEntry(
-                                    scanLogId = log.id!!,
-                                    tableName = table,
-                                    columnName = column,
-                                    detectedType = null,
-                                    confidenceLevel = null,
-                                    recommendedGenerator = null,
-                                    scannedAt = LocalDateTime.now()
-                                )
-                            )
-                        }
+                        )
                     }
                 }
             }

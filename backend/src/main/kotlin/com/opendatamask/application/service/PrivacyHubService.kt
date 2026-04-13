@@ -83,13 +83,24 @@ class PrivacyHubService(
         val tableConfigs = tableConfigurationRepository.findByWorkspaceId(workspaceId)
         val tableConfigMap = tableConfigs.associateBy { it.tableName }
 
+        // Preload all referenced presets into a map to avoid N+1 queries
+        val presetIds = recommendations.mapNotNull { it.recommendedPresetId }.toSet()
+        val presetMap = presetIds.associateWith { id ->
+            generatorPresetRepository.findById(id).orElse(null)
+        }
+
+        // Preload existing column generators per table config to avoid N+1 queries
+        val existingGeneratorMap: Map<Long, Map<String, ColumnGenerator>> = tableConfigs.associate { tc ->
+            tc.id to columnGeneratorRepository.findByTableConfigurationId(tc.id).associateBy { it.columnName }
+        }
+
         var count = 0
         for (rec in recommendations) {
             val tableConfig = tableConfigMap[rec.tableName] ?: continue
 
             if (rec.recommendedPresetId != null) {
                 // Apply linked preset from a custom sensitivity rule
-                val preset = generatorPresetRepository.findById(rec.recommendedPresetId).orElse(null)
+                val preset = presetMap[rec.recommendedPresetId]
                 if (preset == null) {
                     logger.warn(
                         "Cannot apply recommendation for ${rec.tableName}.${rec.columnName}: " +
@@ -97,8 +108,7 @@ class PrivacyHubService(
                     )
                     continue
                 }
-                val existingGenerator = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
-                    .find { it.columnName == rec.columnName }
+                val existingGenerator = existingGeneratorMap[tableConfig.id]?.get(rec.columnName)
                 if (existingGenerator != null) {
                     existingGenerator.presetId = preset.id
                     existingGenerator.generatorType = preset.generatorType

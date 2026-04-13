@@ -67,6 +67,7 @@ class SensitivityScanLogServiceTest {
             .thenReturn(null)
         whenever(columnSensitivityRepository.save(any<ColumnSensitivity>()))
             .thenAnswer { it.arguments[0] as ColumnSensitivity }
+        whenever(customSensitivityRuleRepository.findByIsActiveTrue()).thenReturn(emptyList())
 
         sensitivityScanService.scanWorkspace(1L)
 
@@ -122,6 +123,7 @@ class SensitivityScanLogServiceTest {
             .thenReturn(null)
         whenever(columnSensitivityRepository.save(any<ColumnSensitivity>()))
             .thenAnswer { it.arguments[0] as ColumnSensitivity }
+        whenever(customSensitivityRuleRepository.findByIsActiveTrue()).thenReturn(emptyList())
 
         sensitivityScanService.scanWorkspace(1L)
 

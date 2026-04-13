@@ -81,6 +81,11 @@ class CustomSensitivityRuleService(
         val workspaceSchema = try {
             mapper.readValue<SchemaSnapshotSchema>(snapshot.schemaJson)
         } catch (e: Exception) {
+            logger.warn(
+                "Failed to parse schema snapshot JSON for workspaceId={}. Returning empty preview results.",
+                request.workspaceId,
+                e
+            )
             return emptyList()
         }
 
@@ -112,10 +117,15 @@ class CustomSensitivityRuleService(
                 MatcherType.CONTAINS -> col.contains(value)
                 MatcherType.STARTS_WITH -> col.startsWith(value)
                 MatcherType.ENDS_WITH -> col.endsWith(value)
-                MatcherType.REGEX -> Regex(
-                    matcher.value,
-                    if (matcher.caseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)
-                ).containsMatchIn(columnName)
+                MatcherType.REGEX -> try {
+                    Regex(
+                        matcher.value,
+                        if (matcher.caseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)
+                    ).containsMatchIn(columnName)
+                } catch (e: IllegalArgumentException) {
+                    logger.warn("Invalid regex pattern '${matcher.value}' in custom rule matcher: ${e.message}")
+                    false
+                }
             }
         }
     }
@@ -157,6 +167,7 @@ class CustomSensitivityRuleService(
     )
 
     private fun CustomSensitivityRule.toResponse(): CustomSensitivityRuleResponse {
+        val ruleId = requireNotNull(id) { "Cannot map CustomSensitivityRule '$name' to response without a persisted id" }
         val matchers: List<CustomRuleMatcher> = try {
             mapper.readValue(matchersJson)
         } catch (e: Exception) {
@@ -164,7 +175,7 @@ class CustomSensitivityRuleService(
             emptyList()
         }
         return CustomSensitivityRuleResponse(
-            id = id ?: 0L,
+            id = ruleId,
             name = name,
             description = description,
             dataTypeFilter = dataTypeFilter,

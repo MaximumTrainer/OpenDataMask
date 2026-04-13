@@ -13,13 +13,11 @@ import type { GeneratorPresetResponse } from '@/api/presets'
 import type {
   CustomSensitivityRule,
   CustomSensitivityRuleRequest,
-  CustomRuleMatcher,
   CustomRulePreviewResult
 } from '@/types'
 import { GenericDataType, MatcherType } from '@/types'
 
 const workspaceStore = useWorkspaceStore()
-const workspaces = ref(workspaceStore.workspaces)
 
 const rules = ref<CustomSensitivityRule[]>([])
 const loading = ref(false)
@@ -48,11 +46,10 @@ const previewing = ref(false)
 const previewError = ref<string | null>(null)
 
 // ── Presets ────────────────────────────────────────────────────────────────
-const systemPresets = ref<GeneratorPresetResponse[]>([])
+const allPresets = ref<GeneratorPresetResponse[]>([])
 
 onMounted(async () => {
-  await Promise.all([fetchRules(), fetchPresets(), workspaceStore.fetchWorkspaces()])
-  workspaces.value = workspaceStore.workspaces
+  await Promise.all([fetchRules(), fetchSystemPresets(), workspaceStore.fetchWorkspaces()])
 })
 
 async function fetchRules() {
@@ -67,12 +64,31 @@ async function fetchRules() {
   }
 }
 
-async function fetchPresets() {
+async function fetchSystemPresets() {
   try {
-    systemPresets.value = await listSystemPresets()
+    allPresets.value = await listSystemPresets()
   } catch {
     // non-critical
   }
+}
+
+async function loadWorkspacePresets(workspaceId: number) {
+  try {
+    const wsPresets = await listWorkspacePresets(workspaceId)
+    // Merge with system presets, deduplicating by id
+    const systemIds = new Set(allPresets.value.filter((p) => p.isSystem).map((p) => p.id))
+    const systemPresets = allPresets.value.filter((p) => p.isSystem)
+    allPresets.value = [...systemPresets, ...wsPresets.filter((p) => !systemIds.has(p.id))]
+  } catch {
+    // non-critical
+  }
+}
+
+function resetPreviewState() {
+  previewWorkspaceId.value = null
+  previewResults.value = []
+  previewing.value = false
+  previewError.value = null
 }
 
 function openCreateDrawer() {
@@ -85,8 +101,7 @@ function openCreateDrawer() {
     linkedPresetId: null,
     isActive: true
   }
-  previewResults.value = []
-  previewError.value = null
+  resetPreviewState()
   saveError.value = null
   drawerOpen.value = true
 }
@@ -101,8 +116,7 @@ function openEditDrawer(rule: CustomSensitivityRule) {
     linkedPresetId: rule.linkedPresetId,
     isActive: rule.isActive
   }
-  previewResults.value = []
-  previewError.value = null
+  resetPreviewState()
   saveError.value = null
   drawerOpen.value = true
 }
@@ -149,6 +163,12 @@ async function deleteRule(rule: CustomSensitivityRule) {
   }
 }
 
+async function onPreviewWorkspaceChange(workspaceId: number | null) {
+  previewResults.value = []
+  previewError.value = null
+  if (workspaceId) await loadWorkspacePresets(workspaceId)
+}
+
 async function runPreview() {
   if (!previewWorkspaceId.value) {
     previewError.value = 'Please select a workspace to preview against.'
@@ -172,7 +192,7 @@ async function runPreview() {
 
 function presetName(presetId: number | null): string {
   if (!presetId) return '—'
-  return systemPresets.value.find((p) => p.id === presetId)?.name ?? `#${presetId}`
+  return allPresets.value.find((p) => p.id === presetId)?.name ?? `#${presetId}`
 }
 </script>
 
@@ -322,7 +342,7 @@ function presetName(presetId: number | null): string {
             <label class="form-label">Linked Generator Preset</label>
             <select v-model="form.linkedPresetId" class="form-input">
               <option :value="null">— None —</option>
-              <option v-for="preset in systemPresets" :key="preset.id" :value="preset.id">
+              <option v-for="preset in allPresets" :key="preset.id" :value="preset.id">
                 {{ preset.name }} ({{ preset.generatorType }})
               </option>
             </select>
@@ -347,7 +367,11 @@ function presetName(presetId: number | null): string {
               Select a workspace to see which columns this rule would match (without saving).
             </p>
             <div class="flex gap-2 mb-3">
-              <select v-model="previewWorkspaceId" class="form-input flex-1">
+              <select
+                v-model="previewWorkspaceId"
+                class="form-input flex-1"
+                @change="onPreviewWorkspaceChange(previewWorkspaceId)"
+              >
                 <option :value="null">— Select workspace —</option>
                 <option
                   v-for="ws in workspaceStore.workspaces"
