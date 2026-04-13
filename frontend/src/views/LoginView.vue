@@ -12,6 +12,9 @@ const password = ref('')
 const error = ref('')
 const loading = ref(false)
 
+const samlEnabled = import.meta.env.VITE_SAML_ENABLED === 'true'
+const samlAuthEndpoint = '/saml2/authenticate/default'
+
 async function handleLogin() {
   if (!username.value || !password.value) {
     error.value = 'Please enter your username and password.'
@@ -88,6 +91,16 @@ function extractMessage(e: unknown): string {
         Don't have an account?
         <RouterLink to="/register">Create one</RouterLink>
       </div>
+
+      <div v-if="samlEnabled" class="sso-divider">
+        <span>or</span>
+      </div>
+
+      <div v-if="samlEnabled" class="sso-section">
+        <a :href="samlAuthEndpoint" class="btn btn-sso btn-full">
+          🔑 Sign in with SSO
+        </a>
+      </div>
     </div>
   </div>
 </template>
@@ -122,4 +135,35 @@ function extractMessage(e: unknown): string {
   color: #6b7280;
 }
 .auth-footer a { color: #3b82f6; font-weight: 500; }
+.sso-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.25rem 0 1rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+.sso-divider::before,
+.sso-divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid #e5e7eb;
+}
+.sso-divider span { margin: 0 0.75rem; }
+.btn-sso {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #374151;
+  font-size: 1rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+.btn-sso:hover { background: #f9fafb; border-color: #9ca3af; }
 </style>

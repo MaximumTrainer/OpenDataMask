@@ -1,34 +1,76 @@
 import axios from 'axios'
 import router from '@/router'
 
+const SAML_AUTH_ENDPOINT = '/saml2/authenticate/default'
+
+// HTTP methods that are safe (no state change) and do not need a CSRF token.
+const CSRF_EXEMPT_METHODS = ['get', 'head', 'options']
+
+/**
+ * Reads the XSRF-TOKEN cookie that Spring Security writes when SAML session-based
+ * authentication is active. The value must be sent back in the X-XSRF-TOKEN header
+ * for every mutating (non-GET) request to satisfy CSRF protection.
+ */
+function getCsrfToken(): string | undefined {
+  const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/)
+  return match ? decodeURIComponent(match[1]) : undefined
+}
+
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
   headers: {
     'Content-Type': 'application/json'
   },
+  withCredentials: true, // Required so session cookies are sent with every request
   timeout: 30_000
 })
 
-// Attach JWT token to every request
+// Attach JWT token (when present) and CSRF token to every request
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  // Attach CSRF token for mutating requests when a SAML session is active
+  const csrfToken = getCsrfToken()
+  if (csrfToken && config.method && !CSRF_EXEMPT_METHODS.includes(config.method.toLowerCase())) {
+    config.headers['X-XSRF-TOKEN'] = csrfToken
+  }
+
   return config
 })
 
-// Handle 401 globally – redirect to login
+// Handle 401 globally – clear local credentials and redirect to SAML IdP.
+// Auth endpoints (/auth/login, /auth/register, /auth/me) are exempted so that:
+//   - Login/register can surface "invalid credentials" errors to the form.
+//   - initializeFromSession() can silently detect "no active session" without
+//     triggering an unwanted redirect that would break public routes like /register.
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      router.push('/login')
+      const url: string = error.config?.url ?? ''
+      const isAuthEndpoint =
+        url.includes('/auth/login') ||
+        url.includes('/auth/register') ||
+        url.includes('/auth/me')
+
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+
+        const samlEnabled = import.meta.env.VITE_SAML_ENABLED === 'true'
+        if (samlEnabled) {
+          window.location.href = SAML_AUTH_ENDPOINT
+        } else {
+          router.push('/login')
+        }
+      }
     }
     return Promise.reject(error)
   }
 )
 
 export default apiClient
+

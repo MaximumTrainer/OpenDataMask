@@ -105,22 +105,46 @@ class AuthControllerTest {
     }
 
     @Test
-    fun `POST api-auth-register returns 400 for duplicate username`() {
-        val username = "dupctrl_${System.nanoTime()}"
+    fun `GET api-auth-me returns 200 with username for authenticated user`() {
+        val username = "mectrl_${System.nanoTime()}"
+        val email = "mectrl_${System.nanoTime()}@example.com"
+        val password = "password123"
 
-        val request1 = RegisterRequest(username = username, email = "first_${System.nanoTime()}@example.com", password = "password123")
+        val registerRequest = RegisterRequest(username = username, email = email, password = password)
         mockMvc.post("/api/auth/register") {
             contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(request1)
+            content = objectMapper.writeValueAsString(registerRequest)
         }.andExpect { status { isCreated() } }
 
-        val request2 = RegisterRequest(username = username, email = "second_${System.nanoTime()}@example.com", password = "password456")
-        mockMvc.post("/api/auth/register") {
+        val loginResult = mockMvc.post("/api/auth/login") {
             contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(request2)
+            content = objectMapper.writeValueAsString(LoginRequest(username = username, password = password))
         }.andExpect {
-            status { isBadRequest() }
-        }
+            status { isOk() }
+            jsonPath("$.token") { exists() }
+        }.andReturn()
+
+        val token = objectMapper.readTree(loginResult.response.contentAsString)["token"].asText()
+
+        mockMvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/me")
+                .header("Authorization", "Bearer $token")
+        ).andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk
+        ).andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.username").value(username)
+        ).andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.authenticated").value("true")
+        )
+    }
+
+    @Test
+    fun `GET api-auth-me returns 401 for unauthenticated request`() {
+        mockMvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/me")
+        ).andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isUnauthorized
+        )
     }
 }
 

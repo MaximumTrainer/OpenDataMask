@@ -18,12 +18,19 @@ java {
 
 repositories {
     mavenCentral()
+    // Required for OpenSAML transitive dependencies of spring-security-saml2-service-provider
+    // maven { url = uri("https://build.shibboleth.net/nexus/content/repositories/releases/") }
 }
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    // SAML2 SSO: Add the following dependency and the Shibboleth Maven repository
+    // (https://build.shibboleth.net/nexus/content/repositories/releases/) to enable
+    // SAML-based authentication. The SamlSecurityConfig bean is @ConditionalOnProperty
+    // and only activates when spring.security.saml2.relyingparty.registration.* is configured.
+    // implementation("org.springframework.security:spring-security-saml2-service-provider")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")

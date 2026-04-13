@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/auth'
 import NavBar from '@/components/NavBar.vue'
 
 const auth = useAuthStore()
-onMounted(() => auth.initializeFromStorage())
+onMounted(() => auth.initializeFromSession())
 </script>
 
 <template>

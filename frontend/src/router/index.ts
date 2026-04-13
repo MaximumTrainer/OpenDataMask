@@ -11,6 +11,9 @@ import JobsView from '@/views/JobsView.vue'
 import ActionsView from '@/views/ActionsView.vue'
 import SensitivityRulesView from '@/views/SensitivityRulesView.vue'
 
+const SAML_AUTH_ENDPOINT = '/saml2/authenticate/default'
+const samlEnabled = import.meta.env.VITE_SAML_ENABLED === 'true'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -82,6 +85,12 @@ router.beforeEach((to) => {
   const auth = useAuthStore()
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    // When SAML SSO is enabled, redirect the browser directly to the IdP instead
+    // of showing the local login form.
+    if (samlEnabled) {
+      window.location.href = SAML_AUTH_ENDPOINT
+      return false
+    }
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
@@ -93,3 +102,4 @@ router.beforeEach((to) => {
 })
 
 export default router
+

@@ -16,6 +16,15 @@ spring:
   security:
     user:
       name: admin
+  # SAML2 SSO is configured via environment variables at deployment time.
+  # Set the variables below (and uncomment spring-security-saml2-service-provider
+  # in build.gradle.kts) to activate the SamlSecurityConfig filter chain.
+  # Required env vars:
+  #   SAML_IDP_METADATA_URI  – IdP metadata URL (activates the SAML chain when set)
+  #   SAML_SP_ENTITY_ID      – SP entity ID (default: https://opendatamask.example.com)
+  #   SAML_SP_PRIVATE_KEY    – path to SP signing key PEM
+  #   SAML_SP_CERTIFICATE    – path to SP certificate PEM
+  #   SAML_IDP_SSO_URL       – IdP SSO redirect URL
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017}
@@ -33,6 +42,8 @@ opendatamask:
     expiration: ${JWT_EXPIRATION:86400000}
   encryption:
     key: ${ENCRYPTION_KEY:}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 management:
   endpoints:
@@ -42,3 +53,4 @@ management:
   endpoint:
     health:
       show-details: never
+
