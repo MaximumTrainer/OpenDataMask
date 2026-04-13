@@ -349,3 +349,60 @@ export interface WorkspaceConfigDto {
   tables: WorkspaceTableConfigExport[]
   actions: WorkspaceActionExport[]
 }
+
+// ── Custom Sensitivity Rules ───────────────────────────────────────────────
+
+export enum GenericDataType {
+  TEXT = 'TEXT',
+  NUMERIC = 'NUMERIC',
+  DATE = 'DATE',
+  BOOLEAN = 'BOOLEAN',
+  ANY = 'ANY'
+}
+
+export enum MatcherType {
+  CONTAINS = 'CONTAINS',
+  STARTS_WITH = 'STARTS_WITH',
+  ENDS_WITH = 'ENDS_WITH',
+  REGEX = 'REGEX'
+}
+
+export interface CustomRuleMatcher {
+  matcherType: MatcherType
+  value: string
+  caseSensitive: boolean
+}
+
+export interface CustomSensitivityRule {
+  id: number
+  name: string
+  description: string | null
+  dataTypeFilter: GenericDataType
+  matchers: CustomRuleMatcher[]
+  linkedPresetId: number | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CustomSensitivityRuleRequest {
+  name: string
+  description?: string | null
+  dataTypeFilter: GenericDataType
+  matchers: CustomRuleMatcher[]
+  linkedPresetId?: number | null
+  isActive: boolean
+}
+
+export interface CustomRulePreviewRequest {
+  workspaceId: number
+  dataTypeFilter: GenericDataType
+  matchers: CustomRuleMatcher[]
+}
+
+export interface CustomRulePreviewResult {
+  tableName: string
+  columnName: string
+  columnType: string
+}
+

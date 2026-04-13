@@ -20,5 +20,6 @@ data class PrivacyRecommendation(
     val columnName: String,
     val sensitivityType: String,
     val confidenceLevel: String,
-    val recommendedGenerator: String
+    val recommendedGenerator: String,
+    val recommendedPresetId: Long? = null
 )

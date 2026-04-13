@@ -25,6 +25,8 @@ class SensitivityScanLogServiceTest {
     @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
     @Mock private lateinit var connectorFactory: ConnectorFactory
     @Mock private lateinit var EncryptionPort: EncryptionPort
+    @Mock private lateinit var customSensitivityRuleRepository: CustomSensitivityRuleRepository
+    @Mock private lateinit var customSensitivityRuleService: CustomSensitivityRuleService
 
     @InjectMocks
     private lateinit var sensitivityScanService: SensitivityScanService
@@ -65,6 +67,7 @@ class SensitivityScanLogServiceTest {
             .thenReturn(null)
         whenever(columnSensitivityRepository.save(any<ColumnSensitivity>()))
             .thenAnswer { it.arguments[0] as ColumnSensitivity }
+        whenever(customSensitivityRuleRepository.findByIsActiveTrue()).thenReturn(emptyList())
 
         sensitivityScanService.scanWorkspace(1L)
 
@@ -120,6 +123,7 @@ class SensitivityScanLogServiceTest {
             .thenReturn(null)
         whenever(columnSensitivityRepository.save(any<ColumnSensitivity>()))
             .thenAnswer { it.arguments[0] as ColumnSensitivity }
+        whenever(customSensitivityRuleRepository.findByIsActiveTrue()).thenReturn(emptyList())
 
         sensitivityScanService.scanWorkspace(1L)
 

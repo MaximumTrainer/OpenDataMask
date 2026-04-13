@@ -36,6 +36,14 @@ class ColumnSensitivity(
     @Enumerated(EnumType.STRING)
     var recommendedGeneratorType: GeneratorType? = null,
 
+    /** Set when this column was matched by a custom sensitivity rule (stores the rule's name). */
+    @Column(name = "custom_sensitivity_label")
+    var customSensitivityLabel: String? = null,
+
+    /** Set when the matched custom rule has a linked Generator Preset. */
+    @Column(name = "recommended_preset_id")
+    var recommendedPresetId: Long? = null,
+
     @Column(nullable = false)
     val detectedAt: Instant = Instant.now()
 )

@@ -9,15 +9,19 @@ import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.domain.port.output.ColumnGeneratorPort
 import com.opendatamask.domain.port.output.ColumnSensitivityPort
+import com.opendatamask.domain.port.output.GeneratorPresetPort
 import com.opendatamask.domain.port.output.TableConfigurationPort
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class PrivacyHubService(
     private val columnSensitivityRepository: ColumnSensitivityPort,
     private val columnGeneratorRepository: ColumnGeneratorPort,
-    private val tableConfigurationRepository: TableConfigurationPort
+    private val tableConfigurationRepository: TableConfigurationPort,
+    private val generatorPresetRepository: GeneratorPresetPort
 ) : PrivacyHubUseCase {
+    private val logger = LoggerFactory.getLogger(PrivacyHubService::class.java)
 
     override fun getSummary(workspaceId: Long): PrivacyHubSummary {
         val sensitivities = columnSensitivityRepository.findByWorkspaceId(workspaceId)
@@ -66,9 +70,10 @@ class PrivacyHubService(
                 PrivacyRecommendation(
                     tableName = col.tableName,
                     columnName = col.columnName,
-                    sensitivityType = col.sensitivityType.name,
+                    sensitivityType = col.customSensitivityLabel ?: col.sensitivityType.name,
                     confidenceLevel = col.confidenceLevel.name,
-                    recommendedGenerator = col.recommendedGeneratorType?.name ?: ""
+                    recommendedGenerator = col.recommendedGeneratorType?.name ?: "",
+                    recommendedPresetId = col.recommendedPresetId
                 )
             }
     }
@@ -78,23 +83,65 @@ class PrivacyHubService(
         val tableConfigs = tableConfigurationRepository.findByWorkspaceId(workspaceId)
         val tableConfigMap = tableConfigs.associateBy { it.tableName }
 
+        // Preload all referenced presets into a map to avoid N+1 queries
+        val presetIds = recommendations.mapNotNull { it.recommendedPresetId }.toSet()
+        val presetMap = presetIds.associateWith { id ->
+            generatorPresetRepository.findById(id).orElse(null)
+        }
+
+        // Preload existing column generators per table config to avoid N+1 queries
+        val existingGeneratorMap: Map<Long, Map<String, ColumnGenerator>> = tableConfigs.associate { tc ->
+            tc.id to columnGeneratorRepository.findByTableConfigurationId(tc.id).associateBy { it.columnName }
+        }
+
         var count = 0
         for (rec in recommendations) {
             val tableConfig = tableConfigMap[rec.tableName] ?: continue
-            if (rec.recommendedGenerator.isBlank()) continue
-            val generatorType = try {
-                GeneratorType.valueOf(rec.recommendedGenerator)
-            } catch (e: IllegalArgumentException) {
-                continue
-            }
-            columnGeneratorRepository.save(
-                ColumnGenerator(
-                    tableConfigurationId = tableConfig.id,
-                    columnName = rec.columnName,
-                    generatorType = generatorType
+
+            if (rec.recommendedPresetId != null) {
+                // Apply linked preset from a custom sensitivity rule
+                val preset = presetMap[rec.recommendedPresetId]
+                if (preset == null) {
+                    logger.warn(
+                        "Cannot apply recommendation for ${rec.tableName}.${rec.columnName}: " +
+                            "linked preset id=${rec.recommendedPresetId} not found"
+                    )
+                    continue
+                }
+                val existingGenerator = existingGeneratorMap[tableConfig.id]?.get(rec.columnName)
+                if (existingGenerator != null) {
+                    existingGenerator.presetId = preset.id
+                    existingGenerator.generatorType = preset.generatorType
+                    existingGenerator.generatorParams = preset.generatorParams
+                    columnGeneratorRepository.save(existingGenerator)
+                } else {
+                    columnGeneratorRepository.save(
+                        ColumnGenerator(
+                            tableConfigurationId = tableConfig.id,
+                            columnName = rec.columnName,
+                            generatorType = preset.generatorType,
+                            generatorParams = preset.generatorParams,
+                            presetId = preset.id
+                        )
+                    )
+                }
+                count++
+            } else {
+                if (rec.recommendedGenerator.isBlank()) continue
+                val generatorType = try {
+                    GeneratorType.valueOf(rec.recommendedGenerator)
+                } catch (e: IllegalArgumentException) {
+                    continue
+                }
+                columnGeneratorRepository.save(
+                    ColumnGenerator(
+                        tableConfigurationId = tableConfig.id,
+                        columnName = rec.columnName,
+                        generatorType = generatorType
+                    )
                 )
-            )
-            count++
+                count++
+            }
         }
         return count
     }
@@ -118,3 +165,4 @@ class PrivacyHubService(
             else -> "NOT_SENSITIVE"
         }
 }
+
