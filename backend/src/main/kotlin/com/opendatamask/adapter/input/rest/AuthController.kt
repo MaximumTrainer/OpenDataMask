@@ -27,9 +27,9 @@ class AuthController(
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request))
     }
 
-    // Returns the currently authenticated user's details.
-    // Used by the frontend to verify an active session (JWT or SAML).
-    // Returns 200 with username when authenticated, or 401 if no valid session exists.
+    // The /api/auth/** path is configured as permitAll() in the API security filter chain,
+    // which means unauthenticated requests can reach this endpoint without being blocked.
+    // In that case @AuthenticationPrincipal resolves to null and we return 401 explicitly.
     @GetMapping("/me")
     fun me(@AuthenticationPrincipal principal: UserDetails?): ResponseEntity<Map<String, String>> {
         if (principal == null) {

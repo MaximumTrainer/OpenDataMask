@@ -23,8 +23,9 @@ export async function logout(): Promise<void> {
  */
 export async function me(): Promise<User> {
   const { data } = await apiClient.get<{ username: string; authenticated: string }>('/auth/me')
-  // The /api/auth/me endpoint returns a minimal representation; we reconstruct a
-  // partial User so callers can populate the store without a full profile endpoint.
+  // The /api/auth/me endpoint returns a minimal session representation.
+  // id=0 is used as a sentinel value because the session-check flow does not
+  // require the numeric user ID – the important fields are username and role.
   return {
     id: 0,
     username: data.username,

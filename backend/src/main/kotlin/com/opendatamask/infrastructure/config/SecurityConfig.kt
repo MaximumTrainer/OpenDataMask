@@ -75,6 +75,9 @@ class SecurityConfig(
     // Protects against CSRF using a cookie-based token repository so the SPA can read the
     // XSRF-TOKEN cookie and send it back via X-XSRF-TOKEN on mutating requests.
     // When SamlSecurityConfig is active (order=2) it intercepts browser routes before this chain.
+    // The /saml2/**, /login/**, /error matchers here are the fallback for when SAML is NOT
+    // active; they mirror the SamlSecurityConfig matchers intentionally so those paths are
+    // always accessible regardless of whether the SAML SP library is on the classpath.
     @Bean
     @Order(3)
     fun webSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {

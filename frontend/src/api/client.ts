@@ -3,6 +3,9 @@ import router from '@/router'
 
 const SAML_AUTH_ENDPOINT = '/saml2/authenticate/default'
 
+// HTTP methods that are safe (no state change) and do not need a CSRF token.
+const CSRF_EXEMPT_METHODS = ['get', 'head', 'options']
+
 /**
  * Reads the XSRF-TOKEN cookie that Spring Security writes when SAML session-based
  * authentication is active. The value must be sent back in the X-XSRF-TOKEN header
@@ -31,7 +34,7 @@ apiClient.interceptors.request.use((config) => {
 
   // Attach CSRF token for mutating requests when a SAML session is active
   const csrfToken = getCsrfToken()
-  if (csrfToken && config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+  if (csrfToken && config.method && !CSRF_EXEMPT_METHODS.includes(config.method.toLowerCase())) {
     config.headers['X-XSRF-TOKEN'] = csrfToken
   }
 
