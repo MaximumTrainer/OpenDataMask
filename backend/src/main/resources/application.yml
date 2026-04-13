@@ -16,6 +16,20 @@ spring:
   security:
     user:
       name: admin
+    saml2:
+      relyingparty:
+        registration:
+          default:
+            entity-id: ${SAML_SP_ENTITY_ID:https://opendatamask.example.com}
+            signing:
+              credentials:
+                - private-key-location: ${SAML_SP_PRIVATE_KEY:classpath:saml/sp-private-key.pem}
+                  certificate-location: ${SAML_SP_CERTIFICATE:classpath:saml/sp-certificate.pem}
+            assertingparty:
+              metadata-uri: ${SAML_IDP_METADATA_URI:}
+              singlesignon:
+                url: ${SAML_IDP_SSO_URL:}
+                sign-request: true
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017}
@@ -33,6 +47,8 @@ opendatamask:
     expiration: ${JWT_EXPIRATION:86400000}
   encryption:
     key: ${ENCRYPTION_KEY:}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 management:
   endpoints:
@@ -42,3 +58,4 @@ management:
   endpoint:
     health:
       show-details: never
+

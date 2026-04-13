@@ -7,7 +7,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null)
   const user = ref<User | null>(null)
 
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const isAuthenticated = computed(() => !!user.value)
 
   function initializeFromStorage(): void {
     const storedToken = localStorage.getItem('token')
@@ -19,6 +19,26 @@ export const useAuthStore = defineStore('auth', () => {
       } catch {
         clearStorage()
       }
+    }
+  }
+
+  /**
+   * Checks whether the current browser session is authenticated by calling
+   * `/api/auth/me`. This covers both JWT-based and SAML session-based logins.
+   * On success the user is marked as authenticated; on failure local state is cleared.
+   */
+  async function initializeFromSession(): Promise<void> {
+    // Seed local state from storage first so JWT sessions work without a round-trip
+    initializeFromStorage()
+    if (isAuthenticated.value) return
+
+    try {
+      const sessionUser = await authApi.me()
+      user.value = sessionUser
+    } catch {
+      clearStorage()
+      user.value = null
+      token.value = null
     }
   }
 
@@ -50,5 +70,15 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('user')
   }
 
-  return { token, user, isAuthenticated, initializeFromStorage, login, logout, register }
+  return {
+    token,
+    user,
+    isAuthenticated,
+    initializeFromStorage,
+    initializeFromSession,
+    login,
+    logout,
+    register
+  }
 })
+

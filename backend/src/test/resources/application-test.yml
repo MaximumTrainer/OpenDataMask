@@ -25,3 +25,6 @@ opendatamask:
     expiration: 86400000
   encryption:
     key: 0123456789abcdef
+  cors:
+    allowed-origins: http://localhost:5173
+
