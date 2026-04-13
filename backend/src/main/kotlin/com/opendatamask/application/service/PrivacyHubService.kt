@@ -11,6 +11,7 @@ import com.opendatamask.domain.port.output.ColumnGeneratorPort
 import com.opendatamask.domain.port.output.ColumnSensitivityPort
 import com.opendatamask.domain.port.output.GeneratorPresetPort
 import com.opendatamask.domain.port.output.TableConfigurationPort
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
@@ -20,6 +21,7 @@ class PrivacyHubService(
     private val tableConfigurationRepository: TableConfigurationPort,
     private val generatorPresetRepository: GeneratorPresetPort
 ) : PrivacyHubUseCase {
+    private val logger = LoggerFactory.getLogger(PrivacyHubService::class.java)
 
     override fun getSummary(workspaceId: Long): PrivacyHubSummary {
         val sensitivities = columnSensitivityRepository.findByWorkspaceId(workspaceId)
@@ -87,7 +89,14 @@ class PrivacyHubService(
 
             if (rec.recommendedPresetId != null) {
                 // Apply linked preset from a custom sensitivity rule
-                val preset = generatorPresetRepository.findById(rec.recommendedPresetId).orElse(null) ?: continue
+                val preset = generatorPresetRepository.findById(rec.recommendedPresetId).orElse(null)
+                if (preset == null) {
+                    logger.warn(
+                        "Cannot apply recommendation for ${rec.tableName}.${rec.columnName}: " +
+                            "linked preset id=${rec.recommendedPresetId} not found"
+                    )
+                    continue
+                }
                 val existingGenerator = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
                     .find { it.columnName == rec.columnName }
                 if (existingGenerator != null) {

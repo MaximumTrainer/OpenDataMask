@@ -14,6 +14,7 @@ import com.opendatamask.domain.port.input.dto.CustomSensitivityRuleRequest
 import com.opendatamask.domain.port.input.dto.CustomSensitivityRuleResponse
 import com.opendatamask.domain.port.output.CustomSensitivityRulePort
 import com.opendatamask.domain.port.output.SchemaSnapshotPort
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
 
@@ -23,6 +24,7 @@ class CustomSensitivityRuleService(
     private val schemaSnapshotRepository: SchemaSnapshotPort
 ) : CustomSensitivityRuleUseCase {
 
+    private val logger = LoggerFactory.getLogger(CustomSensitivityRuleService::class.java)
     private val mapper = jacksonObjectMapper()
 
     override fun listRules(): List<CustomSensitivityRuleResponse> =
@@ -158,6 +160,7 @@ class CustomSensitivityRuleService(
         val matchers: List<CustomRuleMatcher> = try {
             mapper.readValue(matchersJson)
         } catch (e: Exception) {
+            logger.warn("Failed to parse matchers JSON for rule '${name}' (id=${id}): ${e.message}")
             emptyList()
         }
         return CustomSensitivityRuleResponse(

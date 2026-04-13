@@ -13,6 +13,7 @@ import com.opendatamask.domain.port.output.SensitivityScanLogPort
 import com.opendatamask.domain.port.output.SensitivityScanLogEntryPort
 import com.opendatamask.domain.port.output.WorkspacePort
 import com.opendatamask.domain.port.output.DataConnectionPort
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -30,6 +31,7 @@ class SensitivityScanService(
     private val customSensitivityRuleRepository: CustomSensitivityRulePort,
     private val customSensitivityRuleService: CustomSensitivityRuleService
 ) : SensitivityScanUseCase {
+    private val logger = LoggerFactory.getLogger(SensitivityScanService::class.java)
     private val builtInRules: List<SensitivityRule> = buildRules()
     private val mapper = jacksonObjectMapper()
 
@@ -61,6 +63,7 @@ class SensitivityScanService(
                     val matchers: List<CustomRuleMatcher> = try {
                         mapper.readValue(rule.matchersJson)
                     } catch (e: Exception) {
+                        logger.warn("Failed to parse matchers JSON for custom rule '${rule.name}' (id=${rule.id}): ${e.message}")
                         emptyList()
                     }
                     rule to matchers
@@ -110,6 +113,7 @@ class SensitivityScanService(
                     } else {
                         val customMatch = detectCustomRuleSensitivity(column, columnInfo.type, activeCustomRules)
                         if (customMatch != null) {
+                            val (matchedRule, _) = customMatch
                             log.sensitiveColumnsFound++
                             val existing = columnSensitivityRepository
                                 .findByWorkspaceIdAndTableNameAndColumnName(workspaceId, table, column)
@@ -122,15 +126,15 @@ class SensitivityScanService(
                             entity.sensitivityType = SensitivityType.UNKNOWN
                             entity.confidenceLevel = ConfidenceLevel.HIGH
                             entity.recommendedGeneratorType = null
-                            entity.customSensitivityLabel = customMatch.first.name
-                            entity.recommendedPresetId = customMatch.first.linkedPresetId
+                            entity.customSensitivityLabel = matchedRule.name
+                            entity.recommendedPresetId = matchedRule.linkedPresetId
                             columnSensitivityRepository.save(entity)
                             sensitivityScanLogEntryRepository.save(
                                 SensitivityScanLogEntry(
                                     scanLogId = log.id!!,
                                     tableName = table,
                                     columnName = column,
-                                    detectedType = customMatch.first.name,
+                                    detectedType = matchedRule.name,
                                     confidenceLevel = ConfidenceLevel.HIGH.name,
                                     recommendedGenerator = null,
                                     scannedAt = LocalDateTime.now()
