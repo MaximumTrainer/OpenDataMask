@@ -41,22 +41,31 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// Handle 401 globally – clear local credentials and redirect to SAML IdP
+// Handle 401 globally – clear local credentials and redirect to SAML IdP.
+// Auth endpoints (/auth/login, /auth/register, /auth/me) are exempted so that:
+//   - Login/register can surface "invalid credentials" errors to the form.
+//   - initializeFromSession() can silently detect "no active session" without
+//     triggering an unwanted redirect that would break public routes like /register.
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      const url: string = error.config?.url ?? ''
+      const isAuthEndpoint =
+        url.includes('/auth/login') ||
+        url.includes('/auth/register') ||
+        url.includes('/auth/me')
 
-      // If a SAML IdP is configured (detected by the presence of the
-      // SAML auth endpoint path in our app), redirect to the IdP.
-      // Otherwise fall back to the local login page.
-      const samlEnabled = import.meta.env.VITE_SAML_ENABLED === 'true'
-      if (samlEnabled) {
-        window.location.href = SAML_AUTH_ENDPOINT
-      } else {
-        router.push('/login')
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+
+        const samlEnabled = import.meta.env.VITE_SAML_ENABLED === 'true'
+        if (samlEnabled) {
+          window.location.href = SAML_AUTH_ENDPOINT
+        } else {
+          router.push('/login')
+        }
       }
     }
     return Promise.reject(error)

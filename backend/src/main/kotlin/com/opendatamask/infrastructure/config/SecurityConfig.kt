@@ -46,9 +46,11 @@ class SecurityConfig(
         config.authenticationManager
 
     // API security filter chain (highest priority, order=1): handles /api/** endpoints.
-    // Uses JWT Bearer tokens (stateless). Returns HTTP 401 for unauthenticated requests
-    // instead of redirecting to an IdP. CSRF is disabled since these stateless endpoints
-    // rely on Bearer tokens, not session cookies.
+    // Uses JWT Bearer tokens. Returns HTTP 401 for unauthenticated requests instead of
+    // redirecting to an IdP. CSRF is disabled since JWT-only requests use Bearer tokens.
+    // Session policy is NEVER: does not create new sessions but will read an existing one
+    // (e.g. a SAML session initiated by the browser-based flow), allowing SAML-authenticated
+    // users to call API endpoints using their session cookie.
     @Bean
     @Order(1)
     fun apiSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -56,7 +58,7 @@ class SecurityConfig(
             .securityMatcher("/api/**")
             .cors { it.configurationSource(corsConfig.corsConfigurationSource()) }
             .csrf { it.disable() }
-            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.NEVER) }
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers("/api/auth/**").permitAll()

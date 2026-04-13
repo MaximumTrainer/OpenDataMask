@@ -16,20 +16,15 @@ spring:
   security:
     user:
       name: admin
-    saml2:
-      relyingparty:
-        registration:
-          default:
-            entity-id: ${SAML_SP_ENTITY_ID:https://opendatamask.example.com}
-            signing:
-              credentials:
-                - private-key-location: ${SAML_SP_PRIVATE_KEY:classpath:saml/sp-private-key.pem}
-                  certificate-location: ${SAML_SP_CERTIFICATE:classpath:saml/sp-certificate.pem}
-            assertingparty:
-              metadata-uri: ${SAML_IDP_METADATA_URI:}
-              singlesignon:
-                url: ${SAML_IDP_SSO_URL:}
-                sign-request: true
+  # SAML2 SSO is configured via environment variables at deployment time.
+  # Set the variables below (and uncomment spring-security-saml2-service-provider
+  # in build.gradle.kts) to activate the SamlSecurityConfig filter chain.
+  # Required env vars:
+  #   SAML_IDP_METADATA_URI  – IdP metadata URL (activates the SAML chain when set)
+  #   SAML_SP_ENTITY_ID      – SP entity ID (default: https://opendatamask.example.com)
+  #   SAML_SP_PRIVATE_KEY    – path to SP signing key PEM
+  #   SAML_SP_CERTIFICATE    – path to SP certificate PEM
+  #   SAML_IDP_SSO_URL       – IdP SSO redirect URL
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017}

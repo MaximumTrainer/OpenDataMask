@@ -1,5 +1,6 @@
 package com.opendatamask.infrastructure.security
 
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -46,9 +47,8 @@ class SecurityFilterChainTest {
         // security layer must not return 401/403 for an authenticated user.
         val result = mockMvc.perform(get("/api/workspaces")).andReturn()
         val responseStatus = result.response.status
-        assert(responseStatus != 401 && responseStatus != 403) {
-            "Expected authenticated request to be permitted but got HTTP $responseStatus"
-        }
+        Assertions.assertNotEquals(401, responseStatus, "Security should not block authenticated user with 401")
+        Assertions.assertNotEquals(403, responseStatus, "Security should not block authenticated user with 403")
     }
 
     // ── Public endpoints ────────────────────────────────────────────────────

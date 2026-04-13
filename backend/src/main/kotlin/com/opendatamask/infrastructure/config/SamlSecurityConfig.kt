@@ -13,10 +13,13 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 
 // SAML2 Single Sign-On security filter chain.
 //
-// This configuration is activated only when:
+// This configuration is activated only when BOTH conditions are true:
 //   1. The `spring-security-saml2-service-provider` library is on the classpath, AND
-//   2. At least one relying-party registration is configured under the property
-//      prefix `spring.security.saml2.relyingparty.registration`.
+//   2. The env var SAML_IDP_METADATA_URI is set to a non-empty value, which binds
+//      `spring.security.saml2.relyingparty.registration.default.assertingparty.metadata-uri`.
+//      The property is NOT defined in application.yml with an empty default, so it is
+//      absent from the Spring Environment unless the env var is explicitly provided.
+//      This ensures `@ConditionalOnProperty` does not activate on empty/blank values.
 //
 // To enable SAML SSO:
 //   1. Add the Shibboleth repository and the SAML SP dependency to build.gradle.kts:
@@ -26,11 +29,18 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 //        dependencies {
 //            implementation("org.springframework.security:spring-security-saml2-service-provider")
 //        }
-//   2. Configure the IdP in application.yml:
-//        spring.security.saml2.relyingparty.registration.default.assertingparty.metadata-uri: <url>
+//   2. Set the required environment variables (see application.yml comments):
+//        SAML_IDP_METADATA_URI=https://idp.example.com/metadata
+//        SAML_SP_ENTITY_ID=https://your-app.example.com
+//        SAML_SP_PRIVATE_KEY=classpath:saml/sp-private-key.pem
+//        SAML_SP_CERTIFICATE=classpath:saml/sp-certificate.pem
+//        SAML_IDP_SSO_URL=https://idp.example.com/sso
 @Configuration
 @ConditionalOnClass(name = ["org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository"])
-@ConditionalOnProperty(prefix = "spring.security.saml2.relyingparty.registration", name = ["default.assertingparty.metadata-uri"])
+@ConditionalOnProperty(
+    name = ["spring.security.saml2.relyingparty.registration.default.assertingparty.metadata-uri"],
+    matchIfMissing = false
+)
 class SamlSecurityConfig(
     private val corsConfig: CorsConfig
 ) {
