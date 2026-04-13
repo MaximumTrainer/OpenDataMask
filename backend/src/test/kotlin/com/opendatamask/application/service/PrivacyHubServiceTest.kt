@@ -3,6 +3,7 @@ package com.opendatamask.application.service
 import com.opendatamask.domain.port.input.dto.PrivacyHubSummary
 import com.opendatamask.domain.model.*
 import com.opendatamask.adapter.output.persistence.*
+import com.opendatamask.domain.port.output.GeneratorPresetPort
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -17,6 +18,7 @@ class PrivacyHubServiceTest {
     @Mock private lateinit var columnSensitivityRepository: ColumnSensitivityRepository
     @Mock private lateinit var columnGeneratorRepository: ColumnGeneratorRepository
     @Mock private lateinit var tableConfigurationRepository: TableConfigurationRepository
+    @Mock private lateinit var generatorPresetRepository: GeneratorPresetPort
 
     @InjectMocks
     private lateinit var service: PrivacyHubService

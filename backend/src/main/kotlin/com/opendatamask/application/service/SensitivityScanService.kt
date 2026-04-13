@@ -1,11 +1,14 @@
 package com.opendatamask.application.service
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.opendatamask.domain.port.input.SensitivityScanUseCase
 
 import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.domain.port.output.ConnectorFactoryPort
 import com.opendatamask.domain.model.*
 import com.opendatamask.domain.port.output.ColumnSensitivityPort
+import com.opendatamask.domain.port.output.CustomSensitivityRulePort
 import com.opendatamask.domain.port.output.SensitivityScanLogPort
 import com.opendatamask.domain.port.output.SensitivityScanLogEntryPort
 import com.opendatamask.domain.port.output.WorkspacePort
@@ -23,9 +26,12 @@ class SensitivityScanService(
     private val workspaceRepository: WorkspacePort,
     private val dataConnectionRepository: DataConnectionPort,
     private val connectorFactory: ConnectorFactoryPort,
-    private val encryptionPort: EncryptionPort
+    private val encryptionPort: EncryptionPort,
+    private val customSensitivityRuleRepository: CustomSensitivityRulePort,
+    private val customSensitivityRuleService: CustomSensitivityRuleService
 ) : SensitivityScanUseCase {
-    private val rules: List<SensitivityRule> = buildRules()
+    private val builtInRules: List<SensitivityRule> = buildRules()
+    private val mapper = jacksonObjectMapper()
 
     override fun scanWorkspace(workspaceId: Long): SensitivityScanLog {
         val log = sensitivityScanLogRepository.save(SensitivityScanLog(workspaceId = workspaceId))
@@ -50,6 +56,16 @@ class SensitivityScanService(
                 database = sourceConnection.database
             )
 
+            val activeCustomRules = customSensitivityRuleRepository.findByIsActiveTrue()
+                .map { rule ->
+                    val matchers: List<CustomRuleMatcher> = try {
+                        mapper.readValue(rule.matchersJson)
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                    rule to matchers
+                }
+
             val tables = connector.listTables()
             log.tablesScanned = tables.size
 
@@ -63,8 +79,8 @@ class SensitivityScanService(
                     } catch (e: Exception) {
                         emptyList()
                     }
-                    val result = detectSensitivity(column, samples)
-                    if (result != null) {
+                    val builtInResult = detectSensitivity(column, samples)
+                    if (builtInResult != null) {
                         log.sensitiveColumnsFound++
                         val existing = columnSensitivityRepository
                             .findByWorkspaceIdAndTableNameAndColumnName(workspaceId, table, column)
@@ -74,22 +90,66 @@ class SensitivityScanService(
                             columnName = column
                         )
                         entity.isSensitive = true
-                        entity.sensitivityType = result.sensitivityType
-                        entity.confidenceLevel = result.confidence
-                        entity.recommendedGeneratorType = result.recommendedGenerator
+                        entity.sensitivityType = builtInResult.sensitivityType
+                        entity.confidenceLevel = builtInResult.confidence
+                        entity.recommendedGeneratorType = builtInResult.recommendedGenerator
+                        entity.customSensitivityLabel = null
+                        entity.recommendedPresetId = null
                         columnSensitivityRepository.save(entity)
-                    }
-                    sensitivityScanLogEntryRepository.save(
-                        SensitivityScanLogEntry(
-                            scanLogId = log.id!!,
-                            tableName = table,
-                            columnName = column,
-                            detectedType = result?.sensitivityType?.name,
-                            confidenceLevel = result?.confidence?.name,
-                            recommendedGenerator = result?.recommendedGenerator?.name,
-                            scannedAt = LocalDateTime.now()
+                        sensitivityScanLogEntryRepository.save(
+                            SensitivityScanLogEntry(
+                                scanLogId = log.id!!,
+                                tableName = table,
+                                columnName = column,
+                                detectedType = builtInResult.sensitivityType.name,
+                                confidenceLevel = builtInResult.confidence.name,
+                                recommendedGenerator = builtInResult.recommendedGenerator.name,
+                                scannedAt = LocalDateTime.now()
+                            )
                         )
-                    )
+                    } else {
+                        val customMatch = detectCustomRuleSensitivity(column, columnInfo.type, activeCustomRules)
+                        if (customMatch != null) {
+                            log.sensitiveColumnsFound++
+                            val existing = columnSensitivityRepository
+                                .findByWorkspaceIdAndTableNameAndColumnName(workspaceId, table, column)
+                            val entity = existing ?: ColumnSensitivity(
+                                workspaceId = workspaceId,
+                                tableName = table,
+                                columnName = column
+                            )
+                            entity.isSensitive = true
+                            entity.sensitivityType = SensitivityType.UNKNOWN
+                            entity.confidenceLevel = ConfidenceLevel.HIGH
+                            entity.recommendedGeneratorType = null
+                            entity.customSensitivityLabel = customMatch.first.name
+                            entity.recommendedPresetId = customMatch.first.linkedPresetId
+                            columnSensitivityRepository.save(entity)
+                            sensitivityScanLogEntryRepository.save(
+                                SensitivityScanLogEntry(
+                                    scanLogId = log.id!!,
+                                    tableName = table,
+                                    columnName = column,
+                                    detectedType = customMatch.first.name,
+                                    confidenceLevel = ConfidenceLevel.HIGH.name,
+                                    recommendedGenerator = null,
+                                    scannedAt = LocalDateTime.now()
+                                )
+                            )
+                        } else {
+                            sensitivityScanLogEntryRepository.save(
+                                SensitivityScanLogEntry(
+                                    scanLogId = log.id!!,
+                                    tableName = table,
+                                    columnName = column,
+                                    detectedType = null,
+                                    confidenceLevel = null,
+                                    recommendedGenerator = null,
+                                    scannedAt = LocalDateTime.now()
+                                )
+                            )
+                        }
+                    }
                 }
             }
             log.status = "COMPLETED"
@@ -105,7 +165,7 @@ class SensitivityScanService(
         val lowerCol = columnName.lowercase()
 
         // First pass: column name matches (takes priority over value-only matches)
-        for (rule in rules) {
+        for (rule in builtInRules) {
             val colMatch = rule.columnNamePatterns.any { it.containsMatchIn(lowerCol) }
             if (!colMatch) continue
             val valMatch = rule.valuePatterns.isNotEmpty() &&
@@ -115,7 +175,7 @@ class SensitivityScanService(
         }
 
         // Second pass: value-only matches (lower confidence, no column name signal)
-        for (rule in rules) {
+        for (rule in builtInRules) {
             if (rule.valuePatterns.isEmpty()) continue
             val valMatch = sampleValues.any { sample ->
                 rule.valuePatterns.any { it.containsMatchIn(sample) }
@@ -123,6 +183,21 @@ class SensitivityScanService(
             if (valMatch) return rule.copy(confidence = ConfidenceLevel.MEDIUM)
         }
 
+        return null
+    }
+
+    /** Returns the matching custom rule and its matchers, or null if no match. */
+    private fun detectCustomRuleSensitivity(
+        columnName: String,
+        columnType: String,
+        activeCustomRules: List<Pair<CustomSensitivityRule, List<CustomRuleMatcher>>>
+    ): Pair<CustomSensitivityRule, List<CustomRuleMatcher>>? {
+        for ((rule, matchers) in activeCustomRules) {
+            if (!customSensitivityRuleService.matchesDataType(columnType, rule.dataTypeFilter)) continue
+            if (customSensitivityRuleService.matchesColumnName(columnName, matchers)) {
+                return rule to matchers
+            }
+        }
         return null
     }
 
@@ -146,3 +221,4 @@ class SensitivityScanService(
             }
     }
 }
+

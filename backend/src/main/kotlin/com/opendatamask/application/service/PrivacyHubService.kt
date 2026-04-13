@@ -9,6 +9,7 @@ import com.opendatamask.domain.model.ColumnGenerator
 import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.domain.port.output.ColumnGeneratorPort
 import com.opendatamask.domain.port.output.ColumnSensitivityPort
+import com.opendatamask.domain.port.output.GeneratorPresetPort
 import com.opendatamask.domain.port.output.TableConfigurationPort
 import org.springframework.stereotype.Service
 
@@ -16,7 +17,8 @@ import org.springframework.stereotype.Service
 class PrivacyHubService(
     private val columnSensitivityRepository: ColumnSensitivityPort,
     private val columnGeneratorRepository: ColumnGeneratorPort,
-    private val tableConfigurationRepository: TableConfigurationPort
+    private val tableConfigurationRepository: TableConfigurationPort,
+    private val generatorPresetRepository: GeneratorPresetPort
 ) : PrivacyHubUseCase {
 
     override fun getSummary(workspaceId: Long): PrivacyHubSummary {
@@ -66,9 +68,10 @@ class PrivacyHubService(
                 PrivacyRecommendation(
                     tableName = col.tableName,
                     columnName = col.columnName,
-                    sensitivityType = col.sensitivityType.name,
+                    sensitivityType = col.customSensitivityLabel ?: col.sensitivityType.name,
                     confidenceLevel = col.confidenceLevel.name,
-                    recommendedGenerator = col.recommendedGeneratorType?.name ?: ""
+                    recommendedGenerator = col.recommendedGeneratorType?.name ?: "",
+                    recommendedPresetId = col.recommendedPresetId
                 )
             }
     }
@@ -81,20 +84,45 @@ class PrivacyHubService(
         var count = 0
         for (rec in recommendations) {
             val tableConfig = tableConfigMap[rec.tableName] ?: continue
-            if (rec.recommendedGenerator.isBlank()) continue
-            val generatorType = try {
-                GeneratorType.valueOf(rec.recommendedGenerator)
-            } catch (e: IllegalArgumentException) {
-                continue
-            }
-            columnGeneratorRepository.save(
-                ColumnGenerator(
-                    tableConfigurationId = tableConfig.id,
-                    columnName = rec.columnName,
-                    generatorType = generatorType
+
+            if (rec.recommendedPresetId != null) {
+                // Apply linked preset from a custom sensitivity rule
+                val preset = generatorPresetRepository.findById(rec.recommendedPresetId).orElse(null) ?: continue
+                val existingGenerator = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
+                    .find { it.columnName == rec.columnName }
+                if (existingGenerator != null) {
+                    existingGenerator.presetId = preset.id
+                    existingGenerator.generatorType = preset.generatorType
+                    existingGenerator.generatorParams = preset.generatorParams
+                    columnGeneratorRepository.save(existingGenerator)
+                } else {
+                    columnGeneratorRepository.save(
+                        ColumnGenerator(
+                            tableConfigurationId = tableConfig.id,
+                            columnName = rec.columnName,
+                            generatorType = preset.generatorType,
+                            generatorParams = preset.generatorParams,
+                            presetId = preset.id
+                        )
+                    )
+                }
+                count++
+            } else {
+                if (rec.recommendedGenerator.isBlank()) continue
+                val generatorType = try {
+                    GeneratorType.valueOf(rec.recommendedGenerator)
+                } catch (e: IllegalArgumentException) {
+                    continue
+                }
+                columnGeneratorRepository.save(
+                    ColumnGenerator(
+                        tableConfigurationId = tableConfig.id,
+                        columnName = rec.columnName,
+                        generatorType = generatorType
+                    )
                 )
-            )
-            count++
+                count++
+            }
         }
         return count
     }
@@ -118,3 +146,4 @@ class PrivacyHubService(
             else -> "NOT_SENSITIVE"
         }
 }
+

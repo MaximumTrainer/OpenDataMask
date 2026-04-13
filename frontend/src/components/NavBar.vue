@@ -34,6 +34,13 @@ function isActive(path: string): boolean {
         >
           Workspaces
         </RouterLink>
+        <RouterLink
+          to="/settings/sensitivity-rules"
+          class="nav-link"
+          :class="{ active: isActive('/settings/sensitivity-rules') }"
+        >
+          Sensitivity Rules
+        </RouterLink>
       </nav>
 
       <!-- User section -->

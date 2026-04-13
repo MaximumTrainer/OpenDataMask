@@ -25,6 +25,8 @@ class SensitivityScanLogServiceTest {
     @Mock private lateinit var dataConnectionRepository: DataConnectionRepository
     @Mock private lateinit var connectorFactory: ConnectorFactory
     @Mock private lateinit var EncryptionPort: EncryptionPort
+    @Mock private lateinit var customSensitivityRuleRepository: CustomSensitivityRuleRepository
+    @Mock private lateinit var customSensitivityRuleService: CustomSensitivityRuleService
 
     @InjectMocks
     private lateinit var sensitivityScanService: SensitivityScanService
