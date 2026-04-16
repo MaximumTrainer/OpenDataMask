@@ -19,7 +19,6 @@ const testing = ref<number | null>(null)
 const testResults = ref<Record<number, { success: boolean; message: string }>>({})
 const formError = ref('')
 
-// SQL-specific form fields (used to build the JDBC connection string)
 // Shared form fields
 const form = ref<DataConnectionRequest & { host: string; port: number; sslEnabled: boolean }>({
   name: '',
@@ -34,6 +33,14 @@ const form = ref<DataConnectionRequest & { host: string; port: number; sslEnable
   isSource: false,
   isDestination: false
 })
+
+// Track the type that was saved in the DB (used to detect type changes on edit)
+const originalType = ref<ConnectionType | null>(null)
+
+// True when the user has changed SQL connection details (host/port/database/ssl) during edit.
+// Only in this case do we rebuild and send the connection string on update to avoid overwriting
+// custom JDBC params or unintentionally disabling SSL.
+const sqlConnectionChanged = ref(false)
 
 // Types that use a direct connection string instead of host/port
 const mongoTypes = new Set<ConnectionType>([ConnectionType.MONGODB, ConnectionType.MONGODB_COSMOS])
@@ -79,6 +86,8 @@ function resetForm() {
     isSource: false,
     isDestination: false
   }
+  sqlConnectionChanged.value = false
+  originalType.value = null
 }
 
 function onTypeChange() {
@@ -86,8 +95,15 @@ function onTypeChange() {
   if (port !== undefined) {
     form.value.port = port
   }
-  // Clear connection string on type switch
+  // Clear connection string whenever the type changes
   form.value.connectionString = ''
+  // Changing type always means we need a new connection string
+  sqlConnectionChanged.value = true
+}
+
+// Called by SQL input fields to mark connection details as changed
+function onSqlConnectionChange() {
+  sqlConnectionChanged.value = true
 }
 
 // Build a JDBC / MongoDB URI from the form fields
@@ -132,6 +148,8 @@ function openCreate() {
 
 function openEdit(conn: DataConnection) {
   editingConnection.value = conn
+  originalType.value = conn.type
+  sqlConnectionChanged.value = false
   // Parse host/port back from stored host string for SQL types (e.g. "localhost:5432")
   let host = 'localhost'
   let port = defaultPorts[conn.type] ?? 5432
@@ -150,6 +168,8 @@ function openEdit(conn: DataConnection) {
     database: conn.database ?? '',
     username: conn.username ?? '',
     password: '',
+    // sslEnabled is not separately stored; the user must re-check if they are rebuilding
+    // the connection string (i.e. when they change host/port/database/ssl)
     sslEnabled: false,
     isSource: conn.isSource,
     isDestination: conn.isDestination
@@ -163,9 +183,11 @@ function validateForm(): boolean {
     formError.value = 'Connection name is required.'
     return false
   }
+  const typeChanged = editingConnection.value !== null && form.value.type !== originalType.value
   if (isMongoType.value) {
-    // For MongoDB, connection string is required on create
-    if (!editingConnection.value && !form.value.connectionString) {
+    // Require a URI on create, or when the type has changed to Mongo (old string is for a different type)
+    const uriRequired = !editingConnection.value || typeChanged
+    if (uriRequired && !form.value.connectionString) {
       formError.value = 'Connection URI is required.'
       return false
     }
@@ -190,7 +212,6 @@ function validateForm(): boolean {
 async function submitForm() {
   if (!validateForm()) return
 
-  const connectionString = buildConnectionString()
   const payload: DataConnectionRequest = {
     name: form.value.name,
     type: form.value.type,
@@ -200,10 +221,23 @@ async function submitForm() {
     isDestination: form.value.isDestination
   }
 
-  // Only include connectionString if it is non-empty (on update, blank = keep existing)
-  if (connectionString) {
-    payload.connectionString = connectionString
+  const isCreate = !editingConnection.value
+  const typeChanged = editingConnection.value !== null && form.value.type !== originalType.value
+
+  if (isMongoType.value) {
+    // For Mongo: include URI if provided (non-empty)
+    const uri = form.value.connectionString?.trim()
+    if (uri) {
+      payload.connectionString = uri
+    }
+  } else {
+    // For SQL: only rebuild and send the connection string when the user explicitly changed
+    // connection details, or when creating, or when the type changed.
+    if (isCreate || typeChanged || sqlConnectionChanged.value) {
+      payload.connectionString = buildConnectionString()
+    }
   }
+
   if (form.value.password) {
     payload.password = form.value.password
   }
@@ -384,7 +418,9 @@ async function handleTest(conn: DataConnection) {
         <template v-if="isMongoType">
           <div class="form-group">
             <label class="form-label">
-              Connection URI {{ editingConnection ? '(leave blank to keep existing)' : '*' }}
+              Connection URI
+              <template v-if="!editingConnection || form.type !== originalType">*</template>
+              <template v-else>(leave blank to keep existing)</template>
             </label>
             <input
               v-model="form.connectionString"
@@ -411,15 +447,15 @@ async function handleTest(conn: DataConnection) {
           <div class="grid grid-cols-2">
             <div class="form-group">
               <label class="form-label">Host *</label>
-              <input v-model="form.host" type="text" class="form-control" placeholder="localhost" required />
+              <input v-model="form.host" type="text" class="form-control" placeholder="localhost" required @input="onSqlConnectionChange" />
             </div>
             <div class="form-group">
               <label class="form-label">Port *</label>
-              <input v-model.number="form.port" type="number" class="form-control" required />
+              <input v-model.number="form.port" type="number" class="form-control" required @input="onSqlConnectionChange" />
             </div>
             <div class="form-group">
               <label class="form-label">Database *</label>
-              <input v-model="form.database" type="text" class="form-control" placeholder="mydb" required />
+              <input v-model="form.database" type="text" class="form-control" placeholder="mydb" required @input="onSqlConnectionChange" />
             </div>
             <div class="form-group">
               <label class="form-label">Username *</label>
@@ -437,10 +473,15 @@ async function handleTest(conn: DataConnection) {
                 v-model="form.sslEnabled"
                 type="checkbox"
                 style="width:1rem;height:1rem;cursor:pointer;"
+                @change="onSqlConnectionChange"
               />
               <label for="ssl" class="form-label" style="margin:0;cursor:pointer;">Enable SSL</label>
             </div>
           </div>
+          <p v-if="editingConnection && !sqlConnectionChanged" class="form-hint" style="margin-top:0;">
+            Connection details unchanged — existing connection string will be kept.
+            Edit Host, Port, Database or SSL to rebuild it.
+          </p>
         </template>
 
         <!-- Source / Destination roles -->

@@ -23,7 +23,9 @@ class DataConnectionService(
     @Transactional
     override fun createConnection(workspaceId: Long, request: DataConnectionRequest): DataConnectionResponse {
         val connStr = request.connectionString
-            ?: throw IllegalArgumentException("Connection string is required when creating a connection")
+        if (connStr.isNullOrBlank()) {
+            throw IllegalArgumentException("Connection string is required when creating a connection")
+        }
         val connection = DataConnection(
             workspaceId = workspaceId,
             name = request.name,
@@ -53,6 +55,13 @@ class DataConnectionService(
     @Transactional
     override fun updateConnection(workspaceId: Long, connectionId: Long, request: DataConnectionRequest): DataConnectionResponse {
         val connection = findConnection(workspaceId, connectionId)
+        // If the connector type is changing, a new connection string must be provided because the
+        // existing stored string is for the old type and would be invalid for the new one.
+        if (request.type != connection.type && request.connectionString.isNullOrBlank()) {
+            throw IllegalArgumentException(
+                "A new connection string is required when changing the connection type"
+            )
+        }
         connection.name = request.name
         connection.type = request.type
         if (!request.connectionString.isNullOrBlank()) {
