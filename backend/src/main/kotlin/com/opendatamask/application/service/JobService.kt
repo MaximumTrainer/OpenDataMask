@@ -37,7 +37,8 @@ class JobService(
     private val destinationSchemaService: DestinationSchemaService,
     private val postJobActionService: PostJobActionService,
     private val schemaChangeService: SchemaChangeService,
-    private val webhookService: WebhookService
+    private val webhookService: WebhookService,
+    private val piiMaskingService: PIIMaskingService
 ) : JobUseCase {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private var subsetExecutionService: SubsetExecutionService? = null
@@ -178,7 +179,7 @@ class JobService(
                     tableConfig.tableName,
                     selectedAttrs
                 )
-                processTable(job.id, tableConfig, sourceConnector, destConnector, subsetRows)
+                processTable(job.id, tableConfig, sourceConnector, destConnector, subsetRows, job.workspaceId, sourceConn.id)
             }
 
             updateJobStatus(job, JobStatus.COMPLETED)
@@ -206,7 +207,9 @@ class JobService(
         tableConfig: TableConfiguration,
         sourceConnector: DatabaseConnector,
         destConnector: DatabaseConnector,
-        preComputedRows: Map<String, List<Map<String, Any?>>> = emptyMap()
+        preComputedRows: Map<String, List<Map<String, Any?>>> = emptyMap(),
+        workspaceId: Long = 0L,
+        sourceConnectionId: Long = 0L
     ) {
         addLog(jobId, "Processing table: ${tableConfig.tableName} (mode: ${tableConfig.mode})", LogLevel.INFO)
 
@@ -217,7 +220,14 @@ class JobService(
             TableMode.PASSTHROUGH -> {
                 val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), null, selectedAttrs)
                 addLog(jobId, "Fetched ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
-                val written = destConnector.writeData(tableConfig.tableName, data)
+                val transformed = if (workspaceId != 0L && sourceConnectionId != 0L) {
+                    data.map { row ->
+                        piiMaskingService.applyMappings(workspaceId, sourceConnectionId, tableConfig.tableName, row)
+                    }
+                } else {
+                    data
+                }
+                val written = destConnector.writeData(tableConfig.tableName, transformed)
                 addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
             TableMode.MASK -> {

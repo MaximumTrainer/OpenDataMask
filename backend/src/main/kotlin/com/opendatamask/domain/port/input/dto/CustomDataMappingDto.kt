@@ -23,7 +23,13 @@ data class CustomDataMappingRequest(
 
     val maskingStrategy: MaskingStrategy? = null,
 
-    val fakeGeneratorType: GeneratorType? = null
+    val fakeGeneratorType: GeneratorType? = null,
+
+    // JSON string carrying strategy-specific parameters.
+    // HashRule: {"salt":"..."}
+    // PartialMaskRule: {"keepFirst":"2","keepLast":"4","maskChar":"*"}
+    // RegexRule: {"pattern":"\\d","replacement":"#"}
+    val piiRuleParams: String? = null
 )
 
 data class BulkCustomDataMappingRequest(
@@ -46,7 +52,9 @@ data class BulkCustomDataMappingRequest(
 
         val maskingStrategy: MaskingStrategy? = null,
 
-        val fakeGeneratorType: GeneratorType? = null
+        val fakeGeneratorType: GeneratorType? = null,
+
+        val piiRuleParams: String? = null
     )
 }
 
@@ -59,6 +67,7 @@ data class CustomDataMappingResponse(
     val action: MappingAction,
     val maskingStrategy: MaskingStrategy?,
     val fakeGeneratorType: GeneratorType?,
+    val piiRuleParams: String?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )

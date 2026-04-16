@@ -11,7 +11,7 @@ Core capabilities:
 - **Privacy intelligence**: Automatic sensitive column detection, privacy hub dashboards, and compliance reports
 - **Job scheduling**: Cron-based automated masking runs
 - **Webhook integration**: Post-job notifications via custom HTTP webhooks or GitHub Actions triggers
-- **REST API + CLI**: Full programmatic access and a Go-based CLI tool
+- **PII attribute rule mapping**: Column-level masking rules (Redact, Partial Mask, Hash, Regex) with a registry pattern for custom business rules
 
 ---
 
@@ -648,7 +648,92 @@ See [verification/README.md](../verification/README.md) for the full reference, 
 
 ---
 
-## Contributing
+## PII Attribute Rule Mapping
+
+OpenDataMask provides a flexible, configuration-driven system to apply fine-grained masking rules to individual source columns as data moves to the target destination.
+
+### Built-in Masking Strategies
+
+| `maskingStrategy` | Description | Required `piiRuleParams` keys |
+|---|---|---|
+| `FAKE` | Replaces the value with realistic synthetic data using the configured `fakeGeneratorType` | — |
+| `HASH` | Deterministic SHA-256 hex digest of the value | `salt` (optional) |
+| `NULL` | Replaces the value with `null` / `NULL` | — |
+| `REDACT` | Replaces the value with the literal token `[REDACTED]` | — |
+| `PARTIAL_MASK` | Keeps a configurable number of leading/trailing characters and masks the middle | `keepFirst` (default `0`), `keepLast` (default `4`), `maskChar` (default `*`) |
+| `REGEX` | Applies a regular expression replacement to the string representation of the value | `pattern` (required), `replacement` (required) |
+
+### Mapping a column via REST API
+
+```http
+POST /api/workspaces/{workspaceId}/mappings
+Content-Type: application/json
+
+{
+  "connectionId": 2,
+  "tableName": "customers",
+  "columnName": "ssn",
+  "action": "MASK",
+  "maskingStrategy": "REDACT"
+}
+```
+
+### Bulk mapping (all columns of a table at once)
+
+```http
+POST /api/workspaces/{workspaceId}/mappings/bulk
+Content-Type: application/json
+
+{
+  "connectionId": 2,
+  "tableName": "customers",
+  "columnMappings": [
+    { "columnName": "id",                 "action": "MIGRATE_AS_IS" },
+    { "columnName": "full_name",          "action": "MASK", "maskingStrategy": "PARTIAL_MASK",
+      "piiRuleParams": "{\"keepFirst\":\"1\",\"keepLast\":\"0\"}" },
+    { "columnName": "email",              "action": "MASK", "maskingStrategy": "REGEX",
+      "piiRuleParams": "{\"pattern\":\"(\\\\w+)@(\\\\w+\\\\.\\\\w+)\",\"replacement\":\"***@$2\"}" },
+    { "columnName": "ssn",                "action": "MASK", "maskingStrategy": "REDACT" },
+    { "columnName": "transaction_amount", "action": "MIGRATE_AS_IS" }
+  ]
+}
+```
+
+A complete JSON example is available in [`docs/pii-masking-rules-sample.json`](pii-masking-rules-sample.json).
+
+### How rules are applied during a job
+
+Mappings are evaluated during every **PASSTHROUGH** table run: for each row fetched from the source, OpenDataMask looks up any active `CustomDataMapping` entries for that workspace/connection/table combination and applies the configured strategy before writing to the destination. Columns without a mapping pass through unchanged.
+
+### Registering a custom business rule at runtime
+
+The `RuleRegistryPort` / `DefaultRuleRegistry` bean accepts runtime-registered `PIIMaskingRule` implementations. Inject `RuleRegistryPort` into your Spring component and call `registerCustomRule()`:
+
+```kotlin
+@Component
+class EuGdprRuleRegistrar(private val ruleRegistry: RuleRegistryPort) {
+
+    @PostConstruct
+    fun register() {
+        ruleRegistry.registerCustomRule(object : PIIMaskingRule {
+            override val ruleId = "eu_gdpr_conditional"
+            override fun mask(input: Any?): Any? {
+                // Example: if the value looks like an EU phone prefix, redact it fully;
+                // otherwise apply partial masking
+                val str = input?.toString() ?: return null
+                return if (str.startsWith("+3") || str.startsWith("+4"))
+                    "[REDACTED]"
+                else
+                    str.take(0) + "*".repeat((str.length - 4).coerceAtLeast(0)) + str.takeLast(4)
+            }
+        })
+    }
+}
+```
+
+After registering the rule, create a mapping that uses `maskingStrategy: "REGEX"` and set `piiRuleParams` to `{"ruleId": "eu_gdpr_conditional"}`, or simply apply the rule programmatically via `PIIMaskingService.applyMappings()`.
+
+
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/my-feature`

@@ -383,7 +383,10 @@ export enum MappingAction {
 export enum MaskingStrategy {
   FAKE = 'FAKE',
   HASH = 'HASH',
-  NULL = 'NULL'
+  NULL = 'NULL',
+  REDACT = 'REDACT',
+  PARTIAL_MASK = 'PARTIAL_MASK',
+  REGEX = 'REGEX'
 }
 
 export interface CustomDataMapping {
@@ -395,6 +398,7 @@ export interface CustomDataMapping {
   action: MappingAction
   maskingStrategy: MaskingStrategy | null
   fakeGeneratorType: GeneratorType | null
+  piiRuleParams: string | null
   createdAt: string
   updatedAt: string
 }
@@ -406,6 +410,9 @@ export interface CustomDataMappingRequest {
   action: MappingAction
   maskingStrategy?: MaskingStrategy | null
   fakeGeneratorType?: GeneratorType | null
+  // JSON string with strategy-specific params (e.g. {"salt":"..."} for HASH,
+  // {"keepFirst":"0","keepLast":"4"} for PARTIAL_MASK, {"pattern":"...","replacement":"..."} for REGEX)
+  piiRuleParams?: string | null
 }
 
 export interface ColumnMappingEntry {
@@ -413,6 +420,7 @@ export interface ColumnMappingEntry {
   action: MappingAction
   maskingStrategy?: MaskingStrategy | null
   fakeGeneratorType?: GeneratorType | null
+  piiRuleParams?: string | null
 }
 
 export interface BulkCustomDataMappingRequest {

@@ -27,7 +27,8 @@ class CustomDataMappingService(
             columnName = request.columnName,
             action = request.action,
             maskingStrategy = if (request.action == MappingAction.MASK) request.maskingStrategy else null,
-            fakeGeneratorType = if (request.action == MappingAction.MASK) request.fakeGeneratorType else null
+            fakeGeneratorType = if (request.action == MappingAction.MASK) request.fakeGeneratorType else null,
+            piiRuleParams = if (request.action == MappingAction.MASK) request.piiRuleParams else null
         )
         return customDataMappingRepository.save(mapping).toResponse()
     }
@@ -64,6 +65,7 @@ class CustomDataMappingService(
         mapping.action = request.action
         mapping.maskingStrategy = if (request.action == MappingAction.MASK) request.maskingStrategy else null
         mapping.fakeGeneratorType = if (request.action == MappingAction.MASK) request.fakeGeneratorType else null
+        mapping.piiRuleParams = if (request.action == MappingAction.MASK) request.piiRuleParams else null
         return customDataMappingRepository.save(mapping).toResponse()
     }
 
@@ -90,7 +92,8 @@ class CustomDataMappingService(
                 columnName = entry.columnName,
                 action = entry.action,
                 maskingStrategy = if (entry.action == MappingAction.MASK) entry.maskingStrategy else null,
-                fakeGeneratorType = if (entry.action == MappingAction.MASK) entry.fakeGeneratorType else null
+                fakeGeneratorType = if (entry.action == MappingAction.MASK) entry.fakeGeneratorType else null,
+                piiRuleParams = if (entry.action == MappingAction.MASK) entry.piiRuleParams else null
             )
         }
         return mappings.map { customDataMappingRepository.save(it).toResponse() }
@@ -129,6 +132,7 @@ class CustomDataMappingService(
         action = action,
         maskingStrategy = maskingStrategy,
         fakeGeneratorType = fakeGeneratorType,
+        piiRuleParams = piiRuleParams,
         createdAt = createdAt,
         updatedAt = updatedAt
     )
