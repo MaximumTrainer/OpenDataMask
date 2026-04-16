@@ -208,8 +208,10 @@ Deleting a connection pair performs a **soft delete** — the record is retained
 
 #### Example: create a pair
 
-```json
+```http
 POST /api/workspaces/1/connection-pairs
+Content-Type: application/json
+
 {
   "name": "Prod → Staging",
   "description": "Copy masked production data to staging environment",
@@ -222,8 +224,10 @@ POST /api/workspaces/1/connection-pairs
 
 When triggering a masking job you can optionally pass a `connectionPairId` in the request body. The engine will then use that pair's source and destination connections instead of searching for the workspace defaults.
 
-```json
+```http
 POST /api/workspaces/1/jobs
+Content-Type: application/json
+
 {
   "connectionPairId": 5
 }

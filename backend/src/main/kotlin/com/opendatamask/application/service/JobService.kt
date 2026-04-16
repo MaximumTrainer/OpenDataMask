@@ -300,12 +300,42 @@ class JobService(
             if (pair.deletedAt != null) {
                 throw IllegalStateException("Connection pair $pairId has been deleted")
             }
+            if (pair.workspaceId != job.workspaceId) {
+                throw IllegalStateException(
+                    "Connection pair $pairId does not belong to workspace ${job.workspaceId}"
+                )
+            }
+            if (pair.sourceConnectionId == pair.destinationConnectionId) {
+                throw IllegalStateException(
+                    "Connection pair $pairId is invalid: source and destination connections must be distinct"
+                )
+            }
             val source = dataConnectionRepository.findById(pair.sourceConnectionId)
                 .orElseThrow { NoSuchElementException("Source connection not found: ${pair.sourceConnectionId}") }
+            if (source.workspaceId != job.workspaceId) {
+                throw IllegalStateException(
+                    "Source connection ${pair.sourceConnectionId} does not belong to workspace ${job.workspaceId}"
+                )
+            }
+            if (!source.isSource) {
+                throw IllegalStateException(
+                    "Connection pair $pairId is invalid: connection ${pair.sourceConnectionId} is not a source connection"
+                )
+            }
             val destination = dataConnectionRepository.findById(pair.destinationConnectionId)
                 .orElseThrow {
                     NoSuchElementException("Destination connection not found: ${pair.destinationConnectionId}")
                 }
+            if (destination.workspaceId != job.workspaceId) {
+                throw IllegalStateException(
+                    "Destination connection ${pair.destinationConnectionId} does not belong to workspace ${job.workspaceId}"
+                )
+            }
+            if (!destination.isDestination) {
+                throw IllegalStateException(
+                    "Connection pair $pairId is invalid: connection ${pair.destinationConnectionId} is not a destination connection"
+                )
+            }
             return source to destination
         }
 

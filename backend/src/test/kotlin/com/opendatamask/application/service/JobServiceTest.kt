@@ -82,7 +82,7 @@ class JobServiceTest {
         whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(makeWorkspace()))
         whenever(jobRepository.save(any<Job>())).thenReturn(savedJob)
 
-        val response = jobService.createJob(1L, 1L)
+        val response = jobService.createJob(1L, 1L, null)
 
         assertEquals(1L, response.id)
         assertEquals(JobStatus.PENDING, response.status)
@@ -93,7 +93,7 @@ class JobServiceTest {
     fun `createJob throws when workspace not found`() {
         whenever(workspaceRepository.findById(999L)).thenReturn(Optional.empty())
 
-        assertThrows<NoSuchElementException> { jobService.createJob(999L, 1L) }
+        assertThrows<NoSuchElementException> { jobService.createJob(999L, 1L, null) }
     }
 
     // ── getJob ─────────────────────────────────────────────────────────────
@@ -483,6 +483,79 @@ class JobServiceTest {
         whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(pair))
         whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(sourceConn))
         whenever(dataConnectionRepository.findById(99L)).thenReturn(Optional.empty())
+
+        jobService.runJob(1L)
+
+        verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.FAILED })
+    }
+
+    @Test
+    fun `runJob sets FAILED when ConnectionPair belongs to a different workspace`() {
+        val foreignPair = makeConnectionPair(id = 5L, workspaceId = 99L)
+        val job = makeJob(id = 1L, workspaceId = 1L).apply { connectionPairId = 5L }
+
+        stubJobSaveAndLog(job)
+        whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(foreignPair))
+
+        jobService.runJob(1L)
+
+        verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.FAILED })
+    }
+
+    @Test
+    fun `runJob sets FAILED when ConnectionPair source and destination are the same connection`() {
+        val samePair = makeConnectionPair(id = 5L, sourceConnectionId = 1L, destinationConnectionId = 1L)
+        val job = makeJob(id = 1L, workspaceId = 1L).apply { connectionPairId = 5L }
+
+        stubJobSaveAndLog(job)
+        whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(samePair))
+
+        jobService.runJob(1L)
+
+        verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.FAILED })
+    }
+
+    @Test
+    fun `runJob sets FAILED when ConnectionPair source connection is not marked as source`() {
+        val pair = makeConnectionPair(id = 5L, sourceConnectionId = 1L, destinationConnectionId = 2L)
+        val job = makeJob(id = 1L, workspaceId = 1L).apply { connectionPairId = 5L }
+        val notSource = makeDataConnection(id = 1L, workspaceId = 1L, isSource = false)
+
+        stubJobSaveAndLog(job)
+        whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(pair))
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(notSource))
+
+        jobService.runJob(1L)
+
+        verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.FAILED })
+    }
+
+    @Test
+    fun `runJob sets FAILED when ConnectionPair destination connection is not marked as destination`() {
+        val pair = makeConnectionPair(id = 5L, sourceConnectionId = 1L, destinationConnectionId = 2L)
+        val job = makeJob(id = 1L, workspaceId = 1L).apply { connectionPairId = 5L }
+        val sourceConn = makeDataConnection(id = 1L, workspaceId = 1L, isSource = true)
+        val notDest = makeDataConnection(id = 2L, workspaceId = 1L, isDestination = false)
+
+        stubJobSaveAndLog(job)
+        whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(pair))
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(sourceConn))
+        whenever(dataConnectionRepository.findById(2L)).thenReturn(Optional.of(notDest))
+
+        jobService.runJob(1L)
+
+        verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.FAILED })
+    }
+
+    @Test
+    fun `runJob sets FAILED when ConnectionPair source connection belongs to different workspace`() {
+        val pair = makeConnectionPair(id = 5L, workspaceId = 1L, sourceConnectionId = 1L, destinationConnectionId = 2L)
+        val job = makeJob(id = 1L, workspaceId = 1L).apply { connectionPairId = 5L }
+        val foreignSource = makeDataConnection(id = 1L, workspaceId = 99L, isSource = true)
+
+        stubJobSaveAndLog(job)
+        whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(pair))
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(foreignSource))
 
         jobService.runJob(1L)
 

@@ -34,10 +34,15 @@ class ConnectionPairServiceTest {
         createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now()
     )
 
-    private fun makeDataConnection(id: Long = 1L, workspaceId: Long = 1L) = DataConnection(
+    private fun makeDataConnection(
+        id: Long = 1L,
+        workspaceId: Long = 1L,
+        isSource: Boolean = (id == 1L),
+        isDestination: Boolean = (id == 2L)
+    ) = DataConnection(
         id = id, workspaceId = workspaceId, name = "conn-$id",
         type = ConnectionType.POSTGRESQL, connectionString = "enc_conn",
-        isSource = id == 1L, isDestination = id == 2L
+        isSource = isSource, isDestination = isDestination
     )
 
     private fun makeConnectionPair(
@@ -123,6 +128,34 @@ class ConnectionPairServiceTest {
         whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(makeWorkspace()))
         whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(makeDataConnection(1L)))
         whenever(dataConnectionRepository.findById(2L)).thenReturn(Optional.of(foreignDest))
+
+        assertThrows<IllegalArgumentException> { service.createConnectionPair(1L, makeRequest()) }
+    }
+
+    @Test
+    fun `createConnectionPair throws when source and destination are the same connection`() {
+        whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(makeWorkspace()))
+
+        assertThrows<IllegalArgumentException> {
+            service.createConnectionPair(1L, makeRequest(sourceConnectionId = 1L, destinationConnectionId = 1L))
+        }
+    }
+
+    @Test
+    fun `createConnectionPair throws when source connection is not marked as source`() {
+        val notSourceConn = makeDataConnection(1L, isSource = false, isDestination = false)
+        whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(makeWorkspace()))
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(notSourceConn))
+
+        assertThrows<IllegalArgumentException> { service.createConnectionPair(1L, makeRequest()) }
+    }
+
+    @Test
+    fun `createConnectionPair throws when destination connection is not marked as destination`() {
+        val notDestConn = makeDataConnection(2L, isSource = false, isDestination = false)
+        whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(makeWorkspace()))
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(makeDataConnection(1L)))
+        whenever(dataConnectionRepository.findById(2L)).thenReturn(Optional.of(notDestConn))
 
         assertThrows<IllegalArgumentException> { service.createConnectionPair(1L, makeRequest()) }
     }

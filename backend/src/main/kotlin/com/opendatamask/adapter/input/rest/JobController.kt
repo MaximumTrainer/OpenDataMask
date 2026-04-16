@@ -1,7 +1,7 @@
 package com.opendatamask.adapter.input.rest
 
 import com.opendatamask.domain.port.input.dto.JobLogResponse
-import com.opendatamask.domain.port.input.dto.JobRequest
+import com.opendatamask.domain.port.input.dto.CreateJobRequest
 import com.opendatamask.domain.port.input.dto.JobResponse
 import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.adapter.output.persistence.UserRepository
@@ -24,7 +24,7 @@ class JobController(
     @PostMapping
     fun createAndRunJob(
         @PathVariable workspaceId: Long,
-        @RequestBody(required = false) request: JobRequest?,
+        @RequestBody(required = false) request: CreateJobRequest?,
         @AuthenticationPrincipal userDetails: UserDetails
     ): ResponseEntity<JobResponse> {
         val userId = getUserId(userDetails)

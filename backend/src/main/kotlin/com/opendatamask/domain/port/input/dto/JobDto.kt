@@ -25,6 +25,7 @@ data class JobLogResponse(
 )
 
 // Optional request body for job creation; all fields are nullable for backward compatibility.
-data class JobRequest(
+// When connectionPairId is null/omitted, the job falls back to the workspace-wide source/destination lookup.
+data class CreateJobRequest(
     val connectionPairId: Long? = null
 )

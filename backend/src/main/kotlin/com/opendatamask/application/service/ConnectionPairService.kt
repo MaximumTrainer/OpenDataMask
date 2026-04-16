@@ -78,10 +78,16 @@ class ConnectionPairService(
     }
 
     private fun validateConnectionsBelongToWorkspace(workspaceId: Long, sourceId: Long, destinationId: Long) {
+        if (sourceId == destinationId) {
+            throw IllegalArgumentException("Source and destination connections must be distinct")
+        }
         val source = dataConnectionRepository.findById(sourceId)
             .orElseThrow { NoSuchElementException("Source connection not found: $sourceId") }
         if (source.workspaceId != workspaceId) {
             throw IllegalArgumentException("Source connection $sourceId does not belong to workspace $workspaceId")
+        }
+        if (!source.isSource) {
+            throw IllegalArgumentException("Connection $sourceId is not configured as a source connection")
         }
         val destination = dataConnectionRepository.findById(destinationId)
             .orElseThrow { NoSuchElementException("Destination connection not found: $destinationId") }
@@ -89,6 +95,9 @@ class ConnectionPairService(
             throw IllegalArgumentException(
                 "Destination connection $destinationId does not belong to workspace $workspaceId"
             )
+        }
+        if (!destination.isDestination) {
+            throw IllegalArgumentException("Connection $destinationId is not configured as a destination connection")
         }
     }
 
