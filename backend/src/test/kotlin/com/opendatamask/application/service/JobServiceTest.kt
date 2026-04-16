@@ -400,6 +400,94 @@ class JobServiceTest {
         verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.FAILED })
         verify(postJobActionService).triggerActions(any())
     }
+
+    // ── resolveConnections — ConnectionPair path ───────────────────────────
+
+    private fun makeConnectionPair(
+        id: Long = 5L,
+        workspaceId: Long = 1L,
+        sourceConnectionId: Long = 1L,
+        destinationConnectionId: Long = 2L,
+        deletedAt: LocalDateTime? = null
+    ) = ConnectionPair(
+        id = id, workspaceId = workspaceId,
+        name = "Pair A",
+        sourceConnectionId = sourceConnectionId,
+        destinationConnectionId = destinationConnectionId,
+        createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now(),
+        deletedAt = deletedAt
+    )
+
+    @Test
+    fun `runJob uses ConnectionPair source and destination when connectionPairId is set`() {
+        val pair = makeConnectionPair(id = 5L, sourceConnectionId = 1L, destinationConnectionId = 2L)
+        val job = makeJob(id = 1L, workspaceId = 1L).apply { connectionPairId = 5L }
+        val sourceConn = makeDataConnection(id = 1L, workspaceId = 1L, isSource = true)
+        val destConn = makeDataConnection(id = 2L, workspaceId = 1L, isDestination = true)
+        val mockSrc = mock<DatabaseConnector>()
+        val mockDst = mock<DatabaseConnector>()
+
+        stubJobSaveAndLog(job)
+        whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(pair))
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(sourceConn))
+        whenever(dataConnectionRepository.findById(2L)).thenReturn(Optional.of(destConn))
+        whenever(EncryptionPort.decrypt(any())).thenReturn("decrypted")
+        whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(mockSrc, mockDst)
+        whenever(mockSrc.testConnection()).thenReturn(true)
+        whenever(mockDst.testConnection()).thenReturn(true)
+        whenever(tableConfigurationRepository.findByWorkspaceId(1L)).thenReturn(emptyList())
+
+        jobService.runJob(1L)
+
+        verify(connectionPairRepository).findById(5L)
+        // Pair connections are loaded by ID, not by workspace scan
+        verify(dataConnectionRepository, never()).findByWorkspaceId(any())
+        verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.COMPLETED })
+    }
+
+    @Test
+    fun `runJob sets FAILED when ConnectionPair has been soft-deleted`() {
+        val deletedPair = makeConnectionPair(id = 5L, deletedAt = LocalDateTime.now())
+        val job = makeJob(id = 1L, workspaceId = 1L).apply { connectionPairId = 5L }
+
+        stubJobSaveAndLog(job)
+        whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(deletedPair))
+
+        jobService.runJob(1L)
+
+        verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.FAILED })
+    }
+
+    @Test
+    fun `runJob sets FAILED when ConnectionPair source connection is missing`() {
+        val pair = makeConnectionPair(id = 5L, sourceConnectionId = 99L, destinationConnectionId = 2L)
+        val job = makeJob(id = 1L, workspaceId = 1L).apply { connectionPairId = 5L }
+
+        stubJobSaveAndLog(job)
+        whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(pair))
+        whenever(dataConnectionRepository.findById(99L)).thenReturn(Optional.empty())
+
+        jobService.runJob(1L)
+
+        verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.FAILED })
+    }
+
+    @Test
+    fun `runJob sets FAILED when ConnectionPair destination connection is missing`() {
+        val pair = makeConnectionPair(id = 5L, sourceConnectionId = 1L, destinationConnectionId = 99L)
+        val job = makeJob(id = 1L, workspaceId = 1L).apply { connectionPairId = 5L }
+        val sourceConn = makeDataConnection(id = 1L, workspaceId = 1L, isSource = true)
+
+        stubJobSaveAndLog(job)
+        whenever(connectionPairRepository.findById(5L)).thenReturn(Optional.of(pair))
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(sourceConn))
+        whenever(dataConnectionRepository.findById(99L)).thenReturn(Optional.empty())
+
+        jobService.runJob(1L)
+
+        verify(jobRepository, atLeastOnce()).save(argThat { status == JobStatus.FAILED })
+    }
 }
 
 
