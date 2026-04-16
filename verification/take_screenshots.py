@@ -107,6 +107,23 @@ def try_dismiss_modal(page: Page) -> None:
         pass
 
 
+def wait_loading_done(page: Page, timeout: int = 8_000) -> None:
+    """Wait for any loading overlay to disappear."""
+    try:
+        page.wait_for_selector(".loading-overlay", state="hidden", timeout=timeout)
+    except Exception:
+        pass
+
+
+def try_click(page: Page, selector: str, timeout: int = 6_000) -> bool:
+    """Click a selector; return True on success, False if not found/timed-out."""
+    try:
+        page.click(selector, timeout=timeout)
+        return True
+    except Exception:
+        return False
+
+
 # ── REST API helpers ──────────────────────────────────────────────────────────
 
 def api_call(method: str, path: str, body: dict | None = None, token: str = "") -> dict:
@@ -234,17 +251,19 @@ def step_login_filled(page: Page, base_url: str, username: str, password: str) -
 
 def step_workspaces_list(page: Page, base_url: str) -> None:
     nav(page, f"{base_url}/workspaces")
+    wait_loading_done(page)
     shot(page, "04-workspaces-list.png")
 
-    # Open create workspace modal to show the form
-    page.click("button:has-text('＋ New Workspace')")
-    page.wait_for_selector("input.form-control", timeout=5_000)
-    shot(page, "05-create-workspace-modal.png")
-
-    # Fill name field so the form looks populated
-    page.locator("input.form-control").first.fill("My Production Workspace")
-    shot(page, "06-create-workspace-filled.png")
-    try_dismiss_modal(page)
+    # Open create workspace modal — optional screenshot
+    if try_click(page, "button:has-text('New Workspace')"):
+        try:
+            page.wait_for_selector("input.form-control", timeout=5_000)
+            shot(page, "05-create-workspace-modal.png")
+            page.locator("input.form-control").first.fill("My Production Workspace")
+            shot(page, "06-create-workspace-filled.png")
+        except Exception:
+            pass
+        try_dismiss_modal(page)
 
 
 def step_workspace_overview(page: Page, base_url: str, ws_id: int) -> None:
@@ -255,88 +274,98 @@ def step_workspace_overview(page: Page, base_url: str, ws_id: int) -> None:
 
 def step_connections(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}/connections")
-    wait_for_load(page)
+    wait_loading_done(page)
     shot(page, "08-connections-configured.png")
 
-    # Open add connection modal for a form screenshot
-    page.click("button:has-text('＋ Add Connection')")
-    # Wait for the Name field (placeholder='Production DB') which is in the modal
-    page.wait_for_selector("input[placeholder='Production DB']", timeout=5_000)
-    shot(page, "09-add-connection-modal.png")
-
-    # Fill in example values from the form (actual placeholders from ConnectionsView.vue)
-    page.fill("input[placeholder='Production DB']", "demo-source")
-    page.fill("input[placeholder='localhost']", "source_db")
-    page.fill("input[placeholder='mydb']", "source_db")
-    page.fill("input[placeholder='admin']", "source_user")
-    page.fill("input[type='password'][autocomplete='new-password']", "•••••••••")
-    # Source checkbox is inside a label that contains the text "Source ("
-    src_label = page.locator("label").filter(has_text="Source (read data")
-    src_cb    = src_label.locator("input[type='checkbox']")
-    if not src_cb.is_checked():
-        src_cb.click()
-    shot(page, "10-connection-form-filled.png")
-    try_dismiss_modal(page)
+    # Open add connection modal — optional screenshot
+    if try_click(page, "button:has-text('Add Connection')"):
+        try:
+            page.wait_for_selector("input[placeholder='Production DB']", timeout=5_000)
+            shot(page, "09-add-connection-modal.png")
+            page.fill("input[placeholder='Production DB']", "demo-source")
+            page.fill("input[placeholder='localhost']", "source_db")
+            page.fill("input[placeholder='mydb']", "source_db")
+            page.fill("input[placeholder='admin']", "source_user")
+            page.fill("input[type='password'][autocomplete='new-password']", "•••••••••")
+            src_label = page.locator("label").filter(has_text="Source (read data")
+            src_cb = src_label.locator("input[type='checkbox']")
+            if not src_cb.is_checked():
+                src_cb.click()
+            shot(page, "10-connection-form-filled.png")
+        except Exception:
+            pass
+        try_dismiss_modal(page)
 
 
 def step_tables(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}/tables")
-    wait_for_load(page)
+    wait_loading_done(page)
     shot(page, "11-tables-configured.png")
 
     # Expand the first table to show column generators
-    # Button text when collapsed: "▼ Columns (N)"
     expand_btn = page.query_selector("button:has-text('▼ Columns')")
     if expand_btn:
-        expand_btn.click()
-        time.sleep(0.5)
-        shot(page, "12-generators-expanded.png", full_page=True)
+        try:
+            expand_btn.click()
+            time.sleep(0.5)
+            shot(page, "12-generators-expanded.png", full_page=True)
+        except Exception:
+            pass
 
-    # Open add-table modal for a form screenshot
-    page.click("button:has-text('＋ Add Table')")
-    page.wait_for_selector("input[placeholder='users']", timeout=5_000)
-    shot(page, "13-add-table-modal.png")
-    try_dismiss_modal(page)
+    # Open add-table modal — optional screenshot
+    if try_click(page, "button:has-text('Add Table')"):
+        try:
+            page.wait_for_selector("input[placeholder='users']", timeout=5_000)
+            shot(page, "13-add-table-modal.png")
+        except Exception:
+            pass
+        try_dismiss_modal(page)
 
 
 def step_data_mappings(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}/mappings")
-    wait_for_load(page)
+    wait_loading_done(page)
     shot(page, "14-data-mapping-wizard.png")
 
     # Click the first connection card to advance the wizard
-    card = page.query_selector(".card button, .cursor-pointer, [role='button']")
-    if card:
-        card.click()
-        time.sleep(0.5)
-        shot(page, "15-data-mapping-columns.png")
+    try:
+        card = page.query_selector(".card button, .cursor-pointer, [role='button']")
+        if card:
+            card.click()
+            time.sleep(0.5)
+            shot(page, "15-data-mapping-columns.png")
+    except Exception:
+        pass
 
 
 def step_jobs(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}/jobs")
-    wait_for_load(page)
+    wait_loading_done(page)
     shot(page, "16-jobs-list.png")
 
-    # Open the "Run New Job" modal
-    page.click("button:has-text('⚙ Run New Job')")
-    # Wait for the job name field (placeholder from JobsView.vue)
-    page.wait_for_selector("input[placeholder*='Mask Production']", timeout=5_000)
-    shot(page, "17-run-job-modal.png")
+    # Open the "Run New Job" modal — optional
+    if try_click(page, "button:has-text('Run New Job')"):
+        try:
+            page.wait_for_selector("input[placeholder*='Mask Production']", timeout=5_000)
+            shot(page, "17-run-job-modal.png")
+            selects = page.query_selector_all(".modal-body select.form-control, dialog select.form-control")
+            if len(selects) >= 2:
+                selects[0].select_option(index=0)
+                selects[1].select_option(index=0)
+                shot(page, "18-run-job-filled.png")
+        except Exception:
+            pass
+        try_dismiss_modal(page)
 
-    # Select source + target for a realistic screenshot
-    selects = page.query_selector_all(".modal-body select.form-control, dialog select.form-control")
-    if len(selects) >= 2:
-        selects[0].select_option(index=0)
-        selects[1].select_option(index=0)
-        shot(page, "18-run-job-filled.png")
-    try_dismiss_modal(page)
-
-    # Expand logs for the existing completed job if present
-    log_btn = page.query_selector("button:has-text('View Logs')")
-    if log_btn:
-        log_btn.click()
-        time.sleep(0.5)
-        shot(page, "19-job-logs.png", full_page=True)
+    # Expand logs for an existing job if present
+    try:
+        log_btn = page.query_selector("button:has-text('View Logs')")
+        if log_btn:
+            log_btn.click()
+            time.sleep(0.5)
+            shot(page, "19-job-logs.png", full_page=True)
+    except Exception:
+        pass
 
 
 def step_sensitivity_rules(page: Page, base_url: str) -> None:
@@ -445,29 +474,44 @@ def main() -> int:
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=not args.headed)
         page    = browser.new_page(viewport=VIEWPORT)
-        page.set_default_timeout(20_000)
+        page.set_default_timeout(30_000)
 
         try:
+            # Auth pages — must succeed for subsequent steps
             step_login_page(page, args.url)
             step_register_page(page, args.url)
             step_login_filled(page, args.url, args.username, args.password)
-            step_workspaces_list(page, args.url)
-            step_workspace_overview(page, args.url, ws_id)
-            step_connections(page, args.url, ws_id)
-            step_tables(page, args.url, ws_id)
-            step_data_mappings(page, args.url, ws_id)
-            step_jobs(page, args.url, ws_id)
-            step_sensitivity_rules(page, args.url)
-
         except Exception as exc:
-            print(f"\n[WARN] Screenshot step failed: {exc}")
-            print("       Partial screenshots may have been saved.")
+            print(f"\n[WARN] Auth step failed: {exc}")
             try:
                 shot(page, "error-state.png", full_page=True)
             except Exception:
                 pass
-        finally:
             browser.close()
+            count = len(list(_output_dir.glob("*.png")))
+            print(f"\n✓ {count} screenshots saved to {_output_dir.resolve()}")
+            return 0
+
+        # Remaining sections — each is independent; failure doesn't block others
+        for label, fn, kwargs in [
+            ("workspaces",    step_workspaces_list,   {"base_url": args.url}),
+            ("overview",      step_workspace_overview, {"base_url": args.url, "ws_id": ws_id}),
+            ("connections",   step_connections,        {"base_url": args.url, "ws_id": ws_id}),
+            ("tables",        step_tables,             {"base_url": args.url, "ws_id": ws_id}),
+            ("data-mappings", step_data_mappings,      {"base_url": args.url, "ws_id": ws_id}),
+            ("jobs",          step_jobs,               {"base_url": args.url, "ws_id": ws_id}),
+            ("pii-rules",     step_sensitivity_rules,  {"base_url": args.url}),
+        ]:
+            try:
+                fn(page, **kwargs)
+            except Exception as exc:
+                print(f"  [WARN] {label} step failed: {exc}")
+                try:
+                    shot(page, f"error-{label}.png", full_page=True)
+                except Exception:
+                    pass
+
+        browser.close()
 
     count = len(list(_output_dir.glob("*.png")))
     print(f"\n✓ {count} screenshots saved to {_output_dir.resolve()}")
