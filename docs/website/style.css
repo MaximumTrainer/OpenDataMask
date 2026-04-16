@@ -98,6 +98,70 @@ a:hover { text-decoration: underline; }
 .alert { border-left: 4px solid #6366f1; background: #eef2ff; padding: 1rem 1.25rem; border-radius: 0 0.5rem 0.5rem 0; margin: 1rem 0; font-size: 0.95rem; }
 .alert strong { color: #4f46e5; }
 
+/* ── Step-by-step guide ───────────────────────────────────────────────────── */
+.guide-steps { display: flex; flex-direction: column; gap: 3.5rem; margin: 2rem 0; }
+
+.guide-step { display: grid; grid-template-columns: 2.5rem 1fr; gap: 0 1.5rem; }
+.guide-step-num {
+  width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  background: #6366f1; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1rem; flex-shrink: 0;
+  position: sticky; top: 88px; align-self: start;
+}
+.guide-step-body { min-width: 0; }
+.guide-step-body h3 { font-size: 1.2rem; font-weight: 700; margin: 0.4rem 0 0.75rem; color: #0f172a; }
+.guide-step-body p { margin-bottom: 0.75rem; }
+
+.screenshot-group { display: flex; flex-direction: column; gap: 1.5rem; margin: 1.25rem 0; }
+
+.screenshot-frame {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  background: #f8fafc;
+}
+.screenshot-frame img {
+  display: block; width: 100%; height: auto;
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+.screenshot-caption {
+  padding: 0.6rem 1rem;
+  font-size: 0.82rem;
+  color: #64748b;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.screenshot-placeholder {
+  width: 100%; aspect-ratio: 16/9;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #64748b; font-size: 0.9rem; font-family: monospace;
+  border-radius: 0.75rem 0.75rem 0 0;
+  min-height: 200px;
+}
+
+.screenshot-pair {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+}
+@media (max-width: 900px) { .screenshot-pair { grid-template-columns: 1fr; } }
+
+.callout {
+  display: flex; gap: 0.75rem; align-items: flex-start;
+  background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 0.5rem;
+  padding: 0.875rem 1rem; margin: 1rem 0; font-size: 0.92rem; color: #166534;
+}
+.callout-icon { font-size: 1.1rem; flex-shrink: 0; }
+.callout.tip { background: #fefce8; border-color: #fde68a; color: #78350f; }
+.callout.tip .callout-icon::before { content: '💡'; }
+.callout.info { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+.callout.info .callout-icon::before { content: 'ℹ️'; }
+.callout.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+.callout.success .callout-icon::before { content: '✅'; }
+
 /* ── HTTP Method Badges ───────────────────────────────────────────────────── */
 .badge { display: inline-block; padding: 0.15em 0.55em; border-radius: 0.3rem; font-size: 0.78rem; font-weight: 700; font-family: monospace; letter-spacing: 0.03em; }
 .badge-get    { background: #dcfce7; color: #16a34a; }

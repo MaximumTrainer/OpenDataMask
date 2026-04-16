@@ -22,7 +22,7 @@
 
   <section class="page-hero">
     <h1>User Guide</h1>
-    <p>Everything you need to set up, configure, and operate OpenDataMask.</p>
+    <p>Step-by-step setup guide — from first login to running your first masking job.</p>
   </section>
 
   <div class="content-layout">
@@ -31,15 +31,25 @@
         <h4>Contents</h4>
         <ul>
           <li><a href="#quickstart">Quick Start</a></li>
+          <li><a href="#step-by-step">Step-by-Step Setup</a>
+            <ul>
+              <li><a href="#step-register">1. Register &amp; Sign In</a></li>
+              <li><a href="#step-workspace">2. Create a Workspace</a></li>
+              <li><a href="#step-connections">3. Connect Databases</a></li>
+              <li><a href="#step-tables">4. Configure Tables</a></li>
+              <li><a href="#step-data-mapping">5. Data Mappings</a></li>
+              <li><a href="#step-jobs">6. Run a Masking Job</a></li>
+              <li><a href="#step-pii-rules">7. Custom PII Rules</a></li>
+            </ul>
+          </li>
           <li><a href="#prerequisites">Prerequisites</a></li>
           <li><a href="#installation">Installation</a></li>
           <li><a href="#configuration">Configuration</a></li>
           <li><a href="#concepts">Core Concepts</a>
             <ul>
-              <li><a href="#connections">Database Connections</a></li>
+              <li><a href="#connections-ref">Database Connections</a></li>
             </ul>
           </li>
-          <li><a href="#workflow">Operational Workflow</a></li>
           <li><a href="#generators">Generator Types</a></li>
           <li><a href="#cli">CLI Usage</a></li>
           <li><a href="#privacy">Privacy &amp; Compliance</a></li>
@@ -49,6 +59,8 @@
     </aside>
 
     <main class="main-content">
+
+      <!-- ── Quick Start ─────────────────────────────────────────────────── -->
       <h2 id="quickstart">Quick Start</h2>
       <p>The fastest way to run OpenDataMask is with Docker Compose:</p>
       <pre><code>git clone https://github.com/MaximumTrainer/OpenDataMask.git
@@ -63,8 +75,306 @@ docker-compose up -d
 
 # Open the UI
 open http://localhost</code></pre>
-      <div class="alert"><strong>Note:</strong> Default ports — Frontend: 80, Backend API: 8080, PostgreSQL: 5432.</div>
+      <div class="alert"><strong>Default ports —</strong> Frontend: <code>80</code>, Backend API: <code>8080</code>, PostgreSQL: <code>5432</code>.</div>
 
+      <!-- ── Step-by-step visual guide ──────────────────────────────────── -->
+      <h2 id="step-by-step">Step-by-Step Setup Guide</h2>
+      <p>The following walkthrough covers the full lifecycle of a masking project — from creating an account through to a completed masking job with custom PII detection rules.</p>
+      <div class="callout info"><span class="callout-icon"></span>Screenshots are generated automatically from a live environment by <code>verification/take_screenshots.py</code>. Run <code>pip install playwright &amp;&amp; playwright install chromium</code> then <code>python3 verification/take_screenshots.py</code> to regenerate them.</div>
+
+      <div class="guide-steps">
+
+        <!-- Step 1: Register & Sign In -->
+        <div class="guide-step" id="step-register">
+          <div class="guide-step-num">1</div>
+          <div class="guide-step-body">
+            <h3>Register &amp; Sign In</h3>
+            <p>Navigate to <code>http://localhost</code> to reach the login page. Click <strong>Register</strong> to create your first account, or sign in with existing credentials. All passwords are bcrypt-hashed; credentials never leave your infrastructure.</p>
+
+            <div class="screenshot-group">
+              <div class="screenshot-pair">
+                <div class="screenshot-frame">
+                  <img src="screenshots/01-login-page.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="OpenDataMask login page" />
+                  <div class="screenshot-placeholder" style="display:none">01-login-page.png<br><small>Run take_screenshots.py to generate</small></div>
+                  <p class="screenshot-caption">The login page — enter credentials or click <em>Register</em> to create a new account.</p>
+                </div>
+                <div class="screenshot-frame">
+                  <img src="screenshots/02-register-page.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="OpenDataMask registration form" />
+                  <div class="screenshot-placeholder" style="display:none">02-register-page.png<br><small>Run take_screenshots.py to generate</small></div>
+                  <p class="screenshot-caption">The registration form — fill in username, email, and password to create your account.</p>
+                </div>
+              </div>
+              <div class="screenshot-frame">
+                <img src="screenshots/04-login-filled.png"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                     alt="Login form filled in" />
+                <div class="screenshot-placeholder" style="display:none">04-login-filled.png<br><small>Run take_screenshots.py to generate</small></div>
+                <p class="screenshot-caption">After entering credentials, click <em>Sign In</em> to access your workspace dashboard.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Create a Workspace -->
+        <div class="guide-step" id="step-workspace">
+          <div class="guide-step-num">2</div>
+          <div class="guide-step-body">
+            <h3>Create a Workspace</h3>
+            <p>A <strong>Workspace</strong> is the top-level container for a masking project. It holds all your database connections, table configurations, data mappings, and job history. Click <strong>New Workspace</strong>, enter a name and optional description, then click <strong>Create</strong>.</p>
+
+            <div class="screenshot-group">
+              <div class="screenshot-pair">
+                <div class="screenshot-frame">
+                  <img src="screenshots/05-workspaces-empty.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Empty workspaces list" />
+                  <div class="screenshot-placeholder" style="display:none">05-workspaces-empty.png</div>
+                  <p class="screenshot-caption">The workspace dashboard on first login — no workspaces yet.</p>
+                </div>
+                <div class="screenshot-frame">
+                  <img src="screenshots/06-create-workspace-modal.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Create workspace modal" />
+                  <div class="screenshot-placeholder" style="display:none">06-create-workspace-modal.png</div>
+                  <p class="screenshot-caption">The <em>New Workspace</em> modal — give your project a name and optional description.</p>
+                </div>
+              </div>
+              <div class="screenshot-frame">
+                <img src="screenshots/09-workspace-overview.png"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                     alt="Workspace overview" />
+                <div class="screenshot-placeholder" style="display:none">09-workspace-overview.png</div>
+                <p class="screenshot-caption">The workspace overview tab — shows a summary of connections, tables, and recent job activity.</p>
+              </div>
+            </div>
+
+            <div class="callout tip"><span class="callout-icon"></span>Use descriptive workspace names like <em>"Prod → QA Sync"</em> or <em>"GDPR Compliance Prep"</em> to make multi-project setups easy to navigate.</div>
+          </div>
+        </div>
+
+        <!-- Step 3: Connect Databases -->
+        <div class="guide-step" id="step-connections">
+          <div class="guide-step-num">3</div>
+          <div class="guide-step-body">
+            <h3>Connect Your Databases</h3>
+            <p>Navigate to the <strong>Connections</strong> tab inside your workspace. You need at least two connections: a <em>source</em> (production-like data) and a <em>destination</em> (target environment for masked data). Supported types include PostgreSQL, MySQL, Azure SQL, MongoDB, and file uploads.</p>
+            <p>For each connection, fill in:</p>
+            <ul>
+              <li><strong>Name</strong> — a label used in job configuration</li>
+              <li><strong>Type</strong> — database engine (e.g., <code>POSTGRESQL</code>)</li>
+              <li><strong>Host / Port / Database</strong> — connection coordinates</li>
+              <li><strong>Username / Password</strong> — stored encrypted with AES-256</li>
+              <li><strong>Role</strong> — tick <em>Source</em> or <em>Destination</em> (or both)</li>
+            </ul>
+
+            <div class="screenshot-group">
+              <div class="screenshot-frame">
+                <img src="screenshots/10-connections-empty.png"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                     alt="Connections tab — empty" />
+                <div class="screenshot-placeholder" style="display:none">10-connections-empty.png</div>
+                <p class="screenshot-caption">The <em>Connections</em> tab — click <strong>+ Add Connection</strong> to register your source database.</p>
+              </div>
+              <div class="screenshot-pair">
+                <div class="screenshot-frame">
+                  <img src="screenshots/12-source-connection-filled.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Source connection form" />
+                  <div class="screenshot-placeholder" style="display:none">12-source-connection-filled.png</div>
+                  <p class="screenshot-caption">Filling in the <strong>source</strong> database connection — enable the <em>Source</em> role toggle.</p>
+                </div>
+                <div class="screenshot-frame">
+                  <img src="screenshots/14-destination-connection-filled.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Destination connection form" />
+                  <div class="screenshot-placeholder" style="display:none">14-destination-connection-filled.png</div>
+                  <p class="screenshot-caption">Filling in the <strong>destination</strong> database connection — enable the <em>Destination</em> role toggle.</p>
+                </div>
+              </div>
+              <div class="screenshot-frame">
+                <img src="screenshots/15-connections-configured.png"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                     alt="Both connections saved" />
+                <div class="screenshot-placeholder" style="display:none">15-connections-configured.png</div>
+                <p class="screenshot-caption">Both connections saved — the source and destination are now ready for use in masking jobs.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Configure Tables & Generators -->
+        <div class="guide-step" id="step-tables">
+          <div class="guide-step-num">4</div>
+          <div class="guide-step-body">
+            <h3>Configure Tables &amp; Column Generators</h3>
+            <p>The <strong>Tables</strong> tab lets you tell OpenDataMask which tables to process and how to transform each column. For every table, choose a <em>masking mode</em> (<code>MASK</code>, <code>GENERATE</code>, <code>PASSTHROUGH</code>, or <code>SKIP</code>), then configure a <em>generator</em> for each column that should be anonymised.</p>
+
+            <div class="screenshot-group">
+              <div class="screenshot-pair">
+                <div class="screenshot-frame">
+                  <img src="screenshots/16-tables-empty.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Tables tab empty" />
+                  <div class="screenshot-placeholder" style="display:none">16-tables-empty.png</div>
+                  <p class="screenshot-caption">The <em>Tables</em> tab before any configuration — click <strong>+ Add Table</strong>.</p>
+                </div>
+                <div class="screenshot-frame">
+                  <img src="screenshots/18-table-config-filled.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Table configuration form" />
+                  <div class="screenshot-placeholder" style="display:none">18-table-config-filled.png</div>
+                  <p class="screenshot-caption">Configuring the <code>users</code> table — selecting <strong>MASK</strong> mode.</p>
+                </div>
+              </div>
+              <div class="screenshot-frame">
+                <img src="screenshots/21-generators-configured.png"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                     alt="Generators configured for each column" />
+                <div class="screenshot-placeholder" style="display:none">21-generators-configured.png</div>
+                <p class="screenshot-caption">Column generators configured: <code>full_name → FULL_NAME</code>, <code>email → EMAIL</code>, <code>phone → PHONE</code>. Each mapped column will receive realistic synthetic data when the job runs.</p>
+              </div>
+            </div>
+
+            <div class="callout tip"><span class="callout-icon"></span>Use <strong>Run Sensitivity Scan</strong> from the workspace <em>Actions</em> tab to auto-detect PII columns and receive generator recommendations — then click <em>Apply Recommendations</em> to configure them in one shot.</div>
+          </div>
+        </div>
+
+        <!-- Step 5: Data Mappings -->
+        <div class="guide-step" id="step-data-mapping">
+          <div class="guide-step-num">5</div>
+          <div class="guide-step-body">
+            <h3>Data Mappings (Advanced Column Control)</h3>
+            <p>The <strong>Data Mappings</strong> tab gives you fine-grained, per-column control that overrides the table-level generator configuration. Use it to set each column to one of three actions:</p>
+            <ul>
+              <li><strong>Mask</strong> — replace the value with a generated fake (choose strategy: <code>FAKE</code>, <code>HASH</code>, <code>NULL</code>, <code>REDACT</code>, <code>PARTIAL_MASK</code>, or <code>REGEX</code>)</li>
+              <li><strong>Migrate As-Is</strong> — copy the original value unchanged</li>
+              <li><strong>Omit</strong> — exclude the column entirely from the output</li>
+            </ul>
+            <p>The wizard walks you through three steps: select a connection → select a table → configure each column.</p>
+
+            <div class="screenshot-group">
+              <div class="screenshot-pair">
+                <div class="screenshot-frame">
+                  <img src="screenshots/22-data-mapping-step1.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Data mapping wizard step 1" />
+                  <div class="screenshot-placeholder" style="display:none">22-data-mapping-step1.png</div>
+                  <p class="screenshot-caption"><strong>Step 1</strong> — Choose the connection whose schema you want to configure.</p>
+                </div>
+                <div class="screenshot-frame">
+                  <img src="screenshots/23-data-mapping-step2-tables.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Data mapping wizard step 2" />
+                  <div class="screenshot-placeholder" style="display:none">23-data-mapping-step2-tables.png</div>
+                  <p class="screenshot-caption"><strong>Step 2</strong> — Select the table you want to map.</p>
+                </div>
+              </div>
+              <div class="screenshot-frame">
+                <img src="screenshots/24-data-mapping-step3-columns.png"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                     alt="Data mapping wizard step 3 — column configuration" />
+                <div class="screenshot-placeholder" style="display:none">24-data-mapping-step3-columns.png</div>
+                <p class="screenshot-caption"><strong>Step 3</strong> — Set the action and masking strategy for each discovered column. Changes are saved immediately.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6: Run a Job -->
+        <div class="guide-step" id="step-jobs">
+          <div class="guide-step-num">6</div>
+          <div class="guide-step-body">
+            <h3>Run a Masking Job</h3>
+            <p>With connections and table configuration in place, go to the <strong>Jobs</strong> tab and click <strong>Run New Job</strong>. Select your source and destination connections, then click <strong>Run</strong>. The job runs asynchronously — the progress badge cycles from <code>PENDING</code> → <code>RUNNING</code> → <code>COMPLETED</code> (or <code>FAILED</code>) in real time.</p>
+
+            <div class="screenshot-group">
+              <div class="screenshot-frame">
+                <img src="screenshots/26-run-job-modal.png"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                     alt="Run job modal" />
+                <div class="screenshot-placeholder" style="display:none">26-run-job-modal.png</div>
+                <p class="screenshot-caption">The <em>Run New Job</em> modal — select the source and destination connections, then click <strong>Run</strong>.</p>
+              </div>
+              <div class="screenshot-pair">
+                <div class="screenshot-frame">
+                  <img src="screenshots/28-job-running.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Job running" />
+                  <div class="screenshot-placeholder" style="display:none">28-job-running.png</div>
+                  <p class="screenshot-caption">The job in progress — status badge shows <strong>RUNNING</strong>.</p>
+                </div>
+                <div class="screenshot-frame">
+                  <img src="screenshots/29-job-completed.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Job completed" />
+                  <div class="screenshot-placeholder" style="display:none">29-job-completed.png</div>
+                  <p class="screenshot-caption">Job complete — status shows <strong>COMPLETED</strong> with row counts and duration.</p>
+                </div>
+              </div>
+              <div class="screenshot-frame">
+                <img src="screenshots/30-job-logs.png"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                     alt="Job log output" />
+                <div class="screenshot-placeholder" style="display:none">30-job-logs.png</div>
+                <p class="screenshot-caption">Expanding the job log shows per-table row counts and any warnings raised during masking.</p>
+              </div>
+            </div>
+
+            <div class="callout success"><span class="callout-icon"></span>After a successful job, connect to your destination database to verify. The <code>verification/verify.py</code> script automates this check — it validates that PII columns contain synthetic data, primary keys are preserved, and no original values leaked through.</div>
+          </div>
+        </div>
+
+        <!-- Step 7: Custom PII Rules -->
+        <div class="guide-step" id="step-pii-rules">
+          <div class="guide-step-num">7</div>
+          <div class="guide-step-body">
+            <h3>Custom PII Detection Rules</h3>
+            <p>OpenDataMask ships with built-in sensitivity detection for common PII (email addresses, phone numbers, SSNs, etc.). The <strong>Sensitivity Rules</strong> page under <em>Settings</em> lets you define your own detection rules for domain-specific identifiers — for example, an internal employee ID format or a proprietary customer reference number.</p>
+            <p>Each custom rule has:</p>
+            <ul>
+              <li><strong>Name</strong> — displayed in scan reports and data mapping labels</li>
+              <li><strong>Matchers</strong> — column-name patterns and/or regex patterns that identify the PII type</li>
+              <li><strong>Data type filter</strong> — optionally restrict the rule to text, numeric, or date columns</li>
+              <li><strong>Linked preset</strong> — optionally auto-apply a masking strategy when the rule fires</li>
+            </ul>
+
+            <div class="screenshot-group">
+              <div class="screenshot-pair">
+                <div class="screenshot-frame">
+                  <img src="screenshots/31-sensitivity-rules.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Sensitivity rules list" />
+                  <div class="screenshot-placeholder" style="display:none">31-sensitivity-rules.png</div>
+                  <p class="screenshot-caption">The <em>Sensitivity Rules</em> settings page — lists all built-in and custom PII detection rules.</p>
+                </div>
+                <div class="screenshot-frame">
+                  <img src="screenshots/32-add-pii-rule-drawer.png"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                       alt="Add PII rule drawer" />
+                  <div class="screenshot-placeholder" style="display:none">32-add-pii-rule-drawer.png</div>
+                  <p class="screenshot-caption">The <em>New Rule</em> side panel — give the rule a name and add one or more column-name matchers.</p>
+                </div>
+              </div>
+              <div class="screenshot-frame">
+                <img src="screenshots/33-pii-rule-configured.png"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                     alt="Configured PII rule" />
+                <div class="screenshot-placeholder" style="display:none">33-pii-rule-configured.png</div>
+                <p class="screenshot-caption">A custom rule targeting columns named <code>employee_id</code> — the next sensitivity scan will flag matching columns and recommend a masking strategy.</p>
+              </div>
+            </div>
+
+            <div class="callout tip"><span class="callout-icon"></span>After saving a new sensitivity rule, run a fresh <strong>Sensitivity Scan</strong> from the workspace <em>Actions</em> tab to see it take effect.</div>
+          </div>
+        </div>
+
+      </div><!-- /.guide-steps -->
+
+      <!-- ── Prerequisites ──────────────────────────────────────────────── -->
       <h2 id="prerequisites">Prerequisites</h2>
       <table>
         <tr><th>Requirement</th><th>Version</th><th>Notes</th></tr>
@@ -75,6 +385,7 @@ open http://localhost</code></pre>
         <tr><td>Go</td><td>1.21+</td><td>CLI build from source only</td></tr>
       </table>
 
+      <!-- ── Installation ───────────────────────────────────────────────── -->
       <h2 id="installation">Installation &amp; Build</h2>
       <h3>Backend (Kotlin / Spring Boot)</h3>
       <pre><code>cd backend
@@ -92,6 +403,7 @@ npm run build                        # production build</code></pre>
 go build -o opendatamask-cli ./...
 ./opendatamask-cli --help</code></pre>
 
+      <!-- ── Configuration ──────────────────────────────────────────────── -->
       <h2 id="configuration">Configuration</h2>
       <p>All sensitive configuration is supplied via environment variables:</p>
       <table>
@@ -105,9 +417,10 @@ go build -o opendatamask-cli ./...
         <tr><td><code>MONGODB_URI</code></td><td>No</td><td>MongoDB URI when masking MongoDB sources</td></tr>
       </table>
 
+      <!-- ── Core Concepts ──────────────────────────────────────────────── -->
       <h2 id="concepts">Core Concepts</h2>
 
-      <h3 id="connections">Supported Database Connections</h3>
+      <h3 id="connections-ref">Supported Database Connections</h3>
       <table>
         <tr><th>Type</th><th>Key</th><th>Connection String Format</th></tr>
         <tr><td>PostgreSQL</td><td><code>POSTGRESQL</code></td><td><code>jdbc:postgresql://&lt;host&gt;:&lt;port&gt;/&lt;database&gt;</code></td></tr>
@@ -117,37 +430,45 @@ go build -o opendatamask-cli ./...
         <tr><td>MongoDB Cosmos DB</td><td><code>MONGODB_COSMOS</code></td><td><code>mongodb://&lt;account&gt;.mongo.cosmos.azure.com:10255/&lt;db&gt;?ssl=true&amp;...</code></td></tr>
         <tr><td>File (CSV/JSON)</td><td><code>FILE</code></td><td><em>Uploaded via the UI</em></td></tr>
       </table>
-      <p>For <strong>Azure SQL</strong>, TLS encryption is enabled automatically and credentials (username/password) are provided separately from the connection string. The <code>mssql-jdbc</code> driver is bundled — no extra installation needed.</p>
+      <p>For <strong>Azure SQL</strong>, TLS encryption is enabled automatically and credentials are provided separately from the connection string. The <code>mssql-jdbc</code> driver is bundled — no extra installation needed.</p>
 
       <h3>Workspaces</h3>
-      <p>A <strong>Workspace</strong> is the top-level scope for a masking project. It contains connections, table configurations, jobs, and team members. Workspaces can inherit configuration from a parent workspace.</p>
+      <p>A <strong>Workspace</strong> is the top-level scope for a masking project. It contains connections, table configurations, jobs, data mappings, and custom PII rules. Workspaces can inherit configuration from a parent workspace for multi-environment setups.</p>
 
       <h3>Masking Modes</h3>
       <table>
         <tr><th>Mode</th><th>Description</th></tr>
-        <tr><td><code>MASK</code></td><td>Replace column values with generated fake data</td></tr>
-        <tr><td><code>GENERATE</code></td><td>Generate an entirely new row set</td></tr>
-        <tr><td><code>PASSTHROUGH</code></td><td>Copy data without modification</td></tr>
-        <tr><td><code>SUBSET</code></td><td>Copy a filtered/sampled subset of rows</td></tr>
-        <tr><td><code>SKIP</code></td><td>Exclude the table from processing</td></tr>
+        <tr><td><code>MASK</code></td><td>Replace column values with generated fake data using the configured generator</td></tr>
+        <tr><td><code>GENERATE</code></td><td>Generate an entirely new row set regardless of source data</td></tr>
+        <tr><td><code>PASSTHROUGH</code></td><td>Copy data without any modification</td></tr>
+        <tr><td><code>SUBSET</code></td><td>Copy a filtered or sampled subset of rows</td></tr>
+        <tr><td><code>SKIP</code></td><td>Exclude the table from processing entirely</td></tr>
       </table>
 
-      <h2 id="workflow">Operational Workflow</h2>
-      <ol>
-        <li><strong>Register &amp; log in</strong> — Create an account at <code>http://localhost</code></li>
-        <li><strong>Create a Workspace</strong> — Name your project</li>
-        <li><strong>Add Data Connections</strong> — Source (production-like) and target (dev/test) databases</li>
-        <li><strong>Run Sensitivity Scan</strong> — Auto-detect PII columns</li>
-        <li><strong>Configure Tables &amp; Columns</strong> — Set masking mode and generator per column</li>
-        <li><strong>Run a Job</strong> — Execute masking and monitor progress in real time</li>
-        <li><strong>Review Privacy Report</strong> — Verify all sensitive data is protected</li>
-      </ol>
+      <h3>Data Mapping Actions</h3>
+      <table>
+        <tr><th>Action</th><th>Description</th></tr>
+        <tr><td><code>MASK</code></td><td>Replace the column value using the configured masking strategy</td></tr>
+        <tr><td><code>MIGRATE_AS_IS</code></td><td>Copy the original value to the destination unchanged</td></tr>
+      </table>
 
+      <h3>Masking Strategies</h3>
+      <table>
+        <tr><th>Strategy</th><th>Description</th><th>Example output</th></tr>
+        <tr><td><code>FAKE</code></td><td>Replace with realistic synthetic data from the selected generator</td><td><code>John Smith</code></td></tr>
+        <tr><td><code>HASH</code></td><td>Deterministic SHA-256 hash (consistent across runs)</td><td><code>a3f1b2c…</code></td></tr>
+        <tr><td><code>NULL</code></td><td>Replace with a SQL NULL value</td><td><code>NULL</code></td></tr>
+        <tr><td><code>REDACT</code></td><td>Replace with a fixed redaction string (e.g., <code>[REDACTED]</code>)</td><td><code>[REDACTED]</code></td></tr>
+        <tr><td><code>PARTIAL_MASK</code></td><td>Mask all but the first or last N characters</td><td><code>john****@****.com</code></td></tr>
+        <tr><td><code>REGEX</code></td><td>Apply a find-and-replace regex transformation</td><td><em>configurable</em></td></tr>
+      </table>
+
+      <!-- ── Generator Types ────────────────────────────────────────────── -->
       <h2 id="generators">Generator Types</h2>
-      <p>OpenDataMask includes 60+ built-in generators covering personal, financial, medical, and network data:</p>
+      <p>OpenDataMask includes 63+ built-in generators covering personal, financial, medical, and network data:</p>
       <table>
         <tr><th>Category</th><th>Generators</th></tr>
-        <tr><td>Personal</td><td>NAME, FIRST_NAME, LAST_NAME, EMAIL, PHONE, BIRTH_DATE, GENDER, TITLE, JOB_TITLE, NATIONALITY</td></tr>
+        <tr><td>Personal</td><td>NAME, FIRST_NAME, LAST_NAME, FULL_NAME, EMAIL, PHONE, BIRTH_DATE, GENDER, TITLE, JOB_TITLE, NATIONALITY</td></tr>
         <tr><td>Address</td><td>ADDRESS, STREET_ADDRESS, CITY, STATE, ZIP_CODE, COUNTRY, GPS_COORDINATES, LATITUDE, LONGITUDE, TIME_ZONE</td></tr>
         <tr><td>Identity</td><td>SSN, PASSPORT_NUMBER, DRIVERS_LICENSE, MEDICAL_RECORD_NUMBER</td></tr>
         <tr><td>Financial</td><td>CREDIT_CARD, IBAN, SWIFT_CODE, MONEY_AMOUNT, BTC_ADDRESS, ACCOUNT_NUMBER, CURRENCY_CODE</td></tr>
@@ -155,9 +476,10 @@ go build -o opendatamask-cli ./...
         <tr><td>Business</td><td>ORGANIZATION, COMPANY_NAME, DEPARTMENT</td></tr>
         <tr><td>Medical</td><td>ICD_CODE, HEALTH_PLAN_NUMBER</td></tr>
         <tr><td>Data Utilities</td><td>BOOLEAN, LOREM, TIMESTAMP</td></tr>
-        <tr><td>Control</td><td>NULL, CONSTANT, PARTIAL_MASK, FORMAT_PRESERVING, SEQUENTIAL, RANDOM_INT</td></tr>
+        <tr><td>Control</td><td>NULL, CONSTANT, PARTIAL_MASK, FORMAT_PRESERVING, SEQUENTIAL, RANDOM_INT, HASH, SCRAMBLE</td></tr>
       </table>
 
+      <!-- ── CLI Usage ──────────────────────────────────────────────────── -->
       <h2 id="cli">CLI Usage</h2>
       <pre><code># Authenticate
 opendatamask-cli auth login --url http://localhost:8080 \
@@ -171,22 +493,26 @@ opendatamask-cli workspace get &lt;workspace-id&gt;
 opendatamask-cli job list --workspace &lt;workspace-id&gt;
 opendatamask-cli job run  --workspace &lt;workspace-id&gt;</code></pre>
 
+      <!-- ── Privacy & Compliance ───────────────────────────────────────── -->
       <h2 id="privacy">Privacy &amp; Compliance</h2>
       <p>The <strong>Privacy Hub</strong> dashboard shows:</p>
       <ul>
         <li>Total sensitive columns detected vs. masked</li>
         <li>Actionable recommendations (e.g., "Add EMAIL generator to <code>users.email</code>")</li>
-        <li>Exportable JSON compliance reports for GDPR/CCPA/HIPAA audits</li>
+        <li>Exportable JSON compliance reports for GDPR / CCPA / HIPAA audits</li>
       </ul>
       <p>Run <em>Apply Recommendations</em> to automatically assign generators to all unmasked sensitive columns in one click.</p>
 
+      <!-- ── Troubleshooting ────────────────────────────────────────────── -->
       <h2 id="troubleshooting">Troubleshooting</h2>
       <table>
         <tr><th>Symptom</th><th>Fix</th></tr>
-        <tr><td><code>JWT_SECRET must be set</code></td><td>Set the <code>JWT_SECRET</code> env var before starting</td></tr>
+        <tr><td><code>JWT_SECRET must be set</code></td><td>Set the <code>JWT_SECRET</code> environment variable before starting</td></tr>
         <tr><td>Backend fails to start</td><td>Ensure PostgreSQL is running and <code>DATABASE_URL</code> is correct</td></tr>
         <tr><td>Connection refused on port 8080</td><td>Run <code>docker-compose logs backend</code> to check for errors</td></tr>
         <tr><td>Sensitivity scan finds nothing</td><td>Add table configurations first, then re-run the scan</td></tr>
+        <tr><td>Job fails with "no source connection"</td><td>Ensure at least one connection is marked as a <em>Source</em> role in the workspace</td></tr>
+        <tr><td>Screenshots not generated</td><td>Run <code>pip install playwright &amp;&amp; playwright install chromium</code> then re-run <code>take_screenshots.py</code> with the frontend running</td></tr>
       </table>
     </main>
   </div>
