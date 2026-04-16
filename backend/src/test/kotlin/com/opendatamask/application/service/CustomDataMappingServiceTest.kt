@@ -213,24 +213,13 @@ class CustomDataMappingServiceTest {
                 BulkCustomDataMappingRequest.ColumnMappingEntry("ssn", MappingAction.MASK, MaskingStrategy.NULL)
             )
         )
-        val savedMappings = request.columnMappings.mapIndexed { i, entry ->
-            CustomDataMapping(
-                id = (i + 1).toLong(),
-                workspaceId = 10L,
-                connectionId = 2L,
-                tableName = "users",
-                columnName = entry.columnName,
-                action = entry.action,
-                maskingStrategy = entry.maskingStrategy,
-                fakeGeneratorType = entry.fakeGeneratorType
-            )
-        }
-        whenever(customDataMappingRepository.bulkSave(any<List<CustomDataMapping>>())).thenReturn(savedMappings)
+        whenever(customDataMappingRepository.save(any<CustomDataMapping>()))
+            .thenAnswer { it.arguments[0] as CustomDataMapping }
 
         val result = service.saveBulkMappings(10L, request)
 
         verify(customDataMappingRepository).deleteByWorkspaceIdAndConnectionIdAndTableName(10L, 2L, "users")
-        verify(customDataMappingRepository).bulkSave(any<List<CustomDataMapping>>())
+        verify(customDataMappingRepository, times(3)).save(any<CustomDataMapping>())
         assertEquals(3, result.size)
         assertEquals("id", result[0].columnName)
         assertEquals(MappingAction.MIGRATE_AS_IS, result[0].action)
@@ -252,7 +241,7 @@ class CustomDataMappingServiceTest {
             id = 1L, workspaceId = 10L, connectionId = 2L, tableName = "users",
             columnName = "user_ref", action = MappingAction.MASK, maskingStrategy = MaskingStrategy.HASH
         )
-        whenever(customDataMappingRepository.bulkSave(any<List<CustomDataMapping>>())).thenReturn(listOf(savedMapping))
+        whenever(customDataMappingRepository.save(any<CustomDataMapping>())).thenReturn(savedMapping)
 
         val result = service.saveBulkMappings(10L, request)
 

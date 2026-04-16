@@ -16,8 +16,6 @@ interface CustomDataMappingRepository : JpaRepository<CustomDataMapping, Long>, 
         tableName: String
     ): List<CustomDataMapping>
     override fun save(mapping: CustomDataMapping): CustomDataMapping
-    override fun bulkSave(mappings: List<CustomDataMapping>): List<CustomDataMapping> =
-        saveAll(mappings)
     override fun deleteById(id: Long)
     override fun deleteByWorkspaceIdAndConnectionIdAndTableName(
         workspaceId: Long,

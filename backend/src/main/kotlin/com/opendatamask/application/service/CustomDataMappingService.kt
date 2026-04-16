@@ -88,7 +88,7 @@ class CustomDataMappingService(
                 fakeGeneratorType = if (entry.action == MappingAction.MASK) entry.fakeGeneratorType else null
             )
         }
-        return customDataMappingRepository.bulkSave(mappings).map { it.toResponse() }
+        return mappings.map { customDataMappingRepository.save(it).toResponse() }
     }
 
     private fun findMapping(workspaceId: Long, mappingId: Long): CustomDataMapping {

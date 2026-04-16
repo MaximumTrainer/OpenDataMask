@@ -10,6 +10,7 @@ import TablesView from '@/views/TablesView.vue'
 import JobsView from '@/views/JobsView.vue'
 import ActionsView from '@/views/ActionsView.vue'
 import SensitivityRulesView from '@/views/SensitivityRulesView.vue'
+import DataMappingView from '@/views/DataMappingView.vue'
 
 const SAML_AUTH_ENDPOINT = '/saml2/authenticate/default'
 const samlEnabled = import.meta.env.VITE_SAML_ENABLED === 'true'
@@ -76,6 +77,12 @@ const router = createRouter({
       path: '/settings/sensitivity-rules',
       name: 'sensitivity-rules',
       component: SensitivityRulesView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/mappings',
+      name: 'data-mappings',
+      component: DataMappingView,
       meta: { requiresAuth: true }
     }
   ]

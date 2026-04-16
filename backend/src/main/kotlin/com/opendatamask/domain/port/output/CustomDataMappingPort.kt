@@ -12,7 +12,6 @@ interface CustomDataMappingPort {
         tableName: String
     ): List<CustomDataMapping>
     fun save(mapping: CustomDataMapping): CustomDataMapping
-    fun bulkSave(mappings: List<CustomDataMapping>): List<CustomDataMapping>
     fun deleteById(id: Long)
     fun deleteByWorkspaceIdAndConnectionIdAndTableName(
         workspaceId: Long,
