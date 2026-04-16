@@ -12,8 +12,8 @@ data class DataConnectionRequest(
     @field:NotNull(message = "Connection type is required")
     val type: ConnectionType,
 
-    @field:NotBlank(message = "Connection string is required")
-    val connectionString: String,
+    // Null or blank means "keep existing connection string" on update
+    val connectionString: String? = null,
 
     val username: String? = null,
     val password: String? = null,
@@ -27,6 +27,7 @@ data class DataConnectionResponse(
     val workspaceId: Long,
     val name: String,
     val type: ConnectionType,
+    val host: String?,
     val username: String?,
     val database: String?,
     val isSource: Boolean,

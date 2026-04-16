@@ -4,6 +4,8 @@ import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoClients
+import com.mongodb.client.model.ReplaceOneModel
+import com.mongodb.client.model.ReplaceOptions
 import org.bson.Document
 
 open class MongoDBConnector(
@@ -81,7 +83,19 @@ open class MongoDBConnector(
         if (rows.isEmpty()) return 0
         createMongoClient().use { client ->
             val collection = client.getDatabase(getDatabaseName()).getCollection(tableName)
-            collection.insertMany(rows.map { Document(it) })
+            val (withId, withoutId) = rows.partition { it["_id"] != null }
+            if (withId.isNotEmpty()) {
+                val upserts = withId.map { row ->
+                    val doc = Document(row)
+                    val id = doc["_id"]
+                    val filter = Document("_id", id)
+                    ReplaceOneModel(filter, doc, ReplaceOptions().upsert(true))
+                }
+                collection.bulkWrite(upserts)
+            }
+            if (withoutId.isNotEmpty()) {
+                collection.insertMany(withoutId.map { Document(it) })
+            }
         }
         return rows.size
     }

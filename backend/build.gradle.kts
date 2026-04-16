@@ -49,6 +49,9 @@ dependencies {
     implementation("net.datafaker:datafaker:2.1.0")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:mongodb")
+    testImplementation("org.testcontainers:junit-jupiter")
 }
 
 tasks.withType<KotlinCompile> {

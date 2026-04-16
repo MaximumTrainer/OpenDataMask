@@ -64,25 +64,24 @@ export interface DataConnection {
   workspaceId: number
   name: string
   type: ConnectionType
-  host: string
-  port: number
-  database: string
-  username: string
-  /** password is never returned from the API */
-  sslEnabled: boolean
+  host: string | null
+  database: string | null
+  username: string | null
+  isSource: boolean
+  isDestination: boolean
   createdAt: string
-  updatedAt: string
 }
 
 export interface DataConnectionRequest {
   name: string
   type: ConnectionType
-  host: string
-  port: number
-  database: string
-  username: string
-  password: string
-  sslEnabled?: boolean
+  // Full connection string (MongoDB URI or JDBC URL). Null/omitted on update means "keep existing".
+  connectionString?: string
+  username?: string
+  password?: string
+  database?: string
+  isSource: boolean
+  isDestination: boolean
 }
 
 export interface ConnectionTestResult {

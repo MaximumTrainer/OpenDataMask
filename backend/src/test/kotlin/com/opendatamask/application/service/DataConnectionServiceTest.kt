@@ -31,7 +31,7 @@ class DataConnectionServiceTest {
     private fun makeRequest(
         name: String = "My DB",
         type: ConnectionType = ConnectionType.POSTGRESQL,
-        connectionString: String = "jdbc:postgresql://localhost/db",
+        connectionString: String? = "jdbc:postgresql://localhost/db",
         username: String? = "user",
         password: String? = "pass",
         database: String? = null,
@@ -87,6 +87,18 @@ class DataConnectionServiceTest {
         verify(EncryptionPort, times(1)).encrypt(any())  // Only conn string encrypted
     }
 
+    @Test
+    fun `createConnection throws for null connection string`() {
+        val request = makeRequest(connectionString = null)
+        assertThrows<IllegalArgumentException> { service.createConnection(10L, request) }
+    }
+
+    @Test
+    fun `createConnection throws for blank connection string`() {
+        val request = makeRequest(connectionString = "   ")
+        assertThrows<IllegalArgumentException> { service.createConnection(10L, request) }
+    }
+
     // ── getConnection ──────────────────────────────────────────────────────
 
     @Test
@@ -138,6 +150,48 @@ class DataConnectionServiceTest {
         assertTrue(result.isEmpty())
     }
 
+    @Test
+    fun `createConnection extracts host from JDBC URL`() {
+        val request = makeRequest(connectionString = "jdbc:postgresql://myhost:5432/mydb")
+        whenever(EncryptionPort.encrypt(any())).thenReturn("encrypted")
+        val captor = argumentCaptor<DataConnection>()
+        whenever(dataConnectionRepository.save(captor.capture())).thenAnswer { it.arguments[0] as DataConnection }
+
+        service.createConnection(10L, request)
+
+        assertEquals("myhost:5432", captor.firstValue.host)
+    }
+
+    @Test
+    fun `createConnection extracts host from Azure SQL JDBC URL ignoring semicolon params`() {
+        val request = makeRequest(
+            type = ConnectionType.AZURE_SQL,
+            connectionString = "jdbc:sqlserver://myserver:1433;databaseName=mydb;encrypt=true"
+        )
+        whenever(EncryptionPort.encrypt(any())).thenReturn("encrypted")
+        val captor = argumentCaptor<DataConnection>()
+        whenever(dataConnectionRepository.save(captor.capture())).thenAnswer { it.arguments[0] as DataConnection }
+
+        service.createConnection(10L, request)
+
+        assertEquals("myserver:1433", captor.firstValue.host)
+    }
+
+    @Test
+    fun `createConnection strips credentials from MongoDB URI when extracting host`() {
+        val request = makeRequest(
+            type = ConnectionType.MONGODB,
+            connectionString = "mongodb://user:pass@mycluster:27017/mydb"
+        )
+        whenever(EncryptionPort.encrypt(any())).thenReturn("encrypted")
+        val captor = argumentCaptor<DataConnection>()
+        whenever(dataConnectionRepository.save(captor.capture())).thenAnswer { it.arguments[0] as DataConnection }
+
+        service.createConnection(10L, request)
+
+        assertEquals("mycluster:27017", captor.firstValue.host)
+    }
+
     // ── updateConnection ───────────────────────────────────────────────────
 
     @Test
@@ -153,6 +207,35 @@ class DataConnectionServiceTest {
 
         assertEquals("Updated DB", response.name)
         verify(dataConnectionRepository).save(any())
+    }
+
+    @Test
+    fun `updateConnection keeps existing connection string when connectionString is null`() {
+        val conn = makeConnection(id = 1L, workspaceId = 10L)
+        val updateRequest = makeRequest(name = "Updated DB", connectionString = null)
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(conn))
+        whenever(dataConnectionRepository.save(any<DataConnection>())).thenAnswer { it.arguments[0] as DataConnection }
+
+        service.updateConnection(10L, 1L, updateRequest)
+
+        // encrypt should NOT be called for connection string (no new string provided)
+        verify(EncryptionPort, never()).encrypt(eq("jdbc:postgresql://localhost/db"))
+    }
+
+    @Test
+    fun `updateConnection throws when type changes without new connection string`() {
+        val conn = makeConnection(id = 1L, workspaceId = 10L) // type=POSTGRESQL
+        // Attempt to switch to MONGODB without providing a new connection string
+        val updateRequest = makeRequest(
+            name = "Updated DB",
+            type = ConnectionType.MONGODB,
+            connectionString = null
+        )
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(conn))
+
+        assertThrows<IllegalArgumentException> {
+            service.updateConnection(10L, 1L, updateRequest)
+        }
     }
 
     @Test
