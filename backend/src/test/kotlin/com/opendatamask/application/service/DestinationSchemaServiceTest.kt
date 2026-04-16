@@ -318,4 +318,26 @@ class DestinationSchemaServiceTest {
             }
         )
     }
+
+    @Test
+    fun `mirrorSchema throws when selectedAttributes matches no source columns`() {
+        val sourceConnector = mock<DatabaseConnector>()
+        val destConnector = mock<DatabaseConnector>()
+        val columns = listOf(
+            ColumnInfo("id", "int4", false),
+            ColumnInfo("name", "text", true)
+        )
+        whenever(sourceConnector.listColumns("users")).thenReturn(columns)
+
+        val ex = assertThrows<IllegalArgumentException> {
+            service.mirrorSchema(
+                sourceConnector, ConnectionType.POSTGRESQL,
+                destConnector, ConnectionType.POSTGRESQL,
+                "users",
+                listOf("nonexistent_col")
+            )
+        }
+        assertTrue(ex.message!!.contains("No selected attributes matched"))
+        assertTrue(ex.message!!.contains("nonexistent_col"))
+    }
 }

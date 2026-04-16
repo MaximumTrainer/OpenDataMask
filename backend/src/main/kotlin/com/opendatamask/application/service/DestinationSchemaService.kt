@@ -85,8 +85,19 @@ class DestinationSchemaService {
         val filteredColumns = if (selectedAttributes.isEmpty()) {
             sourceColumns
         } else {
+            val sourceColumnNames = sourceColumns.map { it.name }
+            val sourceColumnNamesNormalized = sourceColumnNames.map { it.lowercase() }.toSet()
             val normalizedSelected = selectedAttributes.map { it.lowercase() }.toSet()
-            sourceColumns.filter { it.name.lowercase() in normalizedSelected }
+            val matched = sourceColumns.filter { it.name.lowercase() in normalizedSelected }
+            if (matched.isEmpty()) {
+                val unknownAttributes = selectedAttributes.filter { it.lowercase() !in sourceColumnNamesNormalized }
+                throw IllegalArgumentException(
+                    "No selected attributes matched source columns for table '$tableName'. " +
+                        "Unknown attributes: ${if (unknownAttributes.isEmpty()) selectedAttributes else unknownAttributes}. " +
+                        "Available columns: $sourceColumnNames"
+                )
+            }
+            matched
         }
         val destColumns = filteredColumns.map { col ->
             ColumnInfo(

@@ -26,7 +26,10 @@ class TableConfigurationService(
             rowLimit = request.rowLimit,
             whereClause = request.whereClause
         )
-        config.selectedAttributes = request.selectedAttributes?.filter { it.isNotBlank() }?.joinToString(",")
+        config.selectedAttributes = request.selectedAttributes
+            ?.filter { it.isNotBlank() }
+            ?.takeIf { it.isNotEmpty() }
+            ?.joinToString(",")
         return tableConfigurationRepository.save(config).toResponse()
     }
 
@@ -52,7 +55,10 @@ class TableConfigurationService(
         config.mode = request.mode
         config.rowLimit = request.rowLimit
         config.whereClause = request.whereClause
-        config.selectedAttributes = request.selectedAttributes?.filter { it.isNotBlank() }?.joinToString(",")
+        config.selectedAttributes = request.selectedAttributes
+            ?.filter { it.isNotBlank() }
+            ?.takeIf { it.isNotEmpty() }
+            ?.joinToString(",")
         return tableConfigurationRepository.save(config).toResponse()
     }
 

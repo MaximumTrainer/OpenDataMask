@@ -64,7 +64,10 @@ class WorkspaceExportService(
             table.mode = tableDto.mode
             table.rowLimit = tableDto.rowLimit
             table.whereClause = tableDto.whereClause
-            table.selectedAttributes = tableDto.selectedAttributes?.filter { it.isNotBlank() }?.joinToString(",")
+            table.selectedAttributes = tableDto.selectedAttributes
+                ?.filter { it.isNotBlank() }
+                ?.takeIf { it.isNotEmpty() }
+                ?.joinToString(",")
             val savedTable = tableConfigurationRepository.save(table)
 
             val existingGenerators = columnGeneratorRepository.findByTableConfigurationId(savedTable.id)

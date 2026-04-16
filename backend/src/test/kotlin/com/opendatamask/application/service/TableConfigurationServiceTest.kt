@@ -89,11 +89,28 @@ class TableConfigurationServiceTest {
             tableName = "users", mode = TableMode.SUBSET,
             selectedAttributes = listOf("id", "name", "email")
         )
-        whenever(tableConfigurationRepository.save(any<TableConfiguration>())).thenReturn(saved)
+        val captor = argumentCaptor<TableConfiguration>()
+        whenever(tableConfigurationRepository.save(captor.capture())).thenReturn(saved)
 
         val response = service.createTableConfiguration(10L, request)
 
+        assertEquals("id,name,email", captor.firstValue.selectedAttributes)
         assertEquals(listOf("id", "name", "email"), response.selectedAttributes)
+    }
+
+    @Test
+    fun `createTableConfiguration normalizes empty selectedAttributes list to null`() {
+        val saved = makeTableConfig(id = 1L)
+        val request = TableConfigurationRequest(
+            tableName = "users", mode = TableMode.PASSTHROUGH,
+            selectedAttributes = emptyList()
+        )
+        val captor = argumentCaptor<TableConfiguration>()
+        whenever(tableConfigurationRepository.save(captor.capture())).thenReturn(saved)
+
+        service.createTableConfiguration(10L, request)
+
+        assertNull(captor.firstValue.selectedAttributes)
     }
 
     @Test

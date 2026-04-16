@@ -107,7 +107,7 @@ async function submitTableForm() {
   savingTable.value = true
   tableFormError.value = ''
   try {
-    // Normalise: send null when no attributes selected (empty list = select all)
+    // Normalise: omit the field when no attributes selected (empty list = select all)
     const payload: TableConfigurationRequest = {
       ...tableForm.value,
       selectedAttributes:

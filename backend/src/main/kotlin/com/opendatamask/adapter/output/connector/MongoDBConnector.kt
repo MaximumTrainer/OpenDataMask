@@ -59,6 +59,9 @@ open class MongoDBConnector(
             if (!selectedAttributes.isNullOrEmpty()) {
                 val projection = Document().apply {
                     selectedAttributes.forEach { field -> put(field, 1) }
+                    if (!selectedAttributes.contains("_id")) {
+                        put("_id", 0)
+                    }
                 }
                 query = query.projection(projection)
             }

@@ -51,7 +51,7 @@ class MySQLConnector(
     override fun fetchData(tableName: String, limit: Int?, whereClause: String?, selectedAttributes: List<String>?): List<Map<String, Any?>> {
         getConnection().use { conn ->
             val selectPart = if (!selectedAttributes.isNullOrEmpty()) {
-                selectedAttributes.joinToString(", ") { "`$it`" }
+                selectedAttributes.joinToString(", ") { "`${it.replace("`", "``")}`" }
             } else {
                 "*"
             }
