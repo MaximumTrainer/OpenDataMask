@@ -178,6 +178,15 @@ The REST API is available at `http://localhost:8080/api`. Key endpoints:
 | GET | `/api/workspaces/{id}/tables/{table}/columns/{col}/comments` | List column comments |
 | POST | `/api/workspaces/{id}/tables/{table}/columns/{col}/comments` | Add comment |
 
+### Connection Pairs
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/workspaces/{id}/connection-pairs` | Create a connection pair |
+| GET | `/api/workspaces/{id}/connection-pairs` | List active connection pairs |
+| GET | `/api/workspaces/{id}/connection-pairs/{pid}` | Get a connection pair |
+| PUT | `/api/workspaces/{id}/connection-pairs/{pid}` | Update a connection pair |
+| DELETE | `/api/workspaces/{id}/connection-pairs/{pid}` | Soft-delete a connection pair |
+
 ### Jobs
 | Method | Path | Description |
 |--------|------|-------------|

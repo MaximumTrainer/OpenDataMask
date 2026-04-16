@@ -220,6 +220,26 @@ export interface ColumnGeneratorRequest {
   parameters?: Record<string, string>
 }
 
+// ── Connection Pair ───────────────────────────────────────────────────────
+
+export interface ConnectionPair {
+  id: number
+  workspaceId: number
+  name: string
+  description: string | null
+  sourceConnectionId: number
+  destinationConnectionId: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ConnectionPairRequest {
+  name: string
+  description?: string | null
+  sourceConnectionId: number
+  destinationConnectionId: number
+}
+
 // ── Job ───────────────────────────────────────────────────────────────────
 
 export enum JobStatus {
@@ -247,12 +267,15 @@ export interface Job {
   rowsProcessed: number
   createdAt: string
   updatedAt: string
+  connectionPairId?: number | null
 }
 
 export interface JobRequest {
   name: string
   sourceConnectionId: number
   targetConnectionId: number
+  // When provided, the job uses the specified ConnectionPair's source and destination connections.
+  connectionPairId?: number | null
 }
 
 // ── Job Logs ──────────────────────────────────────────────────────────────

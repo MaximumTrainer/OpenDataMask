@@ -12,7 +12,8 @@ data class JobResponse(
     val completedAt: LocalDateTime?,
     val createdAt: LocalDateTime,
     val errorMessage: String?,
-    val createdBy: Long
+    val createdBy: Long,
+    val connectionPairId: Long? = null
 )
 
 data class JobLogResponse(
@@ -21,4 +22,9 @@ data class JobLogResponse(
     val message: String,
     val level: LogLevel,
     val timestamp: LocalDateTime
+)
+
+// Optional request body for job creation; all fields are nullable for backward compatibility.
+data class JobRequest(
+    val connectionPairId: Long? = null
 )

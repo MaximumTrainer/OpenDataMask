@@ -21,6 +21,7 @@ class JobServiceTest {
     @Mock private lateinit var jobLogRepository: JobLogPort
     @Mock private lateinit var workspaceRepository: WorkspacePort
     @Mock private lateinit var dataConnectionRepository: DataConnectionPort
+    @Mock private lateinit var connectionPairRepository: ConnectionPairPort
     @Mock private lateinit var tableConfigurationRepository: TableConfigurationPort
     @Mock private lateinit var columnGeneratorRepository: ColumnGeneratorPort
     @Mock private lateinit var EncryptionPort: EncryptionPort

@@ -171,10 +171,65 @@ Example API request body to create an Azure SQL connection:
 
 A **Workspace** is an isolated configuration scope. Each workspace has:
 - One or more **Data Connections** (source and target databases)
+- One or more **Connection Pairs** linking a source and destination together
 - **Table Configurations** that define which tables to process and how
 - **Column Generators** that specify what fake data to produce per column
 - **Team members** with ADMIN or USER roles
 - An optional **parent workspace** for configuration inheritance
+
+### Connection Pairs
+
+A **Connection Pair** groups exactly one **Source** `DataConnection` and one **Destination** `DataConnection` under a workspace. Using pairs gives you explicit, named source→destination routes and makes it easy to run the same masking rules against different database environments (e.g. staging vs. QA).
+
+#### Key properties
+
+| Field | Description |
+|---|---|
+| `name` | Human-readable name for the pair (required) |
+| `description` | Optional notes |
+| `sourceConnectionId` | ID of the source `DataConnection` |
+| `destinationConnectionId` | ID of the destination `DataConnection` |
+
+Both connections must belong to the same workspace.
+
+#### Soft delete
+
+Deleting a connection pair performs a **soft delete** — the record is retained in the database with a `deletedAt` timestamp, preserving audit history. Soft-deleted pairs are excluded from `list` responses but can still be found via raw database queries or audit tooling.
+
+#### API endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/workspaces/{id}/connection-pairs` | Create a connection pair |
+| `GET` | `/api/workspaces/{id}/connection-pairs` | List active connection pairs |
+| `GET` | `/api/workspaces/{id}/connection-pairs/{pairId}` | Get a single pair |
+| `PUT` | `/api/workspaces/{id}/connection-pairs/{pairId}` | Update a pair |
+| `DELETE` | `/api/workspaces/{id}/connection-pairs/{pairId}` | Soft-delete a pair |
+
+#### Example: create a pair
+
+```json
+POST /api/workspaces/1/connection-pairs
+{
+  "name": "Prod → Staging",
+  "description": "Copy masked production data to staging environment",
+  "sourceConnectionId": 3,
+  "destinationConnectionId": 7
+}
+```
+
+#### Running a job with a specific pair
+
+When triggering a masking job you can optionally pass a `connectionPairId` in the request body. The engine will then use that pair's source and destination connections instead of searching for the workspace defaults.
+
+```json
+POST /api/workspaces/1/jobs
+{
+  "connectionPairId": 5
+}
+```
+
+Omitting the body (or setting `connectionPairId` to `null`) falls back to the workspace-wide source / destination connection selection, preserving full backward compatibility.
 
 ### Masking Modes
 
