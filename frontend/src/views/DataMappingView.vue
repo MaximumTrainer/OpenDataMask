@@ -181,6 +181,13 @@ function setMaskingStrategy(colName: string, strategy: MaskingStrategy) {
   }
 }
 
+function setFakeGeneratorType(colName: string, generatorType: GeneratorType) {
+  const entry = columnMappings.value[colName]
+  if (entry) {
+    entry.fakeGeneratorType = generatorType
+  }
+}
+
 async function saveMappings() {
   if (!selectedConnectionId.value || !selectedTableName.value) return
   saving.value = true
@@ -433,7 +440,7 @@ function strategyLabel(m: CustomDataMapping) {
                   v-if="columnMappings[col.name]?.action === 'MASK' && columnMappings[col.name]?.maskingStrategy === 'FAKE'"
                   :value="columnMappings[col.name]?.fakeGeneratorType ?? ''"
                   class="form-control form-control-sm"
-                  @change="(e) => { if (columnMappings[col.name]) columnMappings[col.name].fakeGeneratorType = (e.target as HTMLSelectElement).value as any }"
+                  @change="(e) => setFakeGeneratorType(col.name, (e.target as HTMLSelectElement).value as GeneratorType)"
                 >
                   <option v-for="g in fakeGeneratorOptions" :key="g" :value="g">{{ g }}</option>
                 </select>

@@ -24,7 +24,7 @@ describe('MaskingStrategy enum', () => {
   })
 })
 
-describe('Custom data mapping types integration', () => {
+describe('Mapping object structure validation', () => {
   it('MIGRATE_AS_IS mapping has no masking strategy', () => {
     const mapping = {
       id: 1,
