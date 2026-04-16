@@ -12,21 +12,14 @@
       "columnName": "full_name",
       "action": "MASK",
       "maskingStrategy": "PARTIAL_MASK",
-      "piiRuleParams": {
-        "keepFirst": "1",
-        "keepLast": "0",
-        "maskChar": "*"
-      },
+      "piiRuleParams": "{\"keepFirst\":\"1\",\"keepLast\":\"0\",\"maskChar\":\"*\"}",
       "description": "Keeps only the first initial; e.g. 'Alice Smith' → 'A**********'"
     },
     {
       "columnName": "email",
       "action": "MASK",
       "maskingStrategy": "REGEX",
-      "piiRuleParams": {
-        "pattern": "(\\w+)@(\\w+\\.\\w+)",
-        "replacement": "***@$2"
-      },
+      "piiRuleParams": "{\"pattern\":\"(\\\\w+)@(\\\\w+\\\\.\\\\w+)\",\"replacement\":\"***@$2\"}",
       "description": "Masks the local part of the email address; e.g. 'alice@example.com' → '***@example.com'"
     },
     {

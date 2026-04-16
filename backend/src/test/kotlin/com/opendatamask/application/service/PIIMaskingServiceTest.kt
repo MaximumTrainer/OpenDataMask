@@ -1,9 +1,9 @@
 package com.opendatamask.application.service
 
 import com.opendatamask.domain.model.CustomDataMapping
-import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.domain.model.MappingAction
 import com.opendatamask.domain.model.MaskingStrategy
+import com.opendatamask.domain.model.RedactRule
 import com.opendatamask.domain.port.output.CustomDataMappingPort
 import com.opendatamask.domain.port.output.RuleRegistryPort
 import org.junit.jupiter.api.Assertions.*
@@ -29,8 +29,7 @@ class PIIMaskingServiceTest {
     fun setUp() {
         service = PIIMaskingService(ruleRegistry, customDataMappingPort)
         // Wire the real built-in registry so REDACT tests use the actual rule
-        val builtInRegistry = DefaultRuleRegistry()
-        whenever(ruleRegistry.getRule("redact")).thenReturn(builtInRegistry.getRule("redact"))
+        whenever(ruleRegistry.getRule("redact")).thenReturn(RedactRule())
     }
 
     private fun mapping(
@@ -166,6 +165,62 @@ class PIIMaskingServiceTest {
         assertEquals("###-###-####", result["phone"])
     }
 
+    @Test
+    fun `applyMappings passes value through unchanged when REGEX pattern is missing`() {
+        whenever(customDataMappingPort.findByWorkspaceIdAndConnectionIdAndTableName(1L, 2L, "users"))
+            .thenReturn(listOf(mapping("phone", MappingAction.MASK, MaskingStrategy.REGEX)))
+
+        val row = mapOf("phone" to "123-456-7890")
+        val result = service.applyMappings(1L, 2L, "users", row)
+
+        // Missing params → no-op, not data loss
+        assertEquals("123-456-7890", result["phone"])
+    }
+
+    @Test
+    fun `applyMappings passes value through unchanged when piiRuleParams JSON is invalid`() {
+        whenever(customDataMappingPort.findByWorkspaceIdAndConnectionIdAndTableName(1L, 2L, "users"))
+            .thenReturn(listOf(mapping("phone", MappingAction.MASK, MaskingStrategy.HASH, "not-json")))
+
+        val row = mapOf("phone" to "123-456-7890")
+        val result = service.applyMappings(1L, 2L, "users", row)
+
+        // Invalid JSON → parseParams returns null → value passes through unchanged
+        assertEquals("123-456-7890", result["phone"])
+    }
+
+    // ── custom ruleId dispatch via piiRuleParams ──────────────────────────────
+
+    @Test
+    fun `applyMappings dispatches to registry when ruleId is set in piiRuleParams`() {
+        val customRule = com.opendatamask.domain.model.RedactRule()
+        whenever(ruleRegistry.getRule("my_custom_rule")).thenReturn(customRule)
+        whenever(customDataMappingPort.findByWorkspaceIdAndConnectionIdAndTableName(1L, 2L, "users"))
+            .thenReturn(listOf(
+                mapping("email", MappingAction.MASK, MaskingStrategy.REDACT, """{"ruleId":"my_custom_rule"}""")
+            ))
+
+        val row = mapOf("email" to "john@example.com")
+        val result = service.applyMappings(1L, 2L, "users", row)
+
+        assertEquals("[REDACTED]", result["email"])
+    }
+
+    @Test
+    fun `applyMappings passes value through unchanged when custom ruleId is not found in registry`() {
+        whenever(ruleRegistry.getRule("unknown_rule")).thenReturn(null)
+        whenever(customDataMappingPort.findByWorkspaceIdAndConnectionIdAndTableName(1L, 2L, "users"))
+            .thenReturn(listOf(
+                mapping("email", MappingAction.MASK, MaskingStrategy.REDACT, """{"ruleId":"unknown_rule"}""")
+            ))
+
+        val row = mapOf("email" to "john@example.com")
+        val result = service.applyMappings(1L, 2L, "users", row)
+
+        // Unknown rule → pass through with warning log
+        assertEquals("john@example.com", result["email"])
+    }
+
     // ── FAKE strategy (handled by GeneratorService, not PIIMaskingService) ───
 
     @Test
@@ -211,5 +266,34 @@ class PIIMaskingServiceTest {
         assertEquals("[REDACTED]", result["email"])
         assertNull(result["ssn"])
         assertEquals("Jane", result["name"]) // unmapped column passes through
+    }
+
+    // ── batch API ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun `applyMappingsToRows fetches mappings once and applies to all rows`() {
+        whenever(customDataMappingPort.findByWorkspaceIdAndConnectionIdAndTableName(1L, 2L, "users"))
+            .thenReturn(listOf(mapping("email", MappingAction.MASK, MaskingStrategy.REDACT)))
+
+        val rows = listOf(
+            mapOf("email" to "alice@example.com"),
+            mapOf("email" to "bob@example.com")
+        )
+        val results = service.applyMappingsToRows(1L, 2L, "users", rows)
+
+        assertEquals(2, results.size)
+        assertEquals("[REDACTED]", results[0]["email"])
+        assertEquals("[REDACTED]", results[1]["email"])
+    }
+
+    @Test
+    fun `applyMappingsToRows returns original list unchanged when no mappings exist`() {
+        whenever(customDataMappingPort.findByWorkspaceIdAndConnectionIdAndTableName(1L, 2L, "users"))
+            .thenReturn(emptyList())
+
+        val rows = listOf(mapOf("email" to "alice@example.com"))
+        val results = service.applyMappingsToRows(1L, 2L, "users", rows)
+
+        assertEquals(rows, results)
     }
 }

@@ -10,7 +10,11 @@ import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 
 // Holds all known PIIMaskingRule implementations.
-// Built-in rules are registered at construction time.
+// Built-in non-parameterized rules are registered at construction time.
+// RegexRule is not registered as a default instance because it requires caller-supplied
+// pattern and replacement parameters; PIIMaskingService constructs RegexRule instances
+// directly from piiRuleParams. To override regex behavior globally, registerCustomRule()
+// can be used with a concrete PIIMaskingRule that has ruleId "regex" or any custom ID.
 // Call registerCustomRule() to inject additional business-specific rules at runtime.
 @Service
 class DefaultRuleRegistry : RuleRegistryPort {

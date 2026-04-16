@@ -27,6 +27,7 @@ class RedactRule : BuiltInPIIRule("redact") {
 // Masks the middle characters of a string, preserving a configurable number of
 // leading and trailing characters. Useful for partial credit-card or email masking.
 // When the input is shorter than keepFirst + keepLast, the original value is returned unchanged.
+// Negative values for keepFirst or keepLast are treated as zero.
 class PartialMaskRule(
     val keepFirst: Int = 0,
     val keepLast: Int = 4,
@@ -35,9 +36,11 @@ class PartialMaskRule(
     override fun mask(input: Any?): Any? {
         if (input == null) return null
         val str = input.toString()
-        if (str.length <= keepFirst + keepLast) return str
-        val maskLen = str.length - keepFirst - keepLast
-        return str.take(keepFirst) + maskChar.toString().repeat(maskLen) + str.takeLast(keepLast)
+        val safeKeepFirst = keepFirst.coerceAtLeast(0)
+        val safeKeepLast = keepLast.coerceAtLeast(0)
+        if (str.length <= safeKeepFirst + safeKeepLast) return str
+        val maskLen = str.length - safeKeepFirst - safeKeepLast
+        return str.take(safeKeepFirst) + maskChar.toString().repeat(maskLen) + str.takeLast(safeKeepLast)
     }
 }
 
@@ -53,8 +56,16 @@ class HashRule(val salt: String = "") : BuiltInPIIRule("hash") {
 
 // Applies a user-supplied regular expression to the string representation of the value,
 // replacing every match with the given replacement string.
+// Throws IllegalArgumentException at construction time if pattern is not a valid regex.
 class RegexRule(val pattern: String, val replacement: String) : BuiltInPIIRule("regex") {
-    private val compiledRegex = Regex(pattern)
+    private val compiledRegex: Regex = runCatching { Regex(pattern) }
+        .getOrElse { cause ->
+            throw IllegalArgumentException(
+                "Invalid regex pattern for rule '$ruleId': '$pattern'",
+                cause
+            )
+        }
+
     override fun mask(input: Any?): Any? {
         if (input == null) return null
         return compiledRegex.replace(input.toString(), replacement)

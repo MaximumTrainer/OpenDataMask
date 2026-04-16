@@ -221,9 +221,7 @@ class JobService(
                 val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), null, selectedAttrs)
                 addLog(jobId, "Fetched ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
                 val transformed = if (workspaceId != null && sourceConnectionId != null) {
-                    data.map { row ->
-                        piiMaskingService.applyMappings(workspaceId, sourceConnectionId, tableConfig.tableName, row)
-                    }
+                    piiMaskingService.applyMappingsToRows(workspaceId, sourceConnectionId, tableConfig.tableName, data)
                 } else {
                     data
                 }

@@ -45,8 +45,8 @@ class JobServiceTest {
         // By default piiMaskingService is a pass-through so existing PASSTHROUGH-mode
         // tests continue to see unmodified rows at the destination.
         @Suppress("UNCHECKED_CAST")
-        whenever(piiMaskingService.applyMappings(any(), any(), any(), any<Map<String, Any?>>()))
-            .thenAnswer { it.arguments[3] as Map<String, Any?> }
+        whenever(piiMaskingService.applyMappingsToRows(any(), any(), any(), any<List<Map<String, Any?>>>()))
+            .thenAnswer { it.arguments[3] as List<Map<String, Any?>> }
     }
 
     private fun makeWorkspace(id: Long = 1L) = Workspace(

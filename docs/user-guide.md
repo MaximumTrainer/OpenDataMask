@@ -11,6 +11,7 @@ Core capabilities:
 - **Privacy intelligence**: Automatic sensitive column detection, privacy hub dashboards, and compliance reports
 - **Job scheduling**: Cron-based automated masking runs
 - **Webhook integration**: Post-job notifications via custom HTTP webhooks or GitHub Actions triggers
+- **REST API + CLI**: Full programmatic access and a Go-based CLI tool
 - **PII attribute rule mapping**: Column-level masking rules (Redact, Partial Mask, Hash, Regex) with a registry pattern for custom business rules
 
 ---
@@ -731,7 +732,27 @@ class EuGdprRuleRegistrar(private val ruleRegistry: RuleRegistryPort) {
 }
 ```
 
-After registering the rule, invoke it programmatically via `PIIMaskingService.applyMappings()`, or create a standard mapping with any built-in strategy that routes through `PIIMaskingService`.
+After registering the rule, invoke it via any column mapping by adding `"ruleId": "<your-rule-id>"` to `piiRuleParams`. The engine checks for a `ruleId` key first and, if found, delegates to the registry before falling back to the built-in strategy logic:
+
+```http
+POST /api/workspaces/{workspaceId}/mappings/bulk
+Content-Type: application/json
+
+{
+  "connectionId": 2,
+  "tableName": "customers",
+  "columnMappings": [
+    {
+      "columnName": "phone",
+      "action": "MASK",
+      "maskingStrategy": "REDACT",
+      "piiRuleParams": "{\"ruleId\":\"eu_gdpr_conditional\"}"
+    }
+  ]
+}
+```
+
+The `maskingStrategy` field still controls the UI label and fallback type; the `ruleId` in `piiRuleParams` takes precedence for actual masking logic.
 
 
 ## Contributing
