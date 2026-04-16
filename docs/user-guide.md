@@ -125,6 +125,48 @@ See `backend/src/main/resources/application.yml` for the full configuration temp
 
 ## Core Concepts
 
+### Database Connections
+
+OpenDataMask supports the following connection types:
+
+| Type | Key | JDBC URL Format |
+|---|---|---|
+| PostgreSQL | `POSTGRESQL` | `jdbc:postgresql://<host>:<port>/<database>` |
+| MySQL | `MYSQL` | `jdbc:mysql://<host>:<port>/<database>` |
+| Azure SQL | `AZURE_SQL` | `jdbc:sqlserver://<server>.database.windows.net:1433;databaseName=<database>` |
+| MongoDB | `MONGODB` | `mongodb://<host>:<port>/<database>` |
+| MongoDB Cosmos DB | `MONGODB_COSMOS` | `mongodb://<account>.mongo.cosmos.azure.com:10255/<database>?ssl=true&...` |
+| File (CSV/JSON) | `FILE` | *(uploaded via the UI; stored internally)* |
+
+#### Azure SQL Connection
+
+To connect OpenDataMask to an Azure SQL Database as a source or destination:
+
+1. **Connection type**: Select **Azure SQL** in the UI or use `type: AZURE_SQL` in the API.
+2. **Connection string format**:
+   ```
+   jdbc:sqlserver://<server>.database.windows.net:1433;databaseName=<database>
+   ```
+3. **Credentials**: Provide your Azure SQL username and password separately in the `username` and `password` fields.
+4. **TLS encryption** is enabled automatically; the driver validates the certificate against `*.database.windows.net`.
+
+Example API request body to create an Azure SQL connection:
+```json
+{
+  "name": "prod-azure-sql-source",
+  "type": "AZURE_SQL",
+  "connectionString": "jdbc:sqlserver://myserver.database.windows.net:1433;databaseName=mydb",
+  "username": "sqladmin",
+  "password": "secret",
+  "isSource": true,
+  "isDestination": false
+}
+```
+
+> **Dependency**: The `com.microsoft.sqlserver:mssql-jdbc` driver is bundled in the backend image — no additional driver installation is required.
+
+---
+
 ### Workspaces
 
 A **Workspace** is an isolated configuration scope. Each workspace has:
