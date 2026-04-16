@@ -3,46 +3,53 @@
 take_screenshots.py — OpenDataMask UI Screenshot Generator
 ===========================================================
 
-Drives the OpenDataMask frontend with Playwright, following the same
-end-to-end workflow as run_verification.sh, and captures a screenshot at
-every significant UI step.  The resulting images are saved to
-  docs/website/screenshots/
-relative to the repository root (or the directory specified by --output-dir).
+Sets up all demo data via the REST API, then drives the frontend with
+Playwright to capture screenshots at every significant UI step.
+The resulting images are saved to docs/website/screenshots/ relative to
+the repository root (or the directory specified by --output-dir).
 
 Prerequisites
 -------------
     pip install playwright
-    playwright install chromium
+    playwright install chromium --with-deps
 
 Usage
 -----
-    # Start the verification environment first, then:
-    python3 take_screenshots.py
+    # Full setup (register + API seed + screenshots):
+    python3 take_screenshots.py --source-host source_db --target-host target_db
 
-    # Custom frontend URL and output directory:
-    python3 take_screenshots.py --url http://localhost --output-dir /tmp/shots
+    # Skip registration when the account already exists:
+    python3 take_screenshots.py --no-register \
+        --source-host source_db --target-host target_db
 
-    # Use an existing account instead of registering a new one:
-    python3 take_screenshots.py --username admin --password secret
+    # Skip API setup entirely (data already seeded, supply IDs):
+    python3 take_screenshots.py --no-api-setup \
+        --ws-id 1 --src-id 1 --tgt-id 2 --job-id 1
 
-Environment variables (same defaults as docker-compose.yml)
-------------------------------------------------------------
+Environment variables
+---------------------
     ODM_URL        Frontend base URL (default: http://localhost)
-    ODM_USERNAME   Username for the guide account
-    ODM_PASSWORD   Password for the guide account
+    ODM_API        Backend API base URL (default: http://localhost:8080)
+    ODM_USERNAME   Account username
+    ODM_PASSWORD   Account password
+    ODM_EMAIL      Account email (used during registration)
 """
 
 import argparse
+import json
 import os
 import pathlib
 import sys
 import time
+import urllib.request
+import urllib.error
 
 try:
-    from playwright.sync_api import sync_playwright, Page, expect
+    from playwright.sync_api import sync_playwright, Page
 except ImportError:
     print("ERROR: playwright is not installed.  Run:  pip install playwright && playwright install chromium")
     sys.exit(1)
+
 
 
 # ── Configuration ─────────────────────────────────────────────────────────────
@@ -52,20 +59,23 @@ REPO_ROOT   = SCRIPT_DIR.parent
 DEFAULT_OUT = REPO_ROOT / "docs" / "website" / "screenshots"
 
 DEFAULT_URL      = os.getenv("ODM_URL",      "http://localhost")
+DEFAULT_API      = os.getenv("ODM_API",      "http://localhost:8080")
 DEFAULT_USERNAME = os.getenv("ODM_USERNAME", "guide_user")
 DEFAULT_PASSWORD = os.getenv("ODM_PASSWORD", "Guide!Pass123")
 DEFAULT_EMAIL    = os.getenv("ODM_EMAIL",    "guide@odm-docs.local")
 
 VIEWPORT = {"width": 1440, "height": 900}
 
-# ── Screenshot helper ─────────────────────────────────────────────────────────
+# ── Globals set by main() ─────────────────────────────────────────────────────
 
 _step_index = 0
 _output_dir: pathlib.Path = DEFAULT_OUT
+_api_base   = DEFAULT_API
 
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def shot(page: Page, filename: str, *, full_page: bool = False) -> None:
-    """Take a screenshot and print progress."""
     global _step_index
     _step_index += 1
     dest = _output_dir / filename
@@ -73,345 +83,389 @@ def shot(page: Page, filename: str, *, full_page: bool = False) -> None:
     print(f"  [{_step_index:02d}] {dest.name}")
 
 
+def nav(page: Page, url: str) -> None:
+    page.goto(url, wait_until="networkidle")
+
+
 def wait_for_load(page: Page, timeout: int = 10_000) -> None:
-    """Wait for network idle so the page is fully rendered."""
     page.wait_for_load_state("networkidle", timeout=timeout)
 
 
-# ── Workflow steps ────────────────────────────────────────────────────────────
+def try_dismiss_modal(page: Page) -> None:
+    """Best-effort modal dismiss via Cancel button or Escape."""
+    try:
+        cancel = page.query_selector("button:has-text('Cancel')")
+        if cancel:
+            cancel.click()
+        else:
+            page.keyboard.press("Escape")
+        page.wait_for_selector(
+            ".modal-overlay, dialog, [role='dialog']",
+            state="hidden", timeout=3_000
+        )
+    except Exception:
+        pass
+
+
+# ── REST API helpers ──────────────────────────────────────────────────────────
+
+def api_call(method: str, path: str, body: dict | None = None, token: str = "") -> dict:
+    url = f"{_api_base}{path}"
+    data = json.dumps(body).encode("utf-8") if body else None
+    req = urllib.request.Request(url, data=data, method=method)
+    req.add_header("Content-Type", "application/json")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return json.loads(resp.read())
+
+
+# ── API data-setup phase ───────────────────────────────────────────────────────
+
+def api_setup(
+    username: str, password: str, email: str,
+    src_host: str, src_db: str, src_user: str, src_pass: str,
+    tgt_host: str, tgt_db: str, tgt_user: str, tgt_pass: str,
+    do_register: bool = True,
+) -> tuple[str, int, int, int]:
+    """Register (optional) + login + create workspace, two connections, table config with generators.
+    Returns (jwt_token, workspace_id, source_connection_id, target_connection_id)."""
+
+    if do_register:
+        print("  Registering user…")
+        try:
+            api_call("POST", "/api/auth/register", {
+                "username": username, "email": email, "password": password,
+            })
+        except Exception:
+            pass  # user may already exist
+
+    print("  Logging in…")
+    resp  = api_call("POST", "/api/auth/login", {"username": username, "password": password})
+    token = resp["token"]
+
+    print("  Creating workspace…")
+    ws    = api_call("POST", "/api/workspaces",
+                     {"name": "Guide Workspace", "description": "OpenDataMask step-by-step guide demo"},
+                     token)
+    ws_id = ws["id"]
+
+    print("  Creating source connection…")
+    src   = api_call("POST", f"/api/workspaces/{ws_id}/connections", {
+        "name": "source-db", "type": "POSTGRESQL",
+        "connectionString": f"jdbc:postgresql://{src_host}:5432/{src_db}",
+        "username": src_user, "password": src_pass,
+        "isSource": True, "isDestination": False,
+    }, token)
+    src_id = src["id"]
+
+    print("  Creating target connection…")
+    tgt   = api_call("POST", f"/api/workspaces/{ws_id}/connections", {
+        "name": "target-db", "type": "POSTGRESQL",
+        "connectionString": f"jdbc:postgresql://{tgt_host}:5432/{tgt_db}",
+        "username": tgt_user, "password": tgt_pass,
+        "isSource": False, "isDestination": True,
+    }, token)
+    tgt_id = tgt["id"]
+
+    print("  Creating table configuration…")
+    tbl    = api_call("POST", f"/api/workspaces/{ws_id}/tables",
+                      {"connectionId": src_id, "tableName": "users",
+                       "schemaName": "public", "mode": "MASK"}, token)
+    tbl_id = tbl["id"]
+
+    print("  Adding column generators…")
+    for col, gen in [
+        ("full_name",     "FULL_NAME"),
+        ("email",         "EMAIL"),
+        ("phone_number",  "PHONE"),
+        ("date_of_birth", "BIRTH_DATE"),
+    ]:
+        api_call("POST", f"/api/workspaces/{ws_id}/tables/{tbl_id}/generators",
+                 {"columnName": col, "generatorType": gen}, token)
+    api_call("POST", f"/api/workspaces/{ws_id}/tables/{tbl_id}/generators",
+             {"columnName": "salary", "generatorType": "RANDOM_INT",
+              "generatorParams": json.dumps({"min": "30000", "max": "200000"})}, token)
+
+    return token, ws_id, src_id, tgt_id
+
+
+def api_run_job(token: str, ws_id: int, src_id: int, tgt_id: int) -> int:
+    job = api_call("POST", f"/api/workspaces/{ws_id}/jobs",
+                   {"name": "Guide Masking Job",
+                    "sourceConnectionId": src_id,
+                    "targetConnectionId": tgt_id}, token)
+    return job["id"]
+
+
+def api_wait_for_job(token: str, ws_id: int, job_id: int, timeout: int = 180) -> str:
+    for _ in range(timeout // 5):
+        time.sleep(5)
+        resp   = api_call("GET", f"/api/workspaces/{ws_id}/jobs/{job_id}", token=token)
+        status = resp.get("status", "")
+        print(f"    job status: {status}")
+        if status in ("COMPLETED", "FAILED", "CANCELLED"):
+            return status
+    return "TIMEOUT"
+
+
+# ── Browser screenshot steps ───────────────────────────────────────────────────
 
 def step_login_page(page: Page, base_url: str) -> None:
-    page.goto(f"{base_url}/login", wait_until="networkidle")
+    nav(page, f"{base_url}/login")
     shot(page, "01-login-page.png")
 
 
-def step_register(page: Page, base_url: str, username: str, password: str, email: str) -> None:
-    page.goto(f"{base_url}/register", wait_until="networkidle")
+def step_register_page(page: Page, base_url: str) -> None:
+    nav(page, f"{base_url}/register")
     shot(page, "02-register-page.png")
 
-    page.fill("input[placeholder*='sername'], input[name='username']", username)
-    page.fill("input[placeholder*='mail'], input[name='email']", email)
-    page.fill("input[type='password'][name='password'], input[placeholder*='assword']", password)
-    shot(page, "03-register-filled.png")
 
+def step_login_filled(page: Page, base_url: str, username: str, password: str) -> None:
+    nav(page, f"{base_url}/login")
+    # Actual selectors from LoginView.vue: id="username", id="password"
+    page.fill("#username", username)
+    page.fill("#password", password)
+    shot(page, "03-login-filled.png")
     page.click("button[type='submit']")
-    # May redirect to login or directly to workspaces
-    page.wait_for_url(lambda url: "/login" in url or "/workspaces" in url, timeout=10_000)
-
-
-def step_sign_in(page: Page, base_url: str, username: str, password: str) -> None:
-    if "/login" in page.url:
-        pass  # already on login page
-    else:
-        page.goto(f"{base_url}/login", wait_until="networkidle")
-
-    page.fill("input[placeholder*='sername'], input[name='username']", username)
-    page.fill("input[type='password'], input[name='password']", password)
-    shot(page, "04-login-filled.png")
-
-    page.click("button[type='submit']")
-    page.wait_for_url(lambda url: "/workspaces" in url, timeout=15_000)
+    page.wait_for_url(lambda u: "/workspaces" in u, timeout=15_000)
     wait_for_load(page)
-    shot(page, "05-workspaces-empty.png")
 
 
-def step_create_workspace(page: Page) -> str:
-    """Create a workspace and return the workspace URL."""
-    # Click "New Workspace" or "+" button
-    page.click("button:has-text('New Workspace'), button:has-text('Workspace'), button:has-text('＋')")
-    page.wait_for_selector("input[placeholder*='orkspace'], input[name='name']", timeout=5_000)
-    shot(page, "06-create-workspace-modal.png")
+def step_workspaces_list(page: Page, base_url: str) -> None:
+    nav(page, f"{base_url}/workspaces")
+    shot(page, "04-workspaces-list.png")
 
-    page.fill("input[placeholder*='orkspace name'], input[name='name']", "Verification Workspace")
+    # Open create workspace modal to show the form
+    page.click("button:has-text('＋ New Workspace')")
+    page.wait_for_selector("input.form-control", timeout=5_000)
+    shot(page, "05-create-workspace-modal.png")
 
-    # Fill description if field exists
-    desc_sel = "textarea[name='description'], textarea[placeholder*='escription']"
-    if page.query_selector(desc_sel):
-        page.fill(desc_sel, "PII masking demo — follows the verification workflow")
+    # Fill name field so the form looks populated
+    page.locator("input.form-control").first.fill("My Production Workspace")
+    shot(page, "06-create-workspace-filled.png")
+    try_dismiss_modal(page)
 
-    shot(page, "07-create-workspace-filled.png")
-    page.click("button[type='submit'], button:has-text('Create'), button:has-text('Save')")
+
+def step_workspace_overview(page: Page, base_url: str, ws_id: int) -> None:
+    nav(page, f"{base_url}/workspaces/{ws_id}")
     wait_for_load(page)
-    shot(page, "08-workspace-created.png")
+    shot(page, "07-workspace-overview.png")
 
-    # Navigate into the workspace
-    page.click("a:has-text('Verification Workspace'), text=Verification Workspace")
+
+def step_connections(page: Page, base_url: str, ws_id: int) -> None:
+    nav(page, f"{base_url}/workspaces/{ws_id}/connections")
     wait_for_load(page)
-    shot(page, "09-workspace-overview.png")
-    return page.url
+    shot(page, "08-connections-configured.png")
+
+    # Open add connection modal for a form screenshot
+    page.click("button:has-text('＋ Add Connection')")
+    # Wait for the Name field (placeholder='Production DB') which is in the modal
+    page.wait_for_selector("input[placeholder='Production DB']", timeout=5_000)
+    shot(page, "09-add-connection-modal.png")
+
+    # Fill in example values from the form (actual placeholders from ConnectionsView.vue)
+    page.fill("input[placeholder='Production DB']", "demo-source")
+    page.fill("input[placeholder='localhost']", "source_db")
+    page.fill("input[placeholder='mydb']", "source_db")
+    page.fill("input[placeholder='admin']", "source_user")
+    page.fill("input[type='password'][autocomplete='new-password']", "•••••••••")
+    # Source checkbox is inside a label that contains the text "Source ("
+    src_label = page.locator("label").filter(has_text="Source (read data")
+    src_cb    = src_label.locator("input[type='checkbox']")
+    if not src_cb.is_checked():
+        src_cb.click()
+    shot(page, "10-connection-form-filled.png")
+    try_dismiss_modal(page)
 
 
-def step_connections(page: Page, ws_url: str,
-                     source_host: str, source_db: str, source_user: str, source_pass: str,
-                     target_host: str, target_db: str, target_user: str, target_pass: str) -> None:
-    # Navigate to Connections tab
-    page.click("a:has-text('Connections'), button:has-text('Connections'), [href*='/connections']")
+def step_tables(page: Page, base_url: str, ws_id: int) -> None:
+    nav(page, f"{base_url}/workspaces/{ws_id}/tables")
     wait_for_load(page)
-    shot(page, "10-connections-empty.png")
+    shot(page, "11-tables-configured.png")
 
-    # ── Add source connection ───────────────────────────────────────────────
-    page.click("button:has-text('Add Connection'), button:has-text('＋')")
-    page.wait_for_selector("input[name='name'], input[placeholder*='onnection name']", timeout=5_000)
-    shot(page, "11-add-connection-modal.png")
+    # Expand the first table to show column generators
+    # Button text when collapsed: "▼ Columns (N)"
+    expand_btn = page.query_selector("button:has-text('▼ Columns')")
+    if expand_btn:
+        expand_btn.click()
+        time.sleep(0.5)
+        shot(page, "12-generators-expanded.png", full_page=True)
 
-    page.fill("input[name='name'], input[placeholder*='onnection name']", "source-db")
+    # Open add-table modal for a form screenshot
+    page.click("button:has-text('＋ Add Table')")
+    page.wait_for_selector("input[placeholder='users']", timeout=5_000)
+    shot(page, "13-add-table-modal.png")
+    try_dismiss_modal(page)
 
-    # Select PostgreSQL type
-    type_sel = "select[name='type'], [data-testid='connection-type']"
-    if page.query_selector(type_sel):
-        page.select_option(type_sel, "POSTGRESQL")
 
-    page.fill("input[name='host'], input[placeholder*='ost']", source_host)
-    page.fill("input[name='database'], input[placeholder*='atabase']", source_db)
-    page.fill("input[name='username'], input[placeholder*='sername']", source_user)
-    page.fill("input[name='password'][type='password']", source_pass)
-
-    # Check "Source" role
-    src_chk = page.query_selector("input[type='checkbox'][name*='ource'], label:has-text('Source') input")
-    if src_chk:
-        if not src_chk.is_checked():
-            src_chk.click()
-
-    shot(page, "12-source-connection-filled.png")
-    page.click("button[type='submit'], button:has-text('Save'), button:has-text('Add')")
+def step_data_mappings(page: Page, base_url: str, ws_id: int) -> None:
+    nav(page, f"{base_url}/workspaces/{ws_id}/mappings")
     wait_for_load(page)
-    shot(page, "13-source-connection-saved.png")
+    shot(page, "14-data-mapping-wizard.png")
 
-    # ── Add destination connection ──────────────────────────────────────────
-    page.click("button:has-text('Add Connection'), button:has-text('＋')")
-    page.wait_for_selector("input[name='name'], input[placeholder*='onnection name']", timeout=5_000)
+    # Click the first connection card to advance the wizard
+    card = page.query_selector(".card button, .cursor-pointer, [role='button']")
+    if card:
+        card.click()
+        time.sleep(0.5)
+        shot(page, "15-data-mapping-columns.png")
 
-    page.fill("input[name='name'], input[placeholder*='onnection name']", "target-db")
 
-    type_sel2 = "select[name='type'], [data-testid='connection-type']"
-    if page.query_selector(type_sel2):
-        page.select_option(type_sel2, "POSTGRESQL")
-
-    page.fill("input[name='host'], input[placeholder*='ost']", target_host)
-    page.fill("input[name='database'], input[placeholder*='atabase']", target_db)
-    page.fill("input[name='username'], input[placeholder*='sername']", target_user)
-    page.fill("input[name='password'][type='password']", target_pass)
-
-    # Check "Destination" role
-    dst_chk = page.query_selector("input[type='checkbox'][name*='estination'], label:has-text('Destination') input")
-    if dst_chk:
-        if not dst_chk.is_checked():
-            dst_chk.click()
-
-    shot(page, "14-destination-connection-filled.png")
-    page.click("button[type='submit'], button:has-text('Save'), button:has-text('Add')")
+def step_jobs(page: Page, base_url: str, ws_id: int) -> None:
+    nav(page, f"{base_url}/workspaces/{ws_id}/jobs")
     wait_for_load(page)
-    shot(page, "15-connections-configured.png")
+    shot(page, "16-jobs-list.png")
 
+    # Open the "Run New Job" modal
+    page.click("button:has-text('⚙ Run New Job')")
+    # Wait for the job name field (placeholder from JobsView.vue)
+    page.wait_for_selector("input[placeholder*='Mask Production']", timeout=5_000)
+    shot(page, "17-run-job-modal.png")
 
-def step_tables(page: Page) -> None:
-    page.click("a:has-text('Tables'), button:has-text('Tables'), [href*='/tables']")
-    wait_for_load(page)
-    shot(page, "16-tables-empty.png")
+    # Select source + target for a realistic screenshot
+    selects = page.query_selector_all(".modal-body select.form-control, dialog select.form-control")
+    if len(selects) >= 2:
+        selects[0].select_option(index=0)
+        selects[1].select_option(index=0)
+        shot(page, "18-run-job-filled.png")
+    try_dismiss_modal(page)
 
-    # Add table configuration
-    page.click("button:has-text('Add Table'), button:has-text('＋')")
-    page.wait_for_selector("input[name='tableName'], input[placeholder*='able']", timeout=5_000)
-    shot(page, "17-add-table-modal.png")
-
-    page.fill("input[name='tableName'], input[placeholder*='able name']", "users")
-
-    # Select MASK mode
-    mode_sel = "select[name='mode']"
-    if page.query_selector(mode_sel):
-        page.select_option(mode_sel, "MASK")
-
-    shot(page, "18-table-config-filled.png")
-    page.click("button[type='submit'], button:has-text('Save'), button:has-text('Add')")
-    wait_for_load(page)
-    shot(page, "19-table-saved.png")
-
-    # Expand the table to configure column generators
-    page.click("button:has-text('Columns'), button:has-text('▼'), [data-action='expand']")
-    time.sleep(0.5)
-    shot(page, "20-table-expanded.png")
-
-    # Add full_name generator
-    add_col_btn = page.query_selector("button:has-text('Add Column'), button:has-text('＋ Add')")
-    if add_col_btn:
-        add_col_btn.click()
-        page.wait_for_selector("input[name='columnName'], input[placeholder*='olumn']", timeout=5_000)
-        page.fill("input[name='columnName'], input[placeholder*='olumn']", "full_name")
-        gen_sel = "select[name='generatorType'], select[name='type']"
-        if page.query_selector(gen_sel):
-            page.select_option(gen_sel, "FULL_NAME")
-        page.click("button[type='submit'], button:has-text('Save'), button:has-text('Add')")
-        wait_for_load(page)
-
-    shot(page, "21-generators-configured.png", full_page=True)
-
-
-def step_data_mapping(page: Page) -> None:
-    page.click("a:has-text('Data Mapping'), a:has-text('Mappings'), [href*='/mappings']")
-    wait_for_load(page)
-    shot(page, "22-data-mapping-step1.png")
-
-    # Click first connection card if visible
-    conn_card = page.query_selector(".connection-card, [data-type='connection']")
-    if conn_card:
-        conn_card.click()
-        wait_for_load(page)
-        shot(page, "23-data-mapping-step2-tables.png")
-
-        # Click the users table card
-        table_card = page.query_selector("text=users")
-        if table_card:
-            table_card.click()
-            wait_for_load(page)
-            shot(page, "24-data-mapping-step3-columns.png", full_page=True)
-
-
-def step_jobs(page: Page) -> None:
-    page.click("a:has-text('Jobs'), button:has-text('Jobs'), [href*='/jobs']")
-    wait_for_load(page)
-    shot(page, "25-jobs-empty.png")
-
-    # Click "Run New Job"
-    page.click("button:has-text('Run'), button:has-text('New Job'), button:has-text('⚙')")
-    page.wait_for_selector("input[name='name'], [placeholder*='ob name']", timeout=5_000)
-    shot(page, "26-run-job-modal.png")
-
-    # Fill job name
-    name_input = page.query_selector("input[name='name'], [placeholder*='ob name']")
-    if name_input:
-        name_input.fill("Verification Masking Job")
-
-    # Select source connection
-    src_sel = page.query_selector("select[name='sourceConnectionId'], [data-testid='source-connection']")
-    if src_sel:
-        src_sel.select_option(index=1)
-
-    # Select destination connection
-    dst_sel = page.query_selector("select[name='destinationConnectionId'], [data-testid='destination-connection']")
-    if dst_sel:
-        dst_sel.select_option(index=1)
-
-    shot(page, "27-run-job-filled.png")
-    page.click("button[type='submit'], button:has-text('Run'), button:has-text('Start')")
-    wait_for_load(page)
-    shot(page, "28-job-running.png")
-
-    # Wait for job to complete (up to 60s)
-    print("  Waiting for masking job to complete…")
-    for _ in range(12):
-        time.sleep(5)
-        page.reload()
-        wait_for_load(page)
-        completed = page.query_selector(".badge:has-text('COMPLETED'), [data-status='COMPLETED'], text=COMPLETED")
-        if completed:
-            break
-
-    shot(page, "29-job-completed.png", full_page=True)
-
-    # Expand logs
-    log_btn = page.query_selector("button:has-text('View Logs'), button:has-text('Logs')")
+    # Expand logs for the existing completed job if present
+    log_btn = page.query_selector("button:has-text('View Logs')")
     if log_btn:
         log_btn.click()
-        time.sleep(0.3)
-        shot(page, "30-job-logs.png", full_page=True)
+        time.sleep(0.5)
+        shot(page, "19-job-logs.png", full_page=True)
 
 
 def step_sensitivity_rules(page: Page, base_url: str) -> None:
-    page.goto(f"{base_url}/settings/sensitivity-rules", wait_until="networkidle")
-    shot(page, "31-sensitivity-rules.png")
+    nav(page, f"{base_url}/settings/sensitivity-rules")
+    shot(page, "20-sensitivity-rules.png")
 
-    # Open create drawer
-    new_btn = page.query_selector("button:has-text('New Rule'), button:has-text('＋')")
+    new_btn = page.query_selector(
+        "button:has-text('New Rule'), button:has-text('＋ New'), button:has-text('Create')"
+    )
     if new_btn:
         new_btn.click()
-        time.sleep(0.3)
-        shot(page, "32-add-pii-rule-drawer.png")
+        time.sleep(0.4)
+        shot(page, "21-new-pii-rule-drawer.png")
 
-        # Fill name
-        name_input = page.query_selector("input[name='name'], input[placeholder*='ule name']")
+        name_input = page.query_selector("input[placeholder*='ule name'], input[placeholder*='Name']")
         if name_input:
-            name_input.fill("INTERNAL_EMPLOYEE_ID")
+            name_input.fill("EMPLOYEE_ID")
 
-        # Add matcher
-        add_matcher_btn = page.query_selector("button:has-text('Add Matcher'), button:has-text('Matcher')")
-        if add_matcher_btn:
-            add_matcher_btn.click()
+        add_matcher = page.query_selector("button:has-text('Add Matcher'), button:has-text('Matcher')")
+        if add_matcher:
+            add_matcher.click()
             time.sleep(0.2)
-            matcher_val = page.query_selector("input[placeholder*='alue'], input[name='matcherValue']")
+            matcher_val = page.query_selector("input[placeholder*='alue'], input[placeholder*='pattern']")
             if matcher_val:
                 matcher_val.fill("employee_id")
 
-        shot(page, "33-pii-rule-configured.png")
+        shot(page, "22-pii-rule-configured.png")
 
-        # Close drawer without saving (this is just a screenshot demo)
-        esc = page.query_selector("button:has-text('Cancel'), button[aria-label='Close']")
-        if esc:
-            esc.click()
+        close_btn = page.query_selector("button:has-text('Cancel'), button[aria-label='Close']")
+        if close_btn:
+            close_btn.click()
         else:
             page.keyboard.press("Escape")
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# ── Argument parsing ───────────────────────────────────────────────────────────
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Generate OpenDataMask UI screenshots for documentation.")
-    p.add_argument("--url",        default=DEFAULT_URL,      help="Frontend base URL (default: %(default)s)")
-    p.add_argument("--username",   default=DEFAULT_USERNAME, help="Account username")
-    p.add_argument("--password",   default=DEFAULT_PASSWORD, help="Account password")
-    p.add_argument("--email",      default=DEFAULT_EMAIL,    help="Account email (for registration)")
-    p.add_argument("--output-dir", default=str(DEFAULT_OUT), help="Directory to write screenshots into")
-    p.add_argument("--headed",     action="store_true",      help="Show browser window (default: headless)")
-    p.add_argument("--no-register", action="store_true",     help="Skip registration (account already exists)")
-    # Source DB defaults match verification/docker-compose.yml
-    p.add_argument("--source-host", default="localhost", help="Source DB host")
-    p.add_argument("--source-db",   default="source_db", help="Source DB name")
-    p.add_argument("--source-user", default="source_user")
-    p.add_argument("--source-pass", default="source_pass")
-    p.add_argument("--target-host", default="localhost")
-    p.add_argument("--target-db",   default="target_db")
-    p.add_argument("--target-user", default="target_user")
-    p.add_argument("--target-pass", default="target_pass")
+    p.add_argument("--url",          default=DEFAULT_URL,       help="Frontend base URL")
+    p.add_argument("--api",          default=DEFAULT_API,       help="Backend API base URL")
+    p.add_argument("--username",     default=DEFAULT_USERNAME,  help="Account username")
+    p.add_argument("--password",     default=DEFAULT_PASSWORD,  help="Account password")
+    p.add_argument("--email",        default=DEFAULT_EMAIL,     help="Account email (for registration)")
+    p.add_argument("--output-dir",   default=str(DEFAULT_OUT),  help="Directory to write screenshots into")
+    p.add_argument("--headed",       action="store_true",       help="Show browser window")
+    p.add_argument("--no-register",  action="store_true",       help="Skip registration (account already exists)")
+    p.add_argument("--no-api-setup", action="store_true",       help="Skip API data setup (already seeded)")
+    p.add_argument("--ws-id",        type=int, default=0,       help="Workspace ID (when --no-api-setup)")
+    p.add_argument("--src-id",       type=int, default=0,       help="Source connection ID (when --no-api-setup)")
+    p.add_argument("--tgt-id",       type=int, default=0,       help="Target connection ID (when --no-api-setup)")
+    p.add_argument("--job-id",       type=int, default=0,       help="Job ID (when --no-api-setup)")
+    # DB connection params (used by API setup, not the browser)
+    p.add_argument("--source-host",  default="source_db",   help="Source DB Docker hostname")
+    p.add_argument("--source-db",    default="source_db",   help="Source DB name")
+    p.add_argument("--source-user",  default="source_user")
+    p.add_argument("--source-pass",  default="source_pass")
+    p.add_argument("--target-host",  default="target_db",   help="Target DB Docker hostname")
+    p.add_argument("--target-db",    default="target_db",   help="Target DB name")
+    p.add_argument("--target-user",  default="target_user")
+    p.add_argument("--target-pass",  default="target_pass")
+    p.add_argument("--run-job",      action="store_true",   help="Trigger a masking job and wait for completion")
     return p.parse_args()
 
 
+# ── Entry point ───────────────────────────────────────────────────────────────
+
 def main() -> int:
     args = parse_args()
-    global _output_dir
+    global _output_dir, _api_base
     _output_dir = pathlib.Path(args.output_dir)
     _output_dir.mkdir(parents=True, exist_ok=True)
+    _api_base   = args.api
 
     print(f"\nOpenDataMask Screenshot Generator")
     print(f"  Frontend : {args.url}")
+    print(f"  API      : {_api_base}")
     print(f"  Output   : {_output_dir.resolve()}")
     print(f"  Browser  : {'headed' if args.headed else 'headless'}\n")
 
+    # ── Phase 1: REST API data setup ───────────────────────────────────────
+    ws_id  = args.ws_id
+    src_id = args.src_id
+    tgt_id = args.tgt_id
+    token  = ""
+
+    if not args.no_api_setup:
+        print("→ Setting up demo data via API…")
+        token, ws_id, src_id, tgt_id = api_setup(
+            args.username, args.password, args.email,
+            args.source_host, args.source_db, args.source_user, args.source_pass,
+            args.target_host, args.target_db, args.target_user, args.target_pass,
+            do_register=not args.no_register,
+        )
+        print(f"  Created: workspace={ws_id}, source={src_id}, target={tgt_id}")
+
+        if args.run_job:
+            print("→ Running masking job…")
+            job_id = api_run_job(token, ws_id, src_id, tgt_id)
+            print(f"  Job {job_id} started, polling…")
+            status = api_wait_for_job(token, ws_id, job_id)
+            print(f"  Job finished: {status}")
+
+    # ── Phase 2: browser screenshots ───────────────────────────────────────
+    print("\n→ Taking screenshots…")
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=not args.headed)
-        page = browser.new_page(viewport=VIEWPORT)
-        page.set_default_timeout(15_000)
+        page    = browser.new_page(viewport=VIEWPORT)
+        page.set_default_timeout(20_000)
 
         try:
             step_login_page(page, args.url)
-
-            if not args.no_register:
-                step_register(page, args.url, args.username, args.password, args.email)
-
-            step_sign_in(page, args.url, args.username, args.password)
-            step_create_workspace(page)
-            step_connections(
-                page, page.url,
-                args.source_host, args.source_db, args.source_user, args.source_pass,
-                args.target_host, args.target_db, args.target_user, args.target_pass,
-            )
-            step_tables(page)
-            step_data_mapping(page)
-            step_jobs(page)
+            step_register_page(page, args.url)
+            step_login_filled(page, args.url, args.username, args.password)
+            step_workspaces_list(page, args.url)
+            step_workspace_overview(page, args.url, ws_id)
+            step_connections(page, args.url, ws_id)
+            step_tables(page, args.url, ws_id)
+            step_data_mappings(page, args.url, ws_id)
+            step_jobs(page, args.url, ws_id)
             step_sensitivity_rules(page, args.url)
 
         except Exception as exc:
             print(f"\n[WARN] Screenshot step failed: {exc}")
             print("       Partial screenshots may have been saved.")
-            shot(page, "error-state.png", full_page=True)
+            try:
+                shot(page, "error-state.png", full_page=True)
+            except Exception:
+                pass
         finally:
             browser.close()
 

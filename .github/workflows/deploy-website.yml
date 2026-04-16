@@ -1,12 +1,16 @@
 name: Deploy Website
 
 # Deploy the static documentation site to GitHub Pages.
-# Triggered automatically on pushes to main, or manually via workflow_dispatch.
+# Generates fresh UI screenshots by spinning up the full Docker stack, then
+# passes them to the Pages build so the guide always shows the current UI.
 on:
   push:
     branches: [main]
     paths:
       - 'docs/website/**'
+      - 'verification/**'
+      - 'frontend/**'
+      - 'backend/**'
       - '.github/workflows/deploy-website.yml'
   workflow_dispatch:
 
@@ -21,13 +25,132 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build Website
+  generate-screenshots:
+    name: Generate UI Screenshots
     runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    env:
+      API_BASE: http://localhost:8080
+      ODM_USER: guide_user
+      ODM_PASS: "Guide!Pass123"
+      ODM_EMAIL: guide@odm-docs.local
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Playwright + dependencies
+        run: |
+          python3 -m pip install -q playwright
+          python3 -m playwright install chromium --with-deps
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and start all services
+        working-directory: verification
+        run: docker compose up -d --build
+
+      - name: Wait for backend health
+        timeout-minutes: 12
+        run: |
+          echo "Waiting for backend to become healthy…"
+          for i in $(seq 1 144); do
+            STATUS=$(curl -sf "${API_BASE}/actuator/health" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" \
+              2>/dev/null || true)
+            if [ "${STATUS}" = "UP" ]; then
+              echo "✅ Backend healthy after ~$((i*5))s"
+              exit 0
+            fi
+            echo "  [${i}/144] status='${STATUS}' – retrying in 5s…"
+            sleep 5
+          done
+          echo "::error::Backend did not become healthy within 12 minutes."
+          docker compose -f verification/docker-compose.yml logs --tail=100 backend
+          exit 1
+
+      - name: Wait for frontend
+        timeout-minutes: 5
+        run: |
+          echo "Waiting for frontend…"
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost/ -o /dev/null; then
+              echo "✅ Frontend ready after ~$((i*5))s"
+              exit 0
+            fi
+            echo "  [${i}/60] not ready – retrying in 5s…"
+            sleep 5
+          done
+          echo "::warning::Frontend did not respond within 5 minutes."
+
+      - name: Generate screenshots
+        continue-on-error: true
+        run: |
+          python3 verification/take_screenshots.py \
+            --url "http://localhost" \
+            --api "${API_BASE}" \
+            --username "${ODM_USER}" \
+            --password "${ODM_PASS}" \
+            --email    "${ODM_EMAIL}" \
+            --source-host source_db \
+            --source-db   source_db \
+            --source-user source_user \
+            --source-pass source_pass \
+            --target-host target_db \
+            --target-db   target_db \
+            --target-user target_user \
+            --target-pass target_pass \
+            --output-dir  docs/website/screenshots
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: List generated screenshots
+        run: |
+          echo "Screenshots in docs/website/screenshots/:"
+          ls -la docs/website/screenshots/ || echo "(directory not found)"
+
+      - name: Upload screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: docs/website/screenshots/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Collect Docker logs on failure
+        if: failure()
+        working-directory: verification
+        run: |
+          echo "=== backend ===" && docker compose logs --tail=150 backend  || true
+          echo "=== frontend ===" && docker compose logs --tail=50  frontend || true
+
+      - name: Tear down sandbox
+        if: always()
+        working-directory: verification
+        run: docker compose down --volumes --remove-orphans
+
+  build:
+    name: Build Website
+    runs-on: ubuntu-latest
+    needs: generate-screenshots
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download screenshots artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ui-screenshots
+          path: docs/website/screenshots/
+        continue-on-error: true
 
       - name: Configure Pages
         uses: actions/configure-pages@v4
