@@ -20,12 +20,6 @@ const testResults = ref<Record<number, { success: boolean; message: string }>>({
 const formError = ref('')
 
 // SQL-specific form fields (used to build the JDBC connection string)
-const sqlForm = ref({
-  host: 'localhost',
-  port: 5432,
-  sslEnabled: false
-})
-
 // Shared form fields
 const form = ref<DataConnectionRequest & { host: string; port: number; sslEnabled: boolean }>({
   name: '',
@@ -144,7 +138,8 @@ function openEdit(conn: DataConnection) {
   if (conn.host && !mongoTypes.has(conn.type)) {
     const parts = conn.host.split(':')
     host = parts[0] ?? 'localhost'
-    port = parts[1] ? parseInt(parts[1], 10) : port
+    const parsedPort = parts[1] ? parseInt(parts[1], 10) : NaN
+    port = isNaN(parsedPort) ? (defaultPorts[conn.type] ?? 5432) : parsedPort
   }
   form.value = {
     name: conn.name,
@@ -405,7 +400,7 @@ async function handleTest(conn: DataConnection) {
             </p>
           </div>
           <div class="form-group">
-            <label class="form-label">Database (optional override)</label>
+            <label class="form-label">Database (optional)</label>
             <input v-model="form.database" type="text" class="form-control" placeholder="mydb" />
             <p class="form-hint">Leave blank to use the database specified in the URI.</p>
           </div>

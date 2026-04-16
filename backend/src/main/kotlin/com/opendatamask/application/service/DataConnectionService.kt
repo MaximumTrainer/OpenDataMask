@@ -113,9 +113,12 @@ class DataConnectionService(
         return try {
             when (type) {
                 ConnectionType.POSTGRESQL, ConnectionType.MYSQL, ConnectionType.AZURE_SQL -> {
-                    // JDBC URL: jdbc:postgresql://host:port/db or jdbc:mysql://host:port/db
+                    // JDBC URL formats:
+                    //   jdbc:postgresql://host:port/db
+                    //   jdbc:mysql://host:port/db
+                    //   jdbc:sqlserver://host:port;databaseName=db;... (semicolon-delimited params)
                     val afterSlashes = connectionString.substringAfter("//", "")
-                    afterSlashes.substringBefore("/").substringBefore("?").ifBlank { null }
+                    afterSlashes.substringBefore("/").substringBefore(";").substringBefore("?").ifBlank { null }
                 }
                 ConnectionType.MONGODB, ConnectionType.MONGODB_COSMOS -> {
                     // MongoDB URI: mongodb://[user:pass@]host:port[/db]

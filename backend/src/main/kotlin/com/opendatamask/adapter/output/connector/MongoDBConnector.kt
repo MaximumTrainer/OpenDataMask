@@ -87,7 +87,8 @@ open class MongoDBConnector(
             if (withId.isNotEmpty()) {
                 val upserts = withId.map { row ->
                     val doc = Document(row)
-                    val filter = Document("_id", doc["_id"])
+                    val id = doc["_id"]
+                    val filter = Document("_id", id)
                     ReplaceOneModel(filter, doc, ReplaceOptions().upsert(true))
                 }
                 collection.bulkWrite(upserts)
