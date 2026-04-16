@@ -8,7 +8,7 @@ enum class MappingAction {
 }
 
 enum class MaskingStrategy {
-    FAKE, HASH, NULL
+    FAKE, HASH, NULL, REDACT, PARTIAL_MASK, REGEX
 }
 
 @Entity
@@ -49,6 +49,9 @@ class CustomDataMapping(
     @Enumerated(EnumType.STRING)
     @Column
     var fakeGeneratorType: GeneratorType? = null,
+
+    @Column(name = "pii_rule_params", columnDefinition = "TEXT")
+    var piiRuleParams: String? = null,
 
     @Column(nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),

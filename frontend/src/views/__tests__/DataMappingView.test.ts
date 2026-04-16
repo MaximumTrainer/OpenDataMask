@@ -19,8 +19,14 @@ describe('MaskingStrategy enum', () => {
     expect(MaskingStrategy.NULL).toBe('NULL')
   })
 
-  it('has exactly 3 values', () => {
-    expect(Object.keys(MaskingStrategy).length).toBe(3)
+  it('has REDACT, PARTIAL_MASK and REGEX values', () => {
+    expect(MaskingStrategy.REDACT).toBe('REDACT')
+    expect(MaskingStrategy.PARTIAL_MASK).toBe('PARTIAL_MASK')
+    expect(MaskingStrategy.REGEX).toBe('REGEX')
+  })
+
+  it('has exactly 6 values', () => {
+    expect(Object.keys(MaskingStrategy).length).toBe(6)
   })
 })
 

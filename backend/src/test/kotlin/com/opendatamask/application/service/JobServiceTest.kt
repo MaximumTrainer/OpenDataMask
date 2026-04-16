@@ -4,17 +4,21 @@ import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.domain.port.output.*
 import com.opendatamask.domain.model.*
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.kotlin.*
+import org.mockito.quality.Strictness
 import java.time.LocalDateTime
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class JobServiceTest {
 
     @Mock private lateinit var jobRepository: JobPort
@@ -31,9 +35,19 @@ class JobServiceTest {
     @Mock private lateinit var postJobActionService: PostJobActionService
     @Mock private lateinit var schemaChangeService: SchemaChangeService
     @Mock private lateinit var webhookService: WebhookService
+    @Mock private lateinit var piiMaskingService: PIIMaskingService
 
     @InjectMocks
     private lateinit var jobService: JobService
+
+    @BeforeEach
+    fun setUpDefaults() {
+        // By default piiMaskingService is a pass-through so existing PASSTHROUGH-mode
+        // tests continue to see unmodified rows at the destination.
+        @Suppress("UNCHECKED_CAST")
+        whenever(piiMaskingService.applyMappingsToRows(any(), any(), any(), any<List<Map<String, Any?>>>()))
+            .thenAnswer { it.arguments[3] as List<Map<String, Any?>> }
+    }
 
     private fun makeWorkspace(id: Long = 1L) = Workspace(
         id = id, name = "WS", ownerId = 1L,
