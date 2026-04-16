@@ -34,11 +34,12 @@ async function fetchStats() {
 }
 
 const tabs = [
-  { label: 'Overview',    icon: '📋', path: () => `/workspaces/${workspaceId.value}` },
-  { label: 'Connections', icon: '🔌', path: () => `/workspaces/${workspaceId.value}/connections` },
-  { label: 'Tables',      icon: '📊', path: () => `/workspaces/${workspaceId.value}/tables` },
-  { label: 'Jobs',        icon: '⚙️', path: () => `/workspaces/${workspaceId.value}/jobs` },
-  { label: 'Actions',     icon: '⚡', path: () => `/workspaces/${workspaceId.value}/actions` }
+  { label: 'Overview',      icon: '📋', path: () => `/workspaces/${workspaceId.value}` },
+  { label: 'Connections',   icon: '🔌', path: () => `/workspaces/${workspaceId.value}/connections` },
+  { label: 'Tables',        icon: '📊', path: () => `/workspaces/${workspaceId.value}/tables` },
+  { label: 'Data Mappings', icon: '🗺️', path: () => `/workspaces/${workspaceId.value}/mappings` },
+  { label: 'Jobs',          icon: '⚙️', path: () => `/workspaces/${workspaceId.value}/jobs` },
+  { label: 'Actions',       icon: '⚡', path: () => `/workspaces/${workspaceId.value}/actions` }
 ]
 
 function navigate(path: string) {
@@ -130,6 +131,16 @@ function formatDate(d: string) {
               <div>
                 <div class="font-semibold">Tables</div>
                 <div class="text-sm text-gray-500">Configure masking rules</div>
+              </div>
+            </button>
+            <button
+              class="quick-btn"
+              @click="navigate(`/workspaces/${workspaceId}/mappings`)"
+            >
+              <span class="quick-icon">🗺️</span>
+              <div>
+                <div class="font-semibold">Data Mappings</div>
+                <div class="text-sm text-gray-500">Custom column-level mapping wizard</div>
               </div>
             </button>
             <button

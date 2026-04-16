@@ -373,7 +373,71 @@ export interface WorkspaceConfigDto {
   actions: WorkspaceActionExport[]
 }
 
-// ── Custom Sensitivity Rules ───────────────────────────────────────────────
+// ── Custom Data Mapping ────────────────────────────────────────────────────
+
+export enum MappingAction {
+  MIGRATE_AS_IS = 'MIGRATE_AS_IS',
+  MASK = 'MASK'
+}
+
+export enum MaskingStrategy {
+  FAKE = 'FAKE',
+  HASH = 'HASH',
+  NULL = 'NULL'
+}
+
+export interface CustomDataMapping {
+  id: number
+  workspaceId: number
+  connectionId: number
+  tableName: string
+  columnName: string
+  action: MappingAction
+  maskingStrategy: MaskingStrategy | null
+  fakeGeneratorType: GeneratorType | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CustomDataMappingRequest {
+  connectionId: number
+  tableName: string
+  columnName: string
+  action: MappingAction
+  maskingStrategy?: MaskingStrategy | null
+  fakeGeneratorType?: GeneratorType | null
+}
+
+export interface ColumnMappingEntry {
+  columnName: string
+  action: MappingAction
+  maskingStrategy?: MaskingStrategy | null
+  fakeGeneratorType?: GeneratorType | null
+}
+
+export interface BulkCustomDataMappingRequest {
+  connectionId: number
+  tableName: string
+  columnMappings: ColumnMappingEntry[]
+}
+
+export interface ColumnSchemaInfo {
+  name: string
+  type: string
+  nullable: boolean
+}
+
+export interface TableSchemaInfo {
+  tableName: string
+  columns: ColumnSchemaInfo[]
+}
+
+export interface ConnectionSchemaResponse {
+  connectionId: number
+  tables: TableSchemaInfo[]
+}
+
+
 
 export enum GenericDataType {
   TEXT = 'TEXT',

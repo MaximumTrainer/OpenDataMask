@@ -314,6 +314,41 @@ class DataConnectionServiceTest {
         assertFalse(result.success)
         assertTrue(result.message.contains("host unreachable"))
     }
+
+    // ── browseConnectionSchema ─────────────────────────────────────────────
+
+    @Test
+    fun `browseConnectionSchema returns tables and columns from connector`() {
+        val conn = makeConnection(id = 1L, workspaceId = 10L)
+        val mockConnector = mock<DatabaseConnector>()
+        whenever(dataConnectionRepository.findById(1L)).thenReturn(Optional.of(conn))
+        whenever(EncryptionPort.decrypt("encrypted_conn")).thenReturn("real_conn")
+        whenever(EncryptionPort.decrypt("encrypted_pass")).thenReturn("real_pass")
+        whenever(connectorFactory.createConnector(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(mockConnector)
+        whenever(mockConnector.listTables()).thenReturn(listOf("users", "orders"))
+        whenever(mockConnector.listColumns("users")).thenReturn(listOf(
+            com.opendatamask.domain.port.output.ColumnInfo("id", "bigint", false),
+            com.opendatamask.domain.port.output.ColumnInfo("email", "varchar", true)
+        ))
+        whenever(mockConnector.listColumns("orders")).thenReturn(listOf(
+            com.opendatamask.domain.port.output.ColumnInfo("id", "bigint", false)
+        ))
+
+        val result = service.browseConnectionSchema(10L, 1L)
+
+        assertEquals(1L, result.connectionId)
+        assertEquals(2, result.tables.size)
+        val usersTable = result.tables.find { it.tableName == "users" }!!
+        assertEquals(2, usersTable.columns.size)
+        assertEquals("email", usersTable.columns[1].name)
+        assertTrue(usersTable.columns[1].nullable)
+    }
+
+    @Test
+    fun `browseConnectionSchema throws when connection not found`() {
+        whenever(dataConnectionRepository.findById(99L)).thenReturn(Optional.empty())
+
+        assertThrows<NoSuchElementException> { service.browseConnectionSchema(10L, 99L) }
+    }
 }
-
-

@@ -319,6 +319,65 @@ OpenDataMask automatically scans workspaces to detect sensitive columns using pa
 
 ---
 
+## Custom Data Mapping
+
+The **Custom Data Mapping** wizard provides a guided, column-level alternative to the Tables view for configuring how each attribute moves from source to destination.
+
+### Actions
+
+| Action | Description |
+|--------|-------------|
+| `MIGRATE_AS_IS` | Copy the column value without modification. Use for primary keys, timestamps, and public metadata. |
+| `MASK` | Replace the column value using a selected masking strategy. |
+
+### Masking Strategies (when `MASK` is selected)
+
+| Strategy | Description |
+|----------|-------------|
+| `FAKE` | Replace with realistic synthetic data. Select a generator type (e.g. `EMAIL`, `FULL_NAME`, `PHONE`). |
+| `HASH` | Apply deterministic SHA-256 hashing to preserve joins while anonymising the value. |
+| `NULL` | Remove the value entirely (sets the column to `NULL`). |
+
+### How to use the wizard
+
+1. Navigate to **Workspace → Data Mappings**.
+2. **Step 1 – Select Connection**: choose a source database connection from the list.
+3. **Step 2 – Select Table**: OpenDataMask reads the live schema and presents all available tables.
+4. **Step 3 – Configure Columns**: for every column, select `MIGRATE_AS_IS` or `MASK`. If `MASK` is chosen, select a strategy and (for `FAKE`) a generator type.
+5. Click **Save Mappings** to persist the configuration.
+
+### API
+
+The following REST endpoints manage custom data mappings:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/workspaces/{id}/mappings` | Create a single mapping |
+| `GET` | `/api/workspaces/{id}/mappings` | List all mappings (optional `?connectionId=&tableName=` filters) |
+| `GET` | `/api/workspaces/{id}/mappings/{mappingId}` | Get a specific mapping |
+| `PUT` | `/api/workspaces/{id}/mappings/{mappingId}` | Update a mapping |
+| `DELETE` | `/api/workspaces/{id}/mappings/{mappingId}` | Delete a mapping |
+| `POST` | `/api/workspaces/{id}/mappings/bulk` | Replace all mappings for a table in one request |
+| `GET` | `/api/workspaces/{id}/connections/{connId}/schema` | Browse live tables & columns from a connection |
+
+#### Bulk mapping request example
+
+```json
+{
+  "connectionId": 3,
+  "tableName": "users",
+  "columnMappings": [
+    { "columnName": "id",    "action": "MIGRATE_AS_IS" },
+    { "columnName": "email", "action": "MASK", "maskingStrategy": "FAKE", "fakeGeneratorType": "EMAIL" },
+    { "columnName": "name",  "action": "MASK", "maskingStrategy": "FAKE", "fakeGeneratorType": "FULL_NAME" },
+    { "columnName": "ssn",   "action": "MASK", "maskingStrategy": "NULL" },
+    { "columnName": "ref_id","action": "MASK", "maskingStrategy": "HASH" }
+  ]
+}
+```
+
+---
+
 ## Operational Workflow
 
 ### Step-by-step: Mask a database

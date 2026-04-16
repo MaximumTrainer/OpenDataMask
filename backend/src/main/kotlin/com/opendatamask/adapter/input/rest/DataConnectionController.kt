@@ -1,5 +1,6 @@
 package com.opendatamask.adapter.input.rest
 
+import com.opendatamask.domain.port.input.dto.ConnectionSchemaResponse
 import com.opendatamask.domain.port.input.dto.ConnectionTestResult
 import com.opendatamask.domain.port.input.dto.DataConnectionRequest
 import com.opendatamask.domain.port.input.dto.DataConnectionResponse
@@ -62,5 +63,12 @@ class DataConnectionController(
     ): ResponseEntity<ConnectionTestResult> {
         return ResponseEntity.ok(dataConnectionService.testConnection(workspaceId, connectionId))
     }
+
+    @GetMapping("/{connectionId}/schema")
+    fun browseConnectionSchema(
+        @PathVariable workspaceId: Long,
+        @PathVariable connectionId: Long
+    ): ResponseEntity<ConnectionSchemaResponse> =
+        ResponseEntity.ok(dataConnectionService.browseConnectionSchema(workspaceId, connectionId))
 }
 
