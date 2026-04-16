@@ -145,6 +145,27 @@ class GeneratorService(
                     }
                 }.joinToString("")
             }
+            GeneratorType.HASH -> {
+                val s = originalValue?.toString() ?: ""
+                val digest = MessageDigest.getInstance("SHA-256")
+                val bytes = digest.digest(s.toByteArray())
+                bytes.joinToString("") { "%02x".format(it) }.take(16)
+            }
+            GeneratorType.SCRAMBLE -> {
+                val s = originalValue?.toString() ?: return null
+                val letters = s.filter { it.isLetter() }.toMutableList()
+                val digits = s.filter { it.isDigit() }.toMutableList()
+                letters.shuffle(java.util.Random(faker.number().randomNumber()))
+                digits.shuffle(java.util.Random(faker.number().randomNumber()))
+                var li = 0; var di = 0
+                s.map { c ->
+                    when {
+                        c.isLetter() -> letters[li++]
+                        c.isDigit() -> digits[di++]
+                        else -> c
+                    }
+                }.joinToString("")
+            }
             GeneratorType.SEQUENTIAL -> {
                 val start = params?.get("start")?.toLongOrNull() ?: 1L
                 val step = params?.get("step")?.toLongOrNull() ?: 1L

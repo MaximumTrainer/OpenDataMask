@@ -201,7 +201,10 @@ export enum GeneratorType {
   PARTIAL_MASK = 'PARTIAL_MASK',
   FORMAT_PRESERVING = 'FORMAT_PRESERVING',
   SEQUENTIAL = 'SEQUENTIAL',
-  RANDOM_INT = 'RANDOM_INT'
+  RANDOM_INT = 'RANDOM_INT',
+  // Custom mapping strategies
+  HASH = 'HASH',
+  SCRAMBLE = 'SCRAMBLE'
 }
 
 export interface ColumnGenerator {
@@ -371,6 +374,29 @@ export interface WorkspaceConfigDto {
   version: string
   tables: WorkspaceTableConfigExport[]
   actions: WorkspaceActionExport[]
+}
+
+// ── Custom Data Mapping ───────────────────────────────────────────────────
+
+export enum CustomMappingAction {
+  MIGRATE_AS_IS = 'MIGRATE_AS_IS',
+  MASK = 'MASK'
+}
+
+export interface CustomMappingAttribute {
+  name: string
+  action: CustomMappingAction
+  strategy?: string | null
+}
+
+export interface CustomMappingTable {
+  table_name: string
+  attributes: CustomMappingAttribute[]
+}
+
+export interface CustomMappingDto {
+  project: string
+  tables: CustomMappingTable[]
 }
 
 // ── Custom Sensitivity Rules ───────────────────────────────────────────────

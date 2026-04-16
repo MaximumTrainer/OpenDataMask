@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { Workspace, WorkspaceRequest, WorkspaceStats, WorkspaceConfigDto } from '@/types'
+import type { Workspace, WorkspaceRequest, WorkspaceStats, WorkspaceConfigDto, CustomMappingDto } from '@/types'
 
 export async function listWorkspaces(): Promise<Workspace[]> {
   const { data } = await apiClient.get<Workspace[]>('/workspaces')
@@ -35,6 +35,14 @@ export async function importWorkspace(
   config: WorkspaceConfigDto
 ): Promise<{ status: string; version: string }> {
   const { data } = await apiClient.post(`/workspaces/${id}/import`, config)
+  return data
+}
+
+export async function importCustomMapping(
+  id: number,
+  mapping: CustomMappingDto
+): Promise<{ status: string; project: string }> {
+  const { data } = await apiClient.post(`/workspaces/${id}/import-mapping`, mapping)
   return data
 }
 

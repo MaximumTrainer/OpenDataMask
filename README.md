@@ -155,6 +155,7 @@ The REST API is available at `http://localhost:8080/api`. Key endpoints:
 | DELETE | `/api/workspaces/{id}/tags/{tag}` | Remove tag |
 | GET | `/api/workspaces/{id}/export` | Export workspace config as JSON |
 | POST | `/api/workspaces/{id}/import` | Import workspace config |
+| POST | `/api/workspaces/{id}/import-mapping` | Apply a custom data mapping (MIGRATE_AS_IS / MASK) |
 | GET | `/api/workspaces/{id}/children` | List child workspaces |
 | POST | `/api/workspaces/{id}/children` | Create child workspace |
 | POST | `/api/workspaces/{id}/inherit/{parentId}` | Inherit config from parent |

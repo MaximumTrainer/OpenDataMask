@@ -1,7 +1,8 @@
 package com.opendatamask.adapter.input.rest
 
-import com.opendatamask.domain.port.input.dto.WorkspaceConfigDto
+import com.opendatamask.application.service.CustomMappingService
 import com.opendatamask.application.service.WorkspaceExportService
+import com.opendatamask.domain.port.input.dto.WorkspaceConfigDto
 import com.opendatamask.infrastructure.security.JwtTokenProvider
 import com.opendatamask.infrastructure.security.UserDetailsServiceImpl
 import org.junit.jupiter.api.Test
@@ -51,6 +52,7 @@ class WorkspaceExportControllerTest {
     @Autowired private lateinit var mockMvc: MockMvc
 
     @MockBean private lateinit var exportService: WorkspaceExportService
+    @MockBean private lateinit var customMappingService: CustomMappingService
     @MockBean private lateinit var jwtTokenProvider: JwtTokenProvider
     @MockBean private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
 

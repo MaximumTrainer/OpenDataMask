@@ -4,12 +4,14 @@ import { useRoute } from 'vue-router'
 import AppModal from '@/components/AppModal.vue'
 import * as tablesApi from '@/api/tables'
 import * as connectionsApi from '@/api/connections'
+import { importCustomMapping } from '@/api/workspaces'
 import type {
   TableConfiguration,
   TableConfigurationRequest,
   ColumnGenerator,
   ColumnGeneratorRequest,
-  DataConnection
+  DataConnection,
+  CustomMappingDto
 } from '@/types'
 import { TableMode, GeneratorType } from '@/types'
 
@@ -48,6 +50,39 @@ const savingColumn = ref(false)
 
 // Expanded table for column view
 const expandedTableId = ref<number | null>(null)
+
+// ── Custom Mapping Import ──
+const showMappingModal = ref(false)
+const mappingJson = ref('')
+const mappingError = ref('')
+const importingMapping = ref(false)
+
+function openMappingModal() {
+  mappingJson.value = ''
+  mappingError.value = ''
+  showMappingModal.value = true
+}
+
+async function submitMappingImport() {
+  mappingError.value = ''
+  let parsed: CustomMappingDto
+  try {
+    parsed = JSON.parse(mappingJson.value)
+  } catch {
+    mappingError.value = 'Invalid JSON. Please check the format.'
+    return
+  }
+  importingMapping.value = true
+  try {
+    await importCustomMapping(workspaceId.value, parsed)
+    showMappingModal.value = false
+    await fetchData()
+  } catch {
+    mappingError.value = 'Failed to apply custom mapping. Please check the JSON and try again.'
+  } finally {
+    importingMapping.value = false
+  }
+}
 
 const tableModes = Object.values(TableMode)
 const generatorTypes = Object.values(GeneratorType)
@@ -277,7 +312,10 @@ function paramString(params?: Record<string, string>) {
         <h1>Table Configurations</h1>
         <p class="text-gray-500 text-sm mt-1">Define masking rules for each table</p>
       </div>
-      <button class="btn btn-primary" @click="openCreateTable">＋ Add Table</button>
+      <div class="flex gap-2">
+        <button class="btn btn-secondary" @click="openMappingModal">⬆ Import Mapping</button>
+        <button class="btn btn-primary" @click="openCreateTable">＋ Add Table</button>
+      </div>
     </div>
 
     <div v-if="loading" class="loading-overlay">
@@ -493,6 +531,39 @@ function paramString(params?: Record<string, string>) {
         </button>
       </template>
     </AppModal>
+
+    <!-- Custom Mapping Import Modal -->
+    <AppModal
+      v-if="showMappingModal"
+      title="Import Custom Data Mapping"
+      @close="showMappingModal = false"
+    >
+      <div v-if="mappingError" class="alert alert-error">{{ mappingError }}</div>
+      <p class="text-sm text-gray-500 mb-3">
+        Paste a custom data mapping JSON. Tables and column generators will be created or updated.
+        Each attribute with action <code>MASK</code> gets a generator; <code>MIGRATE_AS_IS</code> columns pass through unchanged.
+      </p>
+      <p class="text-sm text-gray-400 mb-2">
+        Supported strategies: <code>FAKE</code>, <code>HASH</code>, <code>SCRAMBLE</code>, <code>NULL</code>,
+        or any generator type name (e.g. <code>EMAIL</code>, <code>FULL_NAME</code>).
+      </p>
+      <div class="form-group">
+        <label class="form-label">Mapping JSON</label>
+        <textarea
+          v-model="mappingJson"
+          class="form-control mapping-textarea"
+          placeholder='{"project":"My Project","tables":[{"table_name":"users","attributes":[{"name":"email","action":"MASK","strategy":"FAKE"},{"name":"id","action":"MIGRATE_AS_IS"}]}]}'
+          rows="12"
+        />
+      </div>
+      <template #footer>
+        <button class="btn btn-secondary" @click="showMappingModal = false">Cancel</button>
+        <button class="btn btn-primary" :disabled="importingMapping || !mappingJson.trim()" @click="submitMappingImport">
+          <span v-if="importingMapping" class="spinner" style="width:.9rem;height:.9rem;border-width:2px;" />
+          Apply Mapping
+        </button>
+      </template>
+    </AppModal>
   </div>
 </template>
 
@@ -542,5 +613,10 @@ function paramString(params?: Record<string, string>) {
   font-size: 0.75rem;
   color: #6b7280;
   margin-top: 0.25rem;
+}
+.mapping-textarea {
+  font-family: monospace;
+  font-size: 0.8rem;
+  resize: vertical;
 }
 </style>
