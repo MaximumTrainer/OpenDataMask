@@ -8,6 +8,7 @@ import com.opendatamask.domain.port.output.JobPort
 import com.opendatamask.domain.port.output.JobLogPort
 import com.opendatamask.domain.port.output.WorkspacePort
 import com.opendatamask.domain.port.output.DataConnectionPort
+import com.opendatamask.domain.port.output.ConnectionPairPort
 import com.opendatamask.domain.port.output.TableConfigurationPort
 import com.opendatamask.domain.port.output.ColumnGeneratorPort
 import com.opendatamask.domain.port.output.SubsetTableConfigPort
@@ -27,6 +28,7 @@ class JobService(
     private val jobLogRepository: JobLogPort,
     private val workspaceRepository: WorkspacePort,
     private val dataConnectionRepository: DataConnectionPort,
+    private val connectionPairRepository: ConnectionPairPort,
     private val tableConfigurationRepository: TableConfigurationPort,
     private val columnGeneratorRepository: ColumnGeneratorPort,
     private val encryptionPort: EncryptionPort,
@@ -49,14 +51,15 @@ class JobService(
     private val logger = LoggerFactory.getLogger(JobService::class.java)
 
     @Transactional
-    override fun createJob(workspaceId: Long, createdBy: Long): JobResponse {
+    override fun createJob(workspaceId: Long, createdBy: Long, connectionPairId: Long?): JobResponse {
         workspaceRepository.findById(workspaceId)
             .orElseThrow { NoSuchElementException("Workspace not found: $workspaceId") }
 
         val job = Job(
             workspaceId = workspaceId,
             status = JobStatus.PENDING,
-            createdBy = createdBy
+            createdBy = createdBy,
+            connectionPairId = connectionPairId
         )
         val saved = jobRepository.save(job)
         return saved.toResponse()
@@ -98,8 +101,8 @@ class JobService(
     }
 
     @Transactional
-    override fun createAndRunJob(workspaceId: Long, createdBy: Long): JobResponse {
-        val response = createJob(workspaceId, createdBy)
+    override fun createAndRunJob(workspaceId: Long, createdBy: Long, connectionPairId: Long?): JobResponse {
+        val response = createJob(workspaceId, createdBy, connectionPairId)
         runJob(response.id)
         return response
     }
@@ -116,20 +119,7 @@ class JobService(
                 throw IllegalStateException("Job blocked: unresolved schema changes require attention before running")
             }
 
-            val sourceConnections = dataConnectionRepository.findByWorkspaceId(job.workspaceId)
-                .filter { it.isSource }
-            val destConnections = dataConnectionRepository.findByWorkspaceId(job.workspaceId)
-                .filter { it.isDestination }
-
-            if (sourceConnections.isEmpty()) {
-                throw IllegalStateException("No source connection configured for workspace ${job.workspaceId}")
-            }
-            if (destConnections.isEmpty()) {
-                throw IllegalStateException("No destination connection configured for workspace ${job.workspaceId}")
-            }
-
-            val sourceConn = sourceConnections.first()
-            val destConn = destConnections.first()
+            val (sourceConn, destConn) = resolveConnections(job)
 
             addLog(job.id, "Connecting to source: ${sourceConn.name}", LogLevel.INFO)
             val sourceConnector = connectorFactory.createConnector(
@@ -299,6 +289,68 @@ class JobService(
         return job
     }
 
+    // Returns (sourceConnection, destinationConnection) for a job. When the job has a
+    // connectionPairId the pair's explicit connections are used; otherwise the workspace's
+    // first source/destination connections are used (backward-compatible behaviour).
+    private fun resolveConnections(job: Job): Pair<DataConnection, DataConnection> {
+        val pairId = job.connectionPairId
+        if (pairId != null) {
+            val pair = connectionPairRepository.findById(pairId)
+                .orElseThrow { NoSuchElementException("Connection pair not found: $pairId") }
+            if (pair.deletedAt != null) {
+                throw IllegalStateException("Connection pair $pairId has been deleted")
+            }
+            if (pair.workspaceId != job.workspaceId) {
+                throw IllegalStateException(
+                    "Connection pair $pairId does not belong to workspace ${job.workspaceId}"
+                )
+            }
+            if (pair.sourceConnectionId == pair.destinationConnectionId) {
+                throw IllegalStateException(
+                    "Connection pair $pairId is invalid: source and destination connections must be distinct"
+                )
+            }
+            val source = dataConnectionRepository.findById(pair.sourceConnectionId)
+                .orElseThrow { NoSuchElementException("Source connection not found: ${pair.sourceConnectionId}") }
+            if (source.workspaceId != job.workspaceId) {
+                throw IllegalStateException(
+                    "Source connection ${pair.sourceConnectionId} does not belong to workspace ${job.workspaceId}"
+                )
+            }
+            if (!source.isSource) {
+                throw IllegalStateException(
+                    "Connection pair $pairId is invalid: connection ${pair.sourceConnectionId} is not a source connection"
+                )
+            }
+            val destination = dataConnectionRepository.findById(pair.destinationConnectionId)
+                .orElseThrow {
+                    NoSuchElementException("Destination connection not found: ${pair.destinationConnectionId}")
+                }
+            if (destination.workspaceId != job.workspaceId) {
+                throw IllegalStateException(
+                    "Destination connection ${pair.destinationConnectionId} does not belong to workspace ${job.workspaceId}"
+                )
+            }
+            if (!destination.isDestination) {
+                throw IllegalStateException(
+                    "Connection pair $pairId is invalid: connection ${pair.destinationConnectionId} is not a destination connection"
+                )
+            }
+            return source to destination
+        }
+
+        val sourceConnections = dataConnectionRepository.findByWorkspaceId(job.workspaceId).filter { it.isSource }
+        val destConnections = dataConnectionRepository.findByWorkspaceId(job.workspaceId).filter { it.isDestination }
+
+        if (sourceConnections.isEmpty()) {
+            throw IllegalStateException("No source connection configured for workspace ${job.workspaceId}")
+        }
+        if (destConnections.isEmpty()) {
+            throw IllegalStateException("No destination connection configured for workspace ${job.workspaceId}")
+        }
+        return sourceConnections.first() to destConnections.first()
+    }
+
     private fun Job.toResponse() = JobResponse(
         id = id,
         workspaceId = workspaceId,
@@ -307,7 +359,8 @@ class JobService(
         completedAt = completedAt,
         createdAt = createdAt,
         errorMessage = errorMessage,
-        createdBy = createdBy
+        createdBy = createdBy,
+        connectionPairId = connectionPairId
     )
 
     private fun JobLog.toLogResponse() = JobLogResponse(

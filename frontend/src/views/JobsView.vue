@@ -18,7 +18,7 @@ const error = ref('')
 
 // Create modal
 const showCreateModal = ref(false)
-const createForm = ref<JobRequest>({ name: '', sourceConnectionId: 0, targetConnectionId: 0 })
+const createForm = ref<JobRequest>({ connectionPairId: null })
 const createError = ref('')
 const creating = ref(false)
 
