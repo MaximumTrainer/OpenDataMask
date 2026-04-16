@@ -78,8 +78,18 @@ class AzureSQLConnectorTest {
         val tables = connector.listTables()
         assertTrue(tables.any { it.equals("test_users", ignoreCase = true) },
             "Expected test_users in $tables")
-        assertTrue(tables.none { it.equals("INFORMATION_SCHEMA", ignoreCase = true) },
-            "INFORMATION_SCHEMA should not appear as a table name in $tables")
+        java.sql.DriverManager.getConnection(h2Url).use { conn ->
+            val metadata = conn.metaData
+            val informationSchemaTables = tables.filter { tableName ->
+                metadata.getTables(null, "INFORMATION_SCHEMA", tableName, arrayOf("TABLE")).use { rs ->
+                    rs.next()
+                }
+            }
+            assertTrue(
+                informationSchemaTables.isEmpty(),
+                "Tables from INFORMATION_SCHEMA should not be returned by listTables(): $informationSchemaTables in $tables"
+            )
+        }
     }
 
     @Test

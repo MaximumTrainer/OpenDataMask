@@ -167,8 +167,6 @@ Example API request body to create an Azure SQL connection:
 
 ---
 
-## Core Concepts
-
 ### Workspaces
 
 A **Workspace** is an isolated configuration scope. Each workspace has:
