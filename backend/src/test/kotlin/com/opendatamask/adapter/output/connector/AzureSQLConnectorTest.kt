@@ -78,6 +78,8 @@ class AzureSQLConnectorTest {
         val tables = connector.listTables()
         assertTrue(tables.any { it.equals("test_users", ignoreCase = true) },
             "Expected test_users in $tables")
+        assertTrue(tables.none { it.equals("INFORMATION_SCHEMA", ignoreCase = true) },
+            "INFORMATION_SCHEMA should not appear as a table name in $tables")
     }
 
     @Test
@@ -100,6 +102,14 @@ class AzureSQLConnectorTest {
         val rows = listOf(mapOf("product_id" to 1, "product_name" to "Widget"))
         val count = connector.writeData("az_products", rows)
         assertEquals(1, count)
+    }
+
+    @Test
+    fun `createTable is idempotent when called twice with the same table name`() {
+        val columns = listOf(ColumnInfo("item_id", "INT", false))
+        connector.createTable("az_items", columns)
+        // Second call must not throw even though the table already exists
+        assertDoesNotThrow { connector.createTable("az_items", columns) }
     }
 
     @Test
