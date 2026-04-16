@@ -19,30 +19,100 @@ const testing = ref<number | null>(null)
 const testResults = ref<Record<number, { success: boolean; message: string }>>({})
 const formError = ref('')
 
-const defaultForm = (): DataConnectionRequest => ({
+// SQL-specific form fields (used to build the JDBC connection string)
+const sqlForm = ref({
+  host: 'localhost',
+  port: 5432,
+  sslEnabled: false
+})
+
+// Shared form fields
+const form = ref<DataConnectionRequest & { host: string; port: number; sslEnabled: boolean }>({
   name: '',
   type: ConnectionType.POSTGRESQL,
+  connectionString: '',
   host: 'localhost',
   port: 5432,
   database: '',
   username: '',
   password: '',
-  sslEnabled: false
+  sslEnabled: false,
+  isSource: false,
+  isDestination: false
 })
 
-const form = ref<DataConnectionRequest>(defaultForm())
+// Types that use a direct connection string instead of host/port
+const mongoTypes = new Set<ConnectionType>([ConnectionType.MONGODB, ConnectionType.MONGODB_COSMOS])
 
-const connectionTypes = Object.values(ConnectionType)
+const isMongoType = computed(() => mongoTypes.has(form.value.type))
 
-const defaultPorts: Record<ConnectionType, number> = {
+const defaultPorts: Partial<Record<ConnectionType, number>> = {
   [ConnectionType.POSTGRESQL]: 5432,
   [ConnectionType.MONGODB]: 27017,
   [ConnectionType.AZURE_SQL]: 1433,
-  [ConnectionType.MONGODB_COSMOS]: 10255
+  [ConnectionType.MONGODB_COSMOS]: 10255,
+  [ConnectionType.MYSQL]: 3306
+}
+
+// Labels shown in the type selector (exclude FILE from the standard form)
+const displayConnectionTypes = Object.values(ConnectionType).filter(
+  (t) => t !== ConnectionType.FILE
+)
+
+function typeLabel(t: ConnectionType) {
+  const labels: Record<ConnectionType, string> = {
+    [ConnectionType.POSTGRESQL]: 'PostgreSQL',
+    [ConnectionType.MONGODB]: 'MongoDB',
+    [ConnectionType.AZURE_SQL]: 'Azure SQL',
+    [ConnectionType.MONGODB_COSMOS]: 'MongoDB Cosmos',
+    [ConnectionType.FILE]: 'File',
+    [ConnectionType.MYSQL]: 'MySQL'
+  }
+  return labels[t] ?? t
+}
+
+function resetForm() {
+  form.value = {
+    name: '',
+    type: ConnectionType.POSTGRESQL,
+    connectionString: '',
+    host: 'localhost',
+    port: defaultPorts[ConnectionType.POSTGRESQL] ?? 5432,
+    database: '',
+    username: '',
+    password: '',
+    sslEnabled: false,
+    isSource: false,
+    isDestination: false
+  }
 }
 
 function onTypeChange() {
-  form.value.port = defaultPorts[form.value.type]
+  const port = defaultPorts[form.value.type]
+  if (port !== undefined) {
+    form.value.port = port
+  }
+  // Clear connection string on type switch
+  form.value.connectionString = ''
+}
+
+// Build a JDBC / MongoDB URI from the form fields
+function buildConnectionString(): string {
+  const { type, host, port, database, sslEnabled } = form.value
+  switch (type) {
+    case ConnectionType.POSTGRESQL:
+      return `jdbc:postgresql://${host}:${port}/${database}${sslEnabled ? '?ssl=require' : ''}`
+    case ConnectionType.MYSQL:
+      return `jdbc:mysql://${host}:${port}/${database}${sslEnabled ? '?useSSL=true' : ''}`
+    case ConnectionType.AZURE_SQL:
+      return `jdbc:sqlserver://${host}:${port};databaseName=${database};encrypt=true`
+    case ConnectionType.MONGODB:
+    case ConnectionType.MONGODB_COSMOS:
+      // User enters the full URI directly in connectionString field
+      return form.value.connectionString ?? ''
+    default:
+      return form.value.connectionString ?? ''
+  }
 }
 
 async function fetchConnections() {
@@ -61,36 +131,88 @@ onMounted(fetchConnections)
 
 function openCreate() {
   editingConnection.value = null
-  form.value = defaultForm()
+  resetForm()
   formError.value = ''
   showModal.value = true
 }
 
 function openEdit(conn: DataConnection) {
   editingConnection.value = conn
+  // Parse host/port back from stored host string for SQL types (e.g. "localhost:5432")
+  let host = 'localhost'
+  let port = defaultPorts[conn.type] ?? 5432
+  if (conn.host && !mongoTypes.has(conn.type)) {
+    const parts = conn.host.split(':')
+    host = parts[0] ?? 'localhost'
+    port = parts[1] ? parseInt(parts[1], 10) : port
+  }
   form.value = {
     name: conn.name,
     type: conn.type,
-    host: conn.host,
-    port: conn.port,
-    database: conn.database,
-    username: conn.username,
+    connectionString: '',   // Never pre-filled – must be re-entered if changed
+    host,
+    port,
+    database: conn.database ?? '',
+    username: conn.username ?? '',
     password: '',
-    sslEnabled: conn.sslEnabled
+    sslEnabled: false,
+    isSource: conn.isSource,
+    isDestination: conn.isDestination
   }
   formError.value = ''
   showModal.value = true
 }
 
+function validateForm(): boolean {
+  if (!form.value.name) {
+    formError.value = 'Connection name is required.'
+    return false
+  }
+  if (isMongoType.value) {
+    // For MongoDB, connection string is required on create
+    if (!editingConnection.value && !form.value.connectionString) {
+      formError.value = 'Connection URI is required.'
+      return false
+    }
+  } else {
+    // For SQL types, host, database and username are required
+    if (!form.value.host || !form.value.database || !form.value.username) {
+      formError.value = 'Host, database, and username are required.'
+      return false
+    }
+    if (!editingConnection.value && !form.value.password) {
+      formError.value = 'Password is required.'
+      return false
+    }
+  }
+  if (!form.value.isSource && !form.value.isDestination) {
+    formError.value = 'Select at least one role: Source or Destination.'
+    return false
+  }
+  return true
+}
+
 async function submitForm() {
-  if (!form.value.name || !form.value.host || !form.value.database || !form.value.username) {
-    formError.value = 'Please fill in all required fields.'
-    return
+  if (!validateForm()) return
+
+  const connectionString = buildConnectionString()
+  const payload: DataConnectionRequest = {
+    name: form.value.name,
+    type: form.value.type,
+    username: form.value.username || undefined,
+    database: form.value.database || undefined,
+    isSource: form.value.isSource,
+    isDestination: form.value.isDestination
   }
-  if (!editingConnection.value && !form.value.password) {
-    formError.value = 'Password is required.'
-    return
+
+  // Only include connectionString if it is non-empty (on update, blank = keep existing)
+  if (connectionString) {
+    payload.connectionString = connectionString
   }
+  if (form.value.password) {
+    payload.password = form.value.password
+  }
+
   saving.value = true
   formError.value = ''
   try {
@@ -98,12 +220,12 @@ async function submitForm() {
       const updated = await connectionsApi.updateConnection(
         workspaceId.value,
         editingConnection.value.id,
-        form.value
+        payload
       )
       const idx = connections.value.findIndex((c) => c.id === updated.id)
       if (idx !== -1) connections.value[idx] = updated
     } else {
-      const created = await connectionsApi.createConnection(workspaceId.value, form.value)
+      const created = await connectionsApi.createConnection(workspaceId.value, payload)
       connections.value.push(created)
     }
     showModal.value = false
@@ -134,10 +256,6 @@ async function handleTest(conn: DataConnection) {
   } finally {
     testing.value = null
   }
-}
-
-function typeLabel(t: ConnectionType) {
-  return t.charAt(0) + t.slice(1).toLowerCase()
 }
 </script>
 
@@ -181,7 +299,7 @@ function typeLabel(t: ConnectionType) {
               <th>Type</th>
               <th>Host</th>
               <th>Database</th>
-              <th>SSL</th>
+              <th>Roles</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -192,11 +310,13 @@ function typeLabel(t: ConnectionType) {
               <td>
                 <span class="badge badge-indigo">{{ typeLabel(conn.type) }}</span>
               </td>
-              <td class="text-gray-600">{{ conn.host }}:{{ conn.port }}</td>
-              <td class="text-gray-600">{{ conn.database }}</td>
+              <td class="text-gray-600">{{ conn.host ?? '—' }}</td>
+              <td class="text-gray-600">{{ conn.database ?? '—' }}</td>
               <td>
-                <span v-if="conn.sslEnabled" class="badge badge-green">Yes</span>
-                <span v-else class="badge badge-gray">No</span>
+                <div class="flex gap-1">
+                  <span v-if="conn.isSource" class="badge badge-blue">Source</span>
+                  <span v-if="conn.isDestination" class="badge badge-green">Destination</span>
+                </div>
               </td>
               <td>
                 <span
@@ -250,6 +370,8 @@ function typeLabel(t: ConnectionType) {
     >
       <form @submit.prevent="submitForm">
         <div v-if="formError" class="alert alert-error">{{ formError }}</div>
+
+        <!-- Name & Type row -->
         <div class="grid grid-cols-2">
           <div class="form-group">
             <label class="form-label">Name *</label>
@@ -258,39 +380,86 @@ function typeLabel(t: ConnectionType) {
           <div class="form-group">
             <label class="form-label">Type *</label>
             <select v-model="form.type" class="form-control" @change="onTypeChange">
-              <option v-for="t in connectionTypes" :key="t" :value="t">{{ typeLabel(t) }}</option>
+              <option v-for="t in displayConnectionTypes" :key="t" :value="t">{{ typeLabel(t) }}</option>
             </select>
           </div>
-          <div class="form-group">
-            <label class="form-label">Host *</label>
-            <input v-model="form.host" type="text" class="form-control" placeholder="localhost" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Port *</label>
-            <input v-model.number="form.port" type="number" class="form-control" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Database *</label>
-            <input v-model="form.database" type="text" class="form-control" placeholder="mydb" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Username *</label>
-            <input v-model="form.username" type="text" class="form-control" placeholder="admin" required />
-          </div>
+        </div>
+
+        <!-- MongoDB / Cosmos: single connection URI field -->
+        <template v-if="isMongoType">
           <div class="form-group">
             <label class="form-label">
-              Password {{ editingConnection ? '(leave blank to keep current)' : '*' }}
+              Connection URI {{ editingConnection ? '(leave blank to keep existing)' : '*' }}
             </label>
-            <input v-model="form.password" type="password" class="form-control" autocomplete="new-password" />
-          </div>
-          <div class="form-group" style="display:flex;align-items:center;gap:.75rem;padding-top:1.75rem;">
             <input
-              id="ssl"
-              v-model="form.sslEnabled"
-              type="checkbox"
-              style="width:1rem;height:1rem;cursor:pointer;"
+              v-model="form.connectionString"
+              type="text"
+              class="form-control"
+              placeholder="mongodb://user:password@localhost:27017"
+              autocomplete="off"
             />
-            <label for="ssl" class="form-label" style="margin:0;cursor:pointer;">Enable SSL</label>
+            <p class="form-hint">
+              Full MongoDB connection string, e.g.
+              <code>mongodb://user:pass@host:27017/mydb</code> or
+              <code>mongodb+srv://user:pass@cluster.mongodb.net/mydb</code>
+            </p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Database (optional override)</label>
+            <input v-model="form.database" type="text" class="form-control" placeholder="mydb" />
+            <p class="form-hint">Leave blank to use the database specified in the URI.</p>
+          </div>
+        </template>
+
+        <!-- SQL types: host / port / database / username / password / SSL -->
+        <template v-else>
+          <div class="grid grid-cols-2">
+            <div class="form-group">
+              <label class="form-label">Host *</label>
+              <input v-model="form.host" type="text" class="form-control" placeholder="localhost" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Port *</label>
+              <input v-model.number="form.port" type="number" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Database *</label>
+              <input v-model="form.database" type="text" class="form-control" placeholder="mydb" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Username *</label>
+              <input v-model="form.username" type="text" class="form-control" placeholder="admin" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                Password {{ editingConnection ? '(leave blank to keep current)' : '*' }}
+              </label>
+              <input v-model="form.password" type="password" class="form-control" autocomplete="new-password" />
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:.75rem;padding-top:1.75rem;">
+              <input
+                id="ssl"
+                v-model="form.sslEnabled"
+                type="checkbox"
+                style="width:1rem;height:1rem;cursor:pointer;"
+              />
+              <label for="ssl" class="form-label" style="margin:0;cursor:pointer;">Enable SSL</label>
+            </div>
+          </div>
+        </template>
+
+        <!-- Source / Destination roles -->
+        <div class="form-group">
+          <label class="form-label">Role *</label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2" style="cursor:pointer;">
+              <input v-model="form.isSource" type="checkbox" style="width:1rem;height:1rem;" />
+              Source (read data from this connection)
+            </label>
+            <label class="flex items-center gap-2" style="cursor:pointer;">
+              <input v-model="form.isDestination" type="checkbox" style="width:1rem;height:1rem;" />
+              Destination (write masked data to this connection)
+            </label>
           </div>
         </div>
       </form>
@@ -304,3 +473,17 @@ function typeLabel(t: ConnectionType) {
     </AppModal>
   </div>
 </template>
+
+<style scoped>
+.form-hint {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+.form-hint code {
+  font-family: monospace;
+  background: #f3f4f6;
+  padding: 0 0.25rem;
+  border-radius: 3px;
+}
+</style>

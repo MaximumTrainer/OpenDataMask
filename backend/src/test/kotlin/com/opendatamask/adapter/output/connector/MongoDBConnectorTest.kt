@@ -4,6 +4,7 @@ import com.mongodb.client.FindIterable
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoCollection
 import com.mongodb.client.MongoDatabase
+import com.mongodb.client.model.WriteModel
 import org.bson.Document
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
@@ -97,6 +98,45 @@ class MongoDBConnectorTest {
         )
         val count = connector.writeData("users", rows)
         assertEquals(2, count)
+        verify(mockCollection).insertMany(any())
+        verify(mockCollection, never()).bulkWrite(any<List<WriteModel<Document>>>())
+    }
+
+    @Test
+    fun `writeData uses bulkWrite upsert when rows contain _id field`() {
+        val mockCollection = mock<MongoCollection<Document>>()
+        val mockDb = mock<MongoDatabase>()
+        val mockClient = mock<MongoClient>()
+        whenever(mockClient.getDatabase("testdb")).thenReturn(mockDb)
+        whenever(mockDb.getCollection("users")).thenReturn(mockCollection)
+
+        val connector = createConnector(mockClient)
+        val rows = listOf(
+            mapOf("_id" to "abc123", "name" to "Alice"),
+            mapOf("_id" to "def456", "name" to "Bob")
+        )
+        val count = connector.writeData("users", rows)
+        assertEquals(2, count)
+        verify(mockCollection).bulkWrite(any<List<WriteModel<Document>>>())
+        verify(mockCollection, never()).insertMany(any())
+    }
+
+    @Test
+    fun `writeData handles mixed rows with and without _id`() {
+        val mockCollection = mock<MongoCollection<Document>>()
+        val mockDb = mock<MongoDatabase>()
+        val mockClient = mock<MongoClient>()
+        whenever(mockClient.getDatabase("testdb")).thenReturn(mockDb)
+        whenever(mockDb.getCollection("users")).thenReturn(mockCollection)
+
+        val connector = createConnector(mockClient)
+        val rows = listOf(
+            mapOf("_id" to "abc123", "name" to "Alice"),
+            mapOf("name" to "Bob")
+        )
+        val count = connector.writeData("users", rows)
+        assertEquals(2, count)
+        verify(mockCollection).bulkWrite(any<List<WriteModel<Document>>>())
         verify(mockCollection).insertMany(any())
     }
 

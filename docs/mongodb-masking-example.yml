@@ -1,0 +1,116 @@
+# OpenDataMask – MongoDB Selective Attribute Masking Example
+#
+# This file shows how to export/import a workspace configuration that:
+#   1. Reads documents from a MongoDB source collection.
+#   2. Masks specific fields while leaving all other fields as-is ("passthrough").
+#   3. Writes the result to a target MongoDB collection (upsert on _id, insert otherwise).
+#
+# Prerequisites
+# -------------
+# Before importing this config create two Data Connections in the workspace:
+#
+#   Source connection
+#     Type   : MONGODB
+#     URI    : mongodb://readonly_user:secret@mongo-source.example.com:27017
+#     Database (optional): myapp       # can also be embedded in the URI
+#     Roles  : Source ✓ / Destination ✗
+#
+#   Destination connection
+#     Type   : MONGODB
+#     URI    : mongodb://rw_user:secret@mongo-dest.example.com:27017
+#     Database (optional): myapp_masked
+#     Roles  : Source ✗ / Destination ✓
+#
+# Connection URI tips
+# -------------------
+#   Standard standalone:  mongodb://user:pass@host:27017/dbname
+#   Replica set:          mongodb://user:pass@host1:27017,host2:27017/dbname?replicaSet=rs0
+#   MongoDB Atlas (SRV):  mongodb+srv://user:pass@cluster.mongodb.net/dbname
+#   Azure Cosmos DB:      mongodb://account:key@account.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false
+#
+# How masking works
+# -----------------
+# * Table name = MongoDB collection name.
+# * Mode MASK  : listed column generators replace field values; all other
+#                fields are transferred unchanged ("as-is").
+# * Mode PASSTHROUGH : every field is copied without modification.
+# * Mode SKIP  : the collection is not processed.
+# * Nested paths (e.g. "address.street") are supported when the generator
+#                operates on the top-level key that contains the object.
+#   For deep-nested masking add one generator per top-level field path.
+
+version: "1.0"
+
+tables:
+
+  # ── Collection: customers ──────────────────────────────────────────────────
+  - tableName: customers
+    schemaName: null          # MongoDB has no schema concept; set to null
+    mode: MASK
+    rowLimit: null            # null = process all documents
+    whereClause: null         # null = no filter (process every document)
+                              # MongoDB JSON filter example: '{"status": "active"}'
+    columnGenerators:
+      # PII fields to replace with realistic fake data
+      - columnName: firstName
+        generatorType: FIRST_NAME
+        generatorParams: null
+
+      - columnName: lastName
+        generatorType: LAST_NAME
+        generatorParams: null
+
+      - columnName: email
+        generatorType: EMAIL
+        generatorParams: null
+
+      - columnName: phone
+        generatorType: PHONE
+        generatorParams: null
+
+      - columnName: dateOfBirth
+        generatorType: BIRTH_DATE
+        generatorParams: null
+
+      # Replace SSN with a NULL (omit from masked output)
+      - columnName: ssn
+        generatorType: NULL
+        generatorParams: null
+
+      # Partially mask a credit card number (keep last 4 digits)
+      - columnName: creditCardNumber
+        generatorType: PARTIAL_MASK
+        generatorParams: '{"visibleSuffix":"4"}'
+
+  # ── Collection: orders ────────────────────────────────────────────────────
+  # Copy the entire orders collection without any modifications.
+  - tableName: orders
+    schemaName: null
+    mode: PASSTHROUGH
+    rowLimit: null
+    whereClause: null
+    columnGenerators: []
+
+  # ── Collection: audit_logs ────────────────────────────────────────────────
+  # Skip this collection entirely – it is not copied to the destination.
+  - tableName: audit_logs
+    schemaName: null
+    mode: SKIP
+    rowLimit: null
+    whereClause: null
+    columnGenerators: []
+
+  # ── Collection: products ──────────────────────────────────────────────────
+  # Subset: copy only documents matching the MongoDB filter.
+  - tableName: products
+    schemaName: null
+    mode: SUBSET
+    rowLimit: 1000            # cap at 1 000 documents
+    whereClause: '{"inStock": true}'
+    columnGenerators: []
+
+# Post-job actions (optional)
+actions:
+  - actionType: WEBHOOK
+    config: '{"url":"https://hooks.example.com/masking-done","method":"POST"}'
+    enabled: true

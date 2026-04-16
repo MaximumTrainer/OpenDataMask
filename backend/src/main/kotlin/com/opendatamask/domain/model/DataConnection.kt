@@ -28,6 +28,9 @@ class DataConnection(
     var connectionString: String,
 
     @Column
+    var host: String? = null,
+
+    @Column
     var username: String? = null,
 
     @Column(length = 2048)

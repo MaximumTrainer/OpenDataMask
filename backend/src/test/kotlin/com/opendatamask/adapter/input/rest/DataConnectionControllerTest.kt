@@ -41,7 +41,7 @@ class DataConnectionControllerTest {
 
     private fun makeResponse(id: Long = 1L, workspaceId: Long = 1L) = DataConnectionResponse(
         id = id, workspaceId = workspaceId, name = "My DB", type = ConnectionType.POSTGRESQL,
-        username = "user", database = null, isSource = true, isDestination = false,
+        host = "localhost:5432", username = "user", database = null, isSource = true, isDestination = false,
         createdAt = LocalDateTime.now()
     )
 
