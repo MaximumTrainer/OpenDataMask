@@ -731,9 +731,10 @@ class EuGdprRuleRegistrar(private val ruleRegistry: RuleRegistryPort) {
 }
 ```
 
-After registering the rule, create a mapping that uses `maskingStrategy: "REGEX"` and set `piiRuleParams` to `{"ruleId": "eu_gdpr_conditional"}`, or simply apply the rule programmatically via `PIIMaskingService.applyMappings()`.
+After registering the rule, invoke it programmatically via `PIIMaskingService.applyMappings()`, or create a standard mapping with any built-in strategy that routes through `PIIMaskingService`.
 
 
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/my-feature`

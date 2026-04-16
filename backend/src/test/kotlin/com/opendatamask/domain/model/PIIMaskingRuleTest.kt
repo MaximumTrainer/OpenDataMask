@@ -51,7 +51,7 @@ class PIIMaskingRuleTest {
     @Test
     fun `PartialMaskRule with short input returns input unchanged`() {
         val rule = PartialMaskRule(keepFirst = 2, keepLast = 3)
-        assertEquals("hello", PartialMaskRule(keepFirst = 0, keepLast = 10).mask("hello"))
+        assertEquals("hello", rule.mask("hello"))
     }
 
     @Test

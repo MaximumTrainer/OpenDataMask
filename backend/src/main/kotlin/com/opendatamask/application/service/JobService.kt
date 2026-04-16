@@ -208,8 +208,8 @@ class JobService(
         sourceConnector: DatabaseConnector,
         destConnector: DatabaseConnector,
         preComputedRows: Map<String, List<Map<String, Any?>>> = emptyMap(),
-        workspaceId: Long = 0L,
-        sourceConnectionId: Long = 0L
+        workspaceId: Long? = null,
+        sourceConnectionId: Long? = null
     ) {
         addLog(jobId, "Processing table: ${tableConfig.tableName} (mode: ${tableConfig.mode})", LogLevel.INFO)
 
@@ -220,7 +220,7 @@ class JobService(
             TableMode.PASSTHROUGH -> {
                 val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), null, selectedAttrs)
                 addLog(jobId, "Fetched ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
-                val transformed = if (workspaceId != 0L && sourceConnectionId != 0L) {
+                val transformed = if (workspaceId != null && sourceConnectionId != null) {
                     data.map { row ->
                         piiMaskingService.applyMappings(workspaceId, sourceConnectionId, tableConfig.tableName, row)
                     }

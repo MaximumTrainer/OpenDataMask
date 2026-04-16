@@ -26,6 +26,7 @@ class RedactRule : BuiltInPIIRule("redact") {
 
 // Masks the middle characters of a string, preserving a configurable number of
 // leading and trailing characters. Useful for partial credit-card or email masking.
+// When the input is shorter than keepFirst + keepLast, the original value is returned unchanged.
 class PartialMaskRule(
     val keepFirst: Int = 0,
     val keepLast: Int = 4,
@@ -34,8 +35,9 @@ class PartialMaskRule(
     override fun mask(input: Any?): Any? {
         if (input == null) return null
         val str = input.toString()
-        val maskLen = (str.length - keepFirst - keepLast).coerceAtLeast(0)
-        return str.take(keepFirst) + maskChar.toString().repeat(maskLen) + str.takeLast(keepLast.coerceAtMost(str.length))
+        if (str.length <= keepFirst + keepLast) return str
+        val maskLen = str.length - keepFirst - keepLast
+        return str.take(keepFirst) + maskChar.toString().repeat(maskLen) + str.takeLast(keepLast)
     }
 }
 
