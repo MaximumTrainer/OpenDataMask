@@ -21,9 +21,13 @@ class AzureSQLConnector(
         return getConnection().use { conn ->
             val tables = mutableListOf<String>()
             val meta = conn.metaData
-            val rs = meta.getTables(null, "dbo", "%", arrayOf("TABLE"))
+            // Use null schema to cover dbo and any other user schemas; exclude INFORMATION_SCHEMA
+            val rs = meta.getTables(null, null, "%", arrayOf("TABLE"))
             while (rs.next()) {
-                tables.add(rs.getString("TABLE_NAME"))
+                val schema = rs.getString("TABLE_SCHEM") ?: ""
+                if (!schema.equals("INFORMATION_SCHEMA", ignoreCase = true)) {
+                    tables.add(rs.getString("TABLE_NAME"))
+                }
             }
             tables
         }
@@ -81,8 +85,16 @@ class AzureSQLConnector(
             val nullConstraint = if (col.nullable) "" else " NOT NULL"
             "[$sanitizedCol] ${col.type}$nullConstraint"
         }
-        val sql = "IF OBJECT_ID('[$sanitizedTable]', 'U') IS NULL CREATE TABLE [$sanitizedTable] ($colDefs)"
-        getConnection().use { conn -> conn.createStatement().use { it.execute(sql) } }
+        val sql = "CREATE TABLE [$sanitizedTable] ($colDefs)"
+        try {
+            getConnection().use { conn -> conn.createStatement().use { it.execute(sql) } }
+        } catch (e: java.sql.SQLException) {
+            // Tolerate "table already exists": H2 raises state 42S01, SQL Server error code 2714
+            val alreadyExists = e.sqlState?.startsWith("42S01") == true ||
+                e.errorCode == 2714 ||
+                e.message?.contains("already exists", ignoreCase = true) == true
+            if (!alreadyExists) throw e
+        }
     }
 
     override fun truncateTable(tableName: String) {
@@ -107,6 +119,24 @@ class AzureSQLConnector(
                 }
                 stmt.executeBatch().sum()
             }
+        }
+    }
+
+    override fun listForeignKeys(tableName: String): List<ForeignKeyInfo> {
+        return getConnection().use { conn ->
+            val fks = mutableListOf<ForeignKeyInfo>()
+            val rs = conn.metaData.getImportedKeys(null, null, tableName)
+            while (rs.next()) {
+                fks.add(
+                    ForeignKeyInfo(
+                        fromTable = rs.getString("FKTABLE_NAME"),
+                        fromColumn = rs.getString("FKCOLUMN_NAME"),
+                        toTable = rs.getString("PKTABLE_NAME"),
+                        toColumn = rs.getString("PKCOLUMN_NAME")
+                    )
+                )
+            }
+            fks
         }
     }
 

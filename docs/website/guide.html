@@ -34,7 +34,11 @@
           <li><a href="#prerequisites">Prerequisites</a></li>
           <li><a href="#installation">Installation</a></li>
           <li><a href="#configuration">Configuration</a></li>
-          <li><a href="#concepts">Core Concepts</a></li>
+          <li><a href="#concepts">Core Concepts</a>
+            <ul>
+              <li><a href="#connections">Database Connections</a></li>
+            </ul>
+          </li>
           <li><a href="#workflow">Operational Workflow</a></li>
           <li><a href="#generators">Generator Types</a></li>
           <li><a href="#cli">CLI Usage</a></li>
@@ -102,6 +106,19 @@ go build -o opendatamask-cli ./...
       </table>
 
       <h2 id="concepts">Core Concepts</h2>
+
+      <h3 id="connections">Supported Database Connections</h3>
+      <table>
+        <tr><th>Type</th><th>Key</th><th>Connection String Format</th></tr>
+        <tr><td>PostgreSQL</td><td><code>POSTGRESQL</code></td><td><code>jdbc:postgresql://&lt;host&gt;:&lt;port&gt;/&lt;database&gt;</code></td></tr>
+        <tr><td>MySQL</td><td><code>MYSQL</code></td><td><code>jdbc:mysql://&lt;host&gt;:&lt;port&gt;/&lt;database&gt;</code></td></tr>
+        <tr><td>Azure SQL</td><td><code>AZURE_SQL</code></td><td><code>jdbc:sqlserver://&lt;server&gt;.database.windows.net:1433;databaseName=&lt;db&gt;</code></td></tr>
+        <tr><td>MongoDB</td><td><code>MONGODB</code></td><td><code>mongodb://&lt;host&gt;:&lt;port&gt;/&lt;database&gt;</code></td></tr>
+        <tr><td>MongoDB Cosmos DB</td><td><code>MONGODB_COSMOS</code></td><td><code>mongodb://&lt;account&gt;.mongo.cosmos.azure.com:10255/&lt;db&gt;?ssl=true&amp;...</code></td></tr>
+        <tr><td>File (CSV/JSON)</td><td><code>FILE</code></td><td><em>Uploaded via the UI</em></td></tr>
+      </table>
+      <p>For <strong>Azure SQL</strong>, TLS encryption is enabled automatically and credentials (username/password) are provided separately from the connection string. The <code>mssql-jdbc</code> driver is bundled — no extra installation needed.</p>
+
       <h3>Workspaces</h3>
       <p>A <strong>Workspace</strong> is the top-level scope for a masking project. It contains connections, table configurations, jobs, and team members. Workspaces can inherit configuration from a parent workspace.</p>
 

@@ -72,4 +72,62 @@ class AzureSQLConnectorTest {
         val rows = connector.fetchData("test_users")
         assertTrue(rows.isEmpty())
     }
+
+    @Test
+    fun `listTables returns at least the test_users table`() {
+        val tables = connector.listTables()
+        assertTrue(tables.any { it.equals("test_users", ignoreCase = true) },
+            "Expected test_users in $tables")
+    }
+
+    @Test
+    fun `listColumns returns columns for test_users`() {
+        val columns = connector.listColumns("test_users")
+        assertTrue(columns.isNotEmpty(), "Expected columns for test_users but got empty list")
+        val names = columns.map { it.name.lowercase() }
+        assertTrue(names.contains("id"), "Expected column 'id' in $names")
+        assertTrue(names.contains("name"), "Expected column 'name' in $names")
+        assertTrue(names.contains("email"), "Expected column 'email' in $names")
+    }
+
+    @Test
+    fun `createTable creates a new table that can be written to`() {
+        val columns = listOf(
+            ColumnInfo("product_id", "INT", false),
+            ColumnInfo("product_name", "VARCHAR(100)", true)
+        )
+        connector.createTable("az_products", columns)
+        val rows = listOf(mapOf("product_id" to 1, "product_name" to "Widget"))
+        val count = connector.writeData("az_products", rows)
+        assertEquals(1, count)
+    }
+
+    @Test
+    fun `listForeignKeys returns empty list when no FK constraints exist`() {
+        val fks = connector.listForeignKeys("test_users")
+        assertNotNull(fks)
+        assertTrue(fks.isEmpty(), "Expected empty FK list for standalone test_users table")
+    }
+
+    @Test
+    fun `listForeignKeys returns foreign key when FK constraint is defined`() {
+        java.sql.DriverManager.getConnection(h2Url).use { conn ->
+            conn.createStatement().execute(
+                "CREATE TABLE IF NOT EXISTS az_departments (dept_id INT PRIMARY KEY, dept_name VARCHAR(100))"
+            )
+            conn.createStatement().execute(
+                "CREATE TABLE IF NOT EXISTS az_employees (" +
+                    "emp_id INT PRIMARY KEY, emp_name VARCHAR(100), dept_id INT, " +
+                    "CONSTRAINT fk_az_dept FOREIGN KEY (dept_id) REFERENCES az_departments(dept_id)" +
+                    ")"
+            )
+        }
+        val fks = connector.listForeignKeys("az_employees")
+        assertEquals(1, fks.size, "Expected 1 FK for az_employees but got ${fks.size}: $fks")
+        val fk = fks[0]
+        assertEquals("az_employees", fk.fromTable.lowercase())
+        assertEquals("dept_id", fk.fromColumn.lowercase())
+        assertEquals("az_departments", fk.toTable.lowercase())
+        assertEquals("dept_id", fk.toColumn.lowercase())
+    }
 }
