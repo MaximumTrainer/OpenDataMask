@@ -79,7 +79,7 @@ class TableConfigurationControllerTest {
     private fun makeConfigResponse(id: Long = 1L, workspaceId: Long = 1L) = TableConfigurationResponse(
         id = id, workspaceId = workspaceId, tableName = "users", schemaName = null,
         mode = TableMode.PASSTHROUGH, rowLimit = null, whereClause = null,
-        createdAt = LocalDateTime.now()
+        selectedAttributes = null, createdAt = LocalDateTime.now()
     )
 
     private fun makeGeneratorResponse(id: Long = 1L, tableConfigId: Long = 1L) = ColumnGeneratorResponse(

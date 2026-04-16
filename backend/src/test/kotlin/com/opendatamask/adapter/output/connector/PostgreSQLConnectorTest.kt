@@ -81,4 +81,37 @@ class PostgreSQLConnectorTest {
         val rows = connector.fetchData("test_users")
         assertTrue(rows.isEmpty())
     }
+
+    @Test
+    fun `fetchData with selectedAttributes returns only requested columns`() {
+        val rows = connector.fetchData("test_users", selectedAttributes = listOf("id", "name"))
+        assertEquals(2, rows.size)
+        // Each row should only contain id and name keys (case may vary in H2)
+        val firstRow = rows[0]
+        val keys = firstRow.keys.map { it.lowercase() }.toSet()
+        assertTrue(keys.contains("id") || keys.contains("ID"))
+        assertTrue(keys.contains("name") || keys.contains("NAME"))
+        // email column should not be present
+        assertFalse(keys.contains("email"))
+    }
+
+    @Test
+    fun `fetchData with empty selectedAttributes returns all columns`() {
+        val rows = connector.fetchData("test_users", selectedAttributes = emptyList())
+        assertEquals(2, rows.size)
+        val keys = rows[0].keys.map { it.lowercase() }.toSet()
+        assertTrue(keys.contains("id") || keys.contains("ID"))
+        assertTrue(keys.contains("name") || keys.contains("NAME"))
+        assertTrue(keys.contains("email") || keys.contains("EMAIL"))
+    }
+
+    @Test
+    fun `fetchData with selectedAttributes and whereClause filters both rows and columns`() {
+        val rows = connector.fetchData("test_users", whereClause = "name = 'Alice'", selectedAttributes = listOf("id"))
+        assertEquals(1, rows.size)
+        val keys = rows[0].keys.map { it.lowercase() }.toSet()
+        // Only id should be returned
+        assertTrue(keys.size == 1)
+        assertTrue(keys.contains("id") || keys.contains("ID"))
+    }
 }

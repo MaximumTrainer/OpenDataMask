@@ -17,7 +17,7 @@ interface DatabaseConnector {
     fun testConnection(): Boolean
     fun listTables(): List<String>
     fun listColumns(tableName: String): List<ColumnInfo>
-    fun fetchData(tableName: String, limit: Int? = null, whereClause: String? = null): List<Map<String, Any?>>
+    fun fetchData(tableName: String, limit: Int? = null, whereClause: String? = null, selectedAttributes: List<String>? = null): List<Map<String, Any?>>
     fun createTable(tableName: String, columns: List<ColumnInfo>)
     fun truncateTable(tableName: String)
     fun writeData(tableName: String, rows: List<Map<String, Any?>>): Int

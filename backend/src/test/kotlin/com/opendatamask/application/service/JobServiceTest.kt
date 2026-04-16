@@ -244,7 +244,7 @@ class JobServiceTest {
         whenever(mockSrc.testConnection()).thenReturn(true)
         whenever(mockDst.testConnection()).thenReturn(true)
         whenever(tableConfigurationRepository.findByWorkspaceId(1L)).thenReturn(listOf(tableConfig))
-        whenever(mockSrc.fetchData(eq("users"), anyOrNull(), anyOrNull())).thenReturn(rows)
+        whenever(mockSrc.fetchData(eq("users"), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(rows)
         whenever(mockDst.writeData(eq("users"), eq(rows))).thenReturn(1)
 
         jobService.runJob(1L)
@@ -280,7 +280,7 @@ class JobServiceTest {
         whenever(mockDst.testConnection()).thenReturn(true)
         whenever(tableConfigurationRepository.findByWorkspaceId(1L)).thenReturn(listOf(tableConfig))
         whenever(columnGeneratorRepository.findByTableConfigurationId(1L)).thenReturn(listOf(generator))
-        whenever(mockSrc.fetchData(eq("users"), anyOrNull(), anyOrNull())).thenReturn(listOf(original))
+        whenever(mockSrc.fetchData(eq("users"), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(listOf(original))
         whenever(generatorService.applyGenerators(original, listOf(generator))).thenReturn(masked)
         whenever(mockDst.writeData("users", listOf(masked))).thenReturn(1)
 
@@ -370,12 +370,12 @@ class JobServiceTest {
         whenever(mockSrc.testConnection()).thenReturn(true)
         whenever(mockDst.testConnection()).thenReturn(true)
         whenever(tableConfigurationRepository.findByWorkspaceId(1L)).thenReturn(listOf(tableConfig))
-        whenever(mockSrc.fetchData(eq("users"), anyOrNull(), eq("age > 18"))).thenReturn(filtered)
+        whenever(mockSrc.fetchData(eq("users"), anyOrNull(), eq("age > 18"), anyOrNull())).thenReturn(filtered)
         whenever(mockDst.writeData("users", filtered)).thenReturn(1)
 
         jobService.runJob(1L)
 
-        verify(mockSrc).fetchData("users", null, "age > 18")
+        verify(mockSrc).fetchData("users", null, "age > 18", null)
         verify(mockDst).writeData("users", filtered)
     }
 

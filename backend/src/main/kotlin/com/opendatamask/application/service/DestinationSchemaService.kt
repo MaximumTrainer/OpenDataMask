@@ -77,11 +77,29 @@ class DestinationSchemaService {
         sourceType: ConnectionType,
         destConnector: DatabaseConnector,
         destType: ConnectionType,
-        tableName: String
+        tableName: String,
+        selectedAttributes: List<String> = emptyList()
     ) {
         logger.info("Mirroring schema for table: $tableName ($sourceType -> $destType)")
         val sourceColumns = sourceConnector.listColumns(tableName)
-        val destColumns = sourceColumns.map { col ->
+        val filteredColumns = if (selectedAttributes.isEmpty()) {
+            sourceColumns
+        } else {
+            val sourceColumnNames = sourceColumns.map { it.name }
+            val sourceColumnNamesNormalized = sourceColumnNames.map { it.lowercase() }.toSet()
+            val normalizedSelected = selectedAttributes.map { it.lowercase() }.toSet()
+            val matched = sourceColumns.filter { it.name.lowercase() in normalizedSelected }
+            if (matched.isEmpty()) {
+                val unknownAttributes = selectedAttributes.filter { it.lowercase() !in sourceColumnNamesNormalized }
+                throw IllegalArgumentException(
+                    "No selected attributes matched source columns for table '$tableName'. " +
+                        "Unknown attributes: ${if (unknownAttributes.isEmpty()) selectedAttributes else unknownAttributes}. " +
+                        "Available columns: $sourceColumnNames"
+                )
+            }
+            matched
+        }
+        val destColumns = filteredColumns.map { col ->
             ColumnInfo(
                 name = col.name,
                 type = mapColumnType(col.type, sourceType, destType),

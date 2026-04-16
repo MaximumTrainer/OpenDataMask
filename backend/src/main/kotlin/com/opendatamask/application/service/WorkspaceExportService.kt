@@ -27,6 +27,7 @@ class WorkspaceExportService(
                 mode = table.mode,
                 rowLimit = table.rowLimit,
                 whereClause = table.whereClause,
+                selectedAttributes = table.selectedAttributes?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() },
                 columnGenerators = generators.map { gen ->
                     ColumnGeneratorExportDto(
                         columnName = gen.columnName,
@@ -63,6 +64,10 @@ class WorkspaceExportService(
             table.mode = tableDto.mode
             table.rowLimit = tableDto.rowLimit
             table.whereClause = tableDto.whereClause
+            table.selectedAttributes = tableDto.selectedAttributes
+                ?.filter { it.isNotBlank() }
+                ?.takeIf { it.isNotEmpty() }
+                ?.joinToString(",")
             val savedTable = tableConfigurationRepository.save(table)
 
             val existingGenerators = columnGeneratorRepository.findByTableConfigurationId(savedTable.id)

@@ -21,13 +21,21 @@ class FileConnector(
         }
     }
 
-    override fun fetchData(tableName: String, limit: Int?, whereClause: String?): List<Map<String, Any?>> {
+    override fun fetchData(tableName: String, limit: Int?, whereClause: String?, selectedAttributes: List<String>?): List<Map<String, Any?>> {
         val rows = when {
             contentType.contains("csv", ignoreCase = true) || filename.endsWith(".csv") -> parseCsv()
             contentType.contains("json", ignoreCase = true) || filename.endsWith(".json") -> parseJson()
             else -> emptyList()
         }
-        return if (limit != null) rows.take(limit) else rows
+        val limited = if (limit != null) rows.take(limit) else rows
+        return if (!selectedAttributes.isNullOrEmpty()) {
+            val normalizedSelected = selectedAttributes.map { it.lowercase() }.toSet()
+            limited.map { row ->
+                row.filterKeys { it.lowercase() in normalizedSelected }
+            }
+        } else {
+            limited
+        }
     }
 
     override fun createTable(tableName: String, columns: List<ColumnInfo>) {

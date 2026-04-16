@@ -46,14 +46,19 @@ class PostgreSQLConnector(
         }
     }
 
-    override fun fetchData(tableName: String, limit: Int?, whereClause: String?): List<Map<String, Any?>> {
+    override fun fetchData(tableName: String, limit: Int?, whereClause: String?, selectedAttributes: List<String>?): List<Map<String, Any?>> {
         // Use double-quoting for PostgreSQL identifier safety
         val quotedTable = "\"${tableName.replace("\"", "")}\""
+        val selectPart = if (!selectedAttributes.isNullOrEmpty()) {
+            selectedAttributes.joinToString(", ") { "\"${it.replace("\"", "")}\"" }
+        } else {
+            "*"
+        }
         val wherePart = if (!whereClause.isNullOrBlank()) " WHERE $whereClause" else ""
         val query = if (limit != null) {
-            "SELECT * FROM $quotedTable$wherePart LIMIT $limit"
+            "SELECT $selectPart FROM $quotedTable$wherePart LIMIT $limit"
         } else {
-            "SELECT * FROM $quotedTable$wherePart"
+            "SELECT $selectPart FROM $quotedTable$wherePart"
         }
         return getConnection().use { conn ->
             conn.prepareStatement(query).use { stmt ->

@@ -43,8 +43,9 @@ class TableConfigurationServiceTest {
 
     private fun makeConfigRequest(
         tableName: String = "users",
-        mode: TableMode = TableMode.PASSTHROUGH
-    ) = TableConfigurationRequest(tableName = tableName, mode = mode)
+        mode: TableMode = TableMode.PASSTHROUGH,
+        selectedAttributes: List<String>? = null
+    ) = TableConfigurationRequest(tableName = tableName, mode = mode, selectedAttributes = selectedAttributes)
 
     // ── createTableConfiguration ───────────────────────────────────────────
 
@@ -77,6 +78,50 @@ class TableConfigurationServiceTest {
 
         assertEquals(100L, response.rowLimit)
         assertEquals("active = true", response.whereClause)
+    }
+
+    @Test
+    fun `createTableConfiguration persists selectedAttributes as comma-separated string`() {
+        val saved = makeTableConfig(id = 1L).also {
+            it.selectedAttributes = "id,name,email"
+        }
+        val request = TableConfigurationRequest(
+            tableName = "users", mode = TableMode.SUBSET,
+            selectedAttributes = listOf("id", "name", "email")
+        )
+        val captor = argumentCaptor<TableConfiguration>()
+        whenever(tableConfigurationRepository.save(captor.capture())).thenReturn(saved)
+
+        val response = service.createTableConfiguration(10L, request)
+
+        assertEquals("id,name,email", captor.firstValue.selectedAttributes)
+        assertEquals(listOf("id", "name", "email"), response.selectedAttributes)
+    }
+
+    @Test
+    fun `createTableConfiguration normalizes empty selectedAttributes list to null`() {
+        val saved = makeTableConfig(id = 1L)
+        val request = TableConfigurationRequest(
+            tableName = "users", mode = TableMode.PASSTHROUGH,
+            selectedAttributes = emptyList()
+        )
+        val captor = argumentCaptor<TableConfiguration>()
+        whenever(tableConfigurationRepository.save(captor.capture())).thenReturn(saved)
+
+        service.createTableConfiguration(10L, request)
+
+        assertNull(captor.firstValue.selectedAttributes)
+    }
+
+    @Test
+    fun `createTableConfiguration returns null selectedAttributes when entity has no value`() {
+        val saved = makeTableConfig(id = 1L)
+        val request = TableConfigurationRequest(tableName = "users", mode = TableMode.PASSTHROUGH)
+        whenever(tableConfigurationRepository.save(any<TableConfiguration>())).thenReturn(saved)
+
+        val response = service.createTableConfiguration(10L, request)
+
+        assertNull(response.selectedAttributes)
     }
 
     // ── getTableConfiguration ──────────────────────────────────────────────

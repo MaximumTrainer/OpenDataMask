@@ -66,7 +66,7 @@ class SubsetExecutionServiceTest {
 
         whenever(subsetPlanService.buildExecutionPlan(1L)).thenReturn(plan)
         whenever(fkRepo.findByWorkspaceId(1L)).thenReturn(fks)
-        whenever(connector.fetchData(eq("customers"), anyOrNull(), anyOrNull())).thenReturn(customerRows)
+        whenever(connector.fetchData(eq("customers"), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(customerRows)
 
         val result = service.executeSubset(1L, connector)
 

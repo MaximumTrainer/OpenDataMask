@@ -107,6 +107,7 @@ export interface TableConfiguration {
   tableName: string
   mode: TableMode
   whereClause?: string
+  selectedAttributes?: string[]
   createdAt: string
   updatedAt: string
   columnGenerators: ColumnGenerator[]
@@ -118,6 +119,7 @@ export interface TableConfigurationRequest {
   tableName: string
   mode: TableMode
   whereClause?: string
+  selectedAttributes?: string[]
 }
 
 // ── Column Generator ──────────────────────────────────────────────────────
@@ -334,6 +336,7 @@ export interface WorkspaceTableConfigExport {
   mode: TableMode
   rowLimit: number | null
   whereClause: string | null
+  selectedAttributes: string[] | null
   columnGenerators: WorkspaceColumnGeneratorExport[]
 }
 

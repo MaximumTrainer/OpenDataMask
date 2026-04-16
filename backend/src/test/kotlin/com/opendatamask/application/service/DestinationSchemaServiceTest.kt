@@ -235,4 +235,109 @@ class DestinationSchemaServiceTest {
             }
         }
     }
+
+    // ── mirrorSchema with selectedAttributes ──────────────────────────────
+
+    @Test
+    fun `mirrorSchema filters columns to selectedAttributes subset`() {
+        val sourceConnector = mock<DatabaseConnector>()
+        val destConnector = mock<DatabaseConnector>()
+        val columns = listOf(
+            ColumnInfo("id", "int4", false),
+            ColumnInfo("name", "text", true),
+            ColumnInfo("email", "text", true),
+            ColumnInfo("salary", "float8", true)
+        )
+        whenever(sourceConnector.listColumns("users")).thenReturn(columns)
+
+        service.mirrorSchema(
+            sourceConnector, ConnectionType.POSTGRESQL,
+            destConnector, ConnectionType.POSTGRESQL,
+            "users",
+            listOf("id", "name")
+        )
+
+        verify(destConnector).createTable(
+            eq("users"),
+            argThat { cols ->
+                cols.size == 2 &&
+                    cols.any { it.name == "id" } &&
+                    cols.any { it.name == "name" } &&
+                    cols.none { it.name == "email" } &&
+                    cols.none { it.name == "salary" }
+            }
+        )
+    }
+
+    @Test
+    fun `mirrorSchema uses all columns when selectedAttributes is empty`() {
+        val sourceConnector = mock<DatabaseConnector>()
+        val destConnector = mock<DatabaseConnector>()
+        val columns = listOf(
+            ColumnInfo("id", "int4", false),
+            ColumnInfo("name", "text", true)
+        )
+        whenever(sourceConnector.listColumns("users")).thenReturn(columns)
+
+        service.mirrorSchema(
+            sourceConnector, ConnectionType.POSTGRESQL,
+            destConnector, ConnectionType.POSTGRESQL,
+            "users",
+            emptyList()
+        )
+
+        verify(destConnector).createTable(
+            eq("users"),
+            argThat { cols -> cols.size == 2 }
+        )
+    }
+
+    @Test
+    fun `mirrorSchema column filtering is case-insensitive`() {
+        val sourceConnector = mock<DatabaseConnector>()
+        val destConnector = mock<DatabaseConnector>()
+        val columns = listOf(
+            ColumnInfo("Id", "int4", false),
+            ColumnInfo("NAME", "text", true),
+            ColumnInfo("email", "text", true)
+        )
+        whenever(sourceConnector.listColumns("users")).thenReturn(columns)
+
+        service.mirrorSchema(
+            sourceConnector, ConnectionType.POSTGRESQL,
+            destConnector, ConnectionType.POSTGRESQL,
+            "users",
+            listOf("id", "name")
+        )
+
+        verify(destConnector).createTable(
+            eq("users"),
+            argThat { cols ->
+                cols.size == 2 &&
+                    cols.none { it.name == "email" }
+            }
+        )
+    }
+
+    @Test
+    fun `mirrorSchema throws when selectedAttributes matches no source columns`() {
+        val sourceConnector = mock<DatabaseConnector>()
+        val destConnector = mock<DatabaseConnector>()
+        val columns = listOf(
+            ColumnInfo("id", "int4", false),
+            ColumnInfo("name", "text", true)
+        )
+        whenever(sourceConnector.listColumns("users")).thenReturn(columns)
+
+        val ex = assertThrows<IllegalArgumentException> {
+            service.mirrorSchema(
+                sourceConnector, ConnectionType.POSTGRESQL,
+                destConnector, ConnectionType.POSTGRESQL,
+                "users",
+                listOf("nonexistent_col")
+            )
+        }
+        assertTrue(ex.message!!.contains("No selected attributes matched"))
+        assertTrue(ex.message!!.contains("nonexistent_col"))
+    }
 }

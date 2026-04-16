@@ -180,10 +180,13 @@ class JobService(
                     continue
                 }
                 addLog(job.id, "Mirroring schema for table: ${tableConfig.tableName}", LogLevel.INFO)
+                val selectedAttrs = tableConfig.selectedAttributes
+                    ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
                 destinationSchemaService.mirrorSchema(
                     sourceConnector, sourceConn.type,
                     destConnector, destConn.type,
-                    tableConfig.tableName
+                    tableConfig.tableName,
+                    selectedAttrs
                 )
                 processTable(job.id, tableConfig, sourceConnector, destConnector, subsetRows)
             }
@@ -217,16 +220,19 @@ class JobService(
     ) {
         addLog(jobId, "Processing table: ${tableConfig.tableName} (mode: ${tableConfig.mode})", LogLevel.INFO)
 
+        val selectedAttrs = tableConfig.selectedAttributes
+            ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }
+
         when (tableConfig.mode) {
             TableMode.PASSTHROUGH -> {
-                val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt())
+                val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), null, selectedAttrs)
                 addLog(jobId, "Fetched ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
                 val written = destConnector.writeData(tableConfig.tableName, data)
                 addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
             }
             TableMode.MASK -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
-                val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt())
+                val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), null, selectedAttrs)
                 addLog(
                     jobId,
                     "Masking ${data.size} rows in ${tableConfig.tableName} with ${generators.size} generator(s)",
@@ -249,7 +255,8 @@ class JobService(
                     ?: sourceConnector.fetchData(
                         tableConfig.tableName,
                         tableConfig.rowLimit?.toInt(),
-                        tableConfig.whereClause
+                        tableConfig.whereClause,
+                        selectedAttrs
                     )
                 addLog(jobId, "Subsetting ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
                 val written = destConnector.writeData(tableConfig.tableName, data)
@@ -257,7 +264,7 @@ class JobService(
             }
             TableMode.UPSERT -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
-                val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), tableConfig.whereClause)
+                val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), tableConfig.whereClause, selectedAttrs)
                 addLog(jobId, "Upserting ${data.size} rows in ${tableConfig.tableName} with ${generators.size} generator(s)", LogLevel.INFO)
                 val maskedData = if (generators.isNotEmpty()) data.map { row -> generatorService.applyGenerators(row, generators) } else data
                 val written = destConnector.writeData(tableConfig.tableName, maskedData)
