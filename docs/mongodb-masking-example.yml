@@ -72,7 +72,7 @@ tables:
         generatorType: BIRTH_DATE
         generatorParams: null
 
-      # Replace SSN with a NULL (omit from masked output)
+      # Replace SSN with a NULL value (field remains present in masked output)
       - columnName: ssn
         generatorType: NULL
         generatorParams: null

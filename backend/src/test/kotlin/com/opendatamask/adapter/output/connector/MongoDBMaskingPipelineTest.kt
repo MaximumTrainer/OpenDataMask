@@ -19,7 +19,7 @@ import org.testcontainers.utility.DockerImageName
 // End-to-end pipeline using a real MongoDB instance (via Testcontainers):
 //   source collection -> read -> apply generators -> write to target -> verify
 // ---------------------------------------------------------------------------
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 class MongoDBMaskingPipelineTest {
 
     companion object {

@@ -83,7 +83,7 @@ open class MongoDBConnector(
         if (rows.isEmpty()) return 0
         createMongoClient().use { client ->
             val collection = client.getDatabase(getDatabaseName()).getCollection(tableName)
-            val (withId, withoutId) = rows.partition { it.containsKey("_id") }
+            val (withId, withoutId) = rows.partition { it["_id"] != null }
             if (withId.isNotEmpty()) {
                 val upserts = withId.map { row ->
                     val doc = Document(row)

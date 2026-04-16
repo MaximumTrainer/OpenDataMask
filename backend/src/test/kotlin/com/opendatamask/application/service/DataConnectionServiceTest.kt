@@ -150,6 +150,48 @@ class DataConnectionServiceTest {
         assertTrue(result.isEmpty())
     }
 
+    @Test
+    fun `createConnection extracts host from JDBC URL`() {
+        val request = makeRequest(connectionString = "jdbc:postgresql://myhost:5432/mydb")
+        whenever(EncryptionPort.encrypt(any())).thenReturn("encrypted")
+        val captor = argumentCaptor<DataConnection>()
+        whenever(dataConnectionRepository.save(captor.capture())).thenAnswer { it.arguments[0] as DataConnection }
+
+        service.createConnection(10L, request)
+
+        assertEquals("myhost:5432", captor.firstValue.host)
+    }
+
+    @Test
+    fun `createConnection extracts host from Azure SQL JDBC URL ignoring semicolon params`() {
+        val request = makeRequest(
+            type = ConnectionType.AZURE_SQL,
+            connectionString = "jdbc:sqlserver://myserver:1433;databaseName=mydb;encrypt=true"
+        )
+        whenever(EncryptionPort.encrypt(any())).thenReturn("encrypted")
+        val captor = argumentCaptor<DataConnection>()
+        whenever(dataConnectionRepository.save(captor.capture())).thenAnswer { it.arguments[0] as DataConnection }
+
+        service.createConnection(10L, request)
+
+        assertEquals("myserver:1433", captor.firstValue.host)
+    }
+
+    @Test
+    fun `createConnection strips credentials from MongoDB URI when extracting host`() {
+        val request = makeRequest(
+            type = ConnectionType.MONGODB,
+            connectionString = "mongodb://user:pass@mycluster:27017/mydb"
+        )
+        whenever(EncryptionPort.encrypt(any())).thenReturn("encrypted")
+        val captor = argumentCaptor<DataConnection>()
+        whenever(dataConnectionRepository.save(captor.capture())).thenAnswer { it.arguments[0] as DataConnection }
+
+        service.createConnection(10L, request)
+
+        assertEquals("mycluster:27017", captor.firstValue.host)
+    }
+
     // ── updateConnection ───────────────────────────────────────────────────
 
     @Test

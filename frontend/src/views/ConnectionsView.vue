@@ -111,7 +111,7 @@ function buildConnectionString(): string {
   const { type, host, port, database, sslEnabled } = form.value
   switch (type) {
     case ConnectionType.POSTGRESQL:
-      return `jdbc:postgresql://${host}:${port}/${database}${sslEnabled ? '?ssl=require' : ''}`
+      return `jdbc:postgresql://${host}:${port}/${database}${sslEnabled ? '?sslmode=require' : ''}`
     case ConnectionType.MYSQL:
       return `jdbc:mysql://${host}:${port}/${database}${sslEnabled ? '?useSSL=true' : ''}`
     case ConnectionType.AZURE_SQL:
@@ -146,19 +146,49 @@ function openCreate() {
   showModal.value = true
 }
 
+function parseStoredSqlHost(hostValue: string | undefined, type: ConnectionType) {
+  let host = 'localhost'
+  let port = defaultPorts[type] ?? 5432
+
+  if (!hostValue || mongoTypes.has(type)) {
+    return { host, port }
+  }
+
+  if (hostValue.startsWith('[')) {
+    // Bracketed IPv6 literal: [::1]:5432
+    const closingBracket = hostValue.indexOf(']')
+    if (closingBracket !== -1) {
+      host = hostValue.slice(1, closingBracket) || 'localhost'
+      const remainder = hostValue.slice(closingBracket + 1)
+      if (remainder.startsWith(':')) {
+        const p = parseInt(remainder.slice(1), 10)
+        if (!isNaN(p)) port = p
+      }
+    }
+  } else {
+    const lastColon = hostValue.lastIndexOf(':')
+    if (lastColon !== -1) {
+      const p = parseInt(hostValue.slice(lastColon + 1), 10)
+      if (!isNaN(p)) {
+        host = hostValue.slice(0, lastColon) || 'localhost'
+        port = p
+      } else {
+        host = hostValue
+      }
+    } else {
+      host = hostValue
+    }
+  }
+
+  return { host, port }
+}
+
 function openEdit(conn: DataConnection) {
   editingConnection.value = conn
   originalType.value = conn.type
   sqlConnectionChanged.value = false
   // Parse host/port back from stored host string for SQL types (e.g. "localhost:5432")
-  let host = 'localhost'
-  let port = defaultPorts[conn.type] ?? 5432
-  if (conn.host && !mongoTypes.has(conn.type)) {
-    const parts = conn.host.split(':')
-    host = parts[0] ?? 'localhost'
-    const parsedPort = parts[1] ? parseInt(parts[1], 10) : NaN
-    port = isNaN(parsedPort) ? (defaultPorts[conn.type] ?? 5432) : parsedPort
-  }
+  const { host, port } = parseStoredSqlHost(conn.host, conn.type)
   form.value = {
     name: conn.name,
     type: conn.type,
@@ -187,7 +217,7 @@ function validateForm(): boolean {
   if (isMongoType.value) {
     // Require a URI on create, or when the type has changed to Mongo (old string is for a different type)
     const uriRequired = !editingConnection.value || typeChanged
-    if (uriRequired && !form.value.connectionString) {
+    if (uriRequired && form.value.connectionString.trim().length === 0) {
       formError.value = 'Connection URI is required.'
       return false
     }
@@ -467,7 +497,11 @@ async function handleTest(conn: DataConnection) {
               </label>
               <input v-model="form.password" type="password" class="form-control" autocomplete="new-password" />
             </div>
-            <div class="form-group" style="display:flex;align-items:center;gap:.75rem;padding-top:1.75rem;">
+            <div
+              v-if="form.type !== ConnectionType.AZURE_SQL"
+              class="form-group"
+              style="display:flex;align-items:center;gap:.75rem;padding-top:1.75rem;"
+            >
               <input
                 id="ssl"
                 v-model="form.sslEnabled"
