@@ -68,8 +68,8 @@ async function submitMappingImport() {
   let parsed: CustomMappingDto
   try {
     parsed = JSON.parse(mappingJson.value)
-  } catch {
-    mappingError.value = 'Invalid JSON. Please check the format.'
+  } catch (e: unknown) {
+    mappingError.value = `Invalid JSON: ${e instanceof Error ? e.message : String(e)}`
     return
   }
   importingMapping.value = true
@@ -77,8 +77,11 @@ async function submitMappingImport() {
     await importCustomMapping(workspaceId.value, parsed)
     showMappingModal.value = false
     await fetchData()
-  } catch {
-    mappingError.value = 'Failed to apply custom mapping. Please check the JSON and try again.'
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+    mappingError.value = msg
+      ? `Failed to apply mapping: ${msg}`
+      : 'Failed to apply custom mapping. Please check the JSON and try again.'
   } finally {
     importingMapping.value = false
   }

@@ -25,6 +25,11 @@ class GeneratorService(
     private val mapper = jacksonObjectMapper()
     private val sequentialCounters = ConcurrentHashMap<String, AtomicLong>()
 
+    companion object {
+        // Number of hex characters produced by the HASH generator (64 bits → 16 hex digits).
+        private const val HASH_OUTPUT_LENGTH = 16
+    }
+
     fun computeWorkspaceSecret(workspaceId: Long): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val bytes = digest.digest((encryptionKey + workspaceId).toByteArray())
@@ -149,14 +154,16 @@ class GeneratorService(
                 val s = originalValue?.toString() ?: ""
                 val digest = MessageDigest.getInstance("SHA-256")
                 val bytes = digest.digest(s.toByteArray())
-                bytes.joinToString("") { "%02x".format(it) }.take(16)
+                // 16 hex characters (64 bits) — long enough to avoid collisions in typical datasets
+                // while staying usable as a surrogate key.
+                bytes.joinToString("") { "%02x".format(it) }.take(HASH_OUTPUT_LENGTH)
             }
             GeneratorType.SCRAMBLE -> {
                 val s = originalValue?.toString() ?: return null
-                val letters = s.filter { it.isLetter() }.toMutableList()
-                val digits = s.filter { it.isDigit() }.toMutableList()
-                letters.shuffle(java.util.Random(faker.number().randomNumber()))
-                digits.shuffle(java.util.Random(faker.number().randomNumber()))
+                val seed = faker.number().randomNumber()
+                val rng = kotlin.random.Random(seed)
+                val letters = s.filter { it.isLetter() }.toList().shuffled(rng)
+                val digits = s.filter { it.isDigit() }.toList().shuffled(rng)
                 var li = 0; var di = 0
                 s.map { c ->
                     when {
