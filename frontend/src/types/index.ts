@@ -275,6 +275,7 @@ export interface JobRequest {
   sourceConnectionId: number
   targetConnectionId: number
   // When provided, the job uses the specified ConnectionPair's source and destination connections.
+  // When null or omitted, the system falls back to the workspace-wide source/destination lookup.
   connectionPairId?: number | null
 }
 
