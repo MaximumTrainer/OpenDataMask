@@ -5,6 +5,7 @@ import com.opendatamask.domain.port.input.DataConnectionUseCase
 import com.opendatamask.domain.port.output.EncryptionPort
 import com.opendatamask.domain.port.output.ConnectorFactoryPort
 import com.opendatamask.domain.port.output.DataConnectionPort
+import com.opendatamask.domain.port.input.dto.ConnectionSchemaResponse
 import com.opendatamask.domain.port.input.dto.ConnectionTestResult
 import com.opendatamask.domain.port.input.dto.DataConnectionRequest
 import com.opendatamask.domain.port.input.dto.DataConnectionResponse
@@ -106,6 +107,33 @@ class DataConnectionService(
         } catch (e: Exception) {
             ConnectionTestResult(success = false, message = "Connection failed: ${e.message}")
         }
+    }
+
+    override fun browseConnectionSchema(workspaceId: Long, connectionId: Long): ConnectionSchemaResponse {
+        val connection = findConnection(workspaceId, connectionId)
+        val decryptedConnectionString = encryptionPort.decrypt(connection.connectionString)
+        val decryptedPassword = connection.password?.let { encryptionPort.decrypt(it) }
+
+        val connector = connectorFactory.createConnector(
+            type = connection.type,
+            connectionString = decryptedConnectionString,
+            username = connection.username,
+            password = decryptedPassword,
+            database = connection.database
+        )
+
+        val tables = connector.listTables().map { tableName ->
+            val columns = connector.listColumns(tableName).map { col ->
+                ConnectionSchemaResponse.ColumnSchemaInfo(
+                    name = col.name,
+                    type = col.type,
+                    nullable = col.nullable
+                )
+            }
+            ConnectionSchemaResponse.TableSchemaInfo(tableName = tableName, columns = columns)
+        }
+
+        return ConnectionSchemaResponse(connectionId = connectionId, tables = tables)
     }
 
     private fun findConnection(workspaceId: Long, connectionId: Long): DataConnection {
