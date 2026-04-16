@@ -61,7 +61,7 @@ class RegexRule(val pattern: String, val replacement: String) : BuiltInPIIRule("
     private val compiledRegex: Regex = runCatching { Regex(pattern) }
         .getOrElse { cause ->
             throw IllegalArgumentException(
-                "Invalid regex pattern for rule '$ruleId': '$pattern'",
+                "Invalid regex pattern: \"$pattern\"",
                 cause
             )
         }

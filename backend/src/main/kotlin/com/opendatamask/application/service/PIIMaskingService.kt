@@ -23,8 +23,9 @@ class PIIMaskingService(
     private val logger = LoggerFactory.getLogger(PIIMaskingService::class.java)
     private val mapper = jacksonObjectMapper()
 
-    // Load mappings once and apply to every row in a batch. Callers should
-    // prefer this over the per-row overload to avoid N+1 persistence queries.
+    // Load mappings once and apply to every row in a batch. Prefer this over
+    // the convenience overload (applyMappings with workspaceId/connectionId/tableName/row)
+    // to avoid N+1 persistence queries when processing multiple rows for the same table.
     fun applyMappingsToRows(
         workspaceId: Long,
         connectionId: Long,
@@ -61,7 +62,7 @@ class PIIMaskingService(
         }
     }
 
-    // Convenience overload that fetches mappings from persistence.
+    // Convenience overload that fetches mappings from persistence on each call.
     // Use applyMappingsToRows() instead when processing multiple rows for the same table.
     fun applyMappings(
         workspaceId: Long,

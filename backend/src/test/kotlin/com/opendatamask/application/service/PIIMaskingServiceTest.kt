@@ -193,8 +193,8 @@ class PIIMaskingServiceTest {
 
     @Test
     fun `applyMappings dispatches to registry when ruleId is set in piiRuleParams`() {
-        val customRule = com.opendatamask.domain.model.RedactRule()
-        whenever(ruleRegistry.getRule("my_custom_rule")).thenReturn(customRule)
+        val registeredRule = com.opendatamask.domain.model.RedactRule()
+        whenever(ruleRegistry.getRule("my_custom_rule")).thenReturn(registeredRule)
         whenever(customDataMappingPort.findByWorkspaceIdAndConnectionIdAndTableName(1L, 2L, "users"))
             .thenReturn(listOf(
                 mapping("email", MappingAction.MASK, MaskingStrategy.REDACT, """{"ruleId":"my_custom_rule"}""")
