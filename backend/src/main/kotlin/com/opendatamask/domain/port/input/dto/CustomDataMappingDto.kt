@@ -3,6 +3,7 @@ package com.opendatamask.domain.port.input.dto
 import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.domain.model.MappingAction
 import com.opendatamask.domain.model.MaskingStrategy
+import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDateTime
@@ -33,6 +34,7 @@ data class BulkCustomDataMappingRequest(
     val tableName: String,
 
     @field:NotNull(message = "Column mappings are required")
+    @field:Valid
     val columnMappings: List<ColumnMappingEntry>
 ) {
     data class ColumnMappingEntry(

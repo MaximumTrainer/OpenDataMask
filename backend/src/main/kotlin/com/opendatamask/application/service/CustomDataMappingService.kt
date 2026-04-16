@@ -2,6 +2,7 @@ package com.opendatamask.application.service
 
 import com.opendatamask.domain.model.CustomDataMapping
 import com.opendatamask.domain.model.MappingAction
+import com.opendatamask.domain.model.MaskingStrategy
 import com.opendatamask.domain.port.input.CustomDataMappingUseCase
 import com.opendatamask.domain.port.input.dto.BulkCustomDataMappingRequest
 import com.opendatamask.domain.port.input.dto.CustomDataMappingRequest
@@ -17,6 +18,7 @@ class CustomDataMappingService(
 
     @Transactional
     override fun createMapping(workspaceId: Long, request: CustomDataMappingRequest): CustomDataMappingResponse {
+        validateMaskingCombination(request.action, request.maskingStrategy, request.fakeGeneratorType)
         val mapping = CustomDataMapping(
             workspaceId = workspaceId,
             connectionId = request.connectionId,
@@ -53,6 +55,7 @@ class CustomDataMappingService(
         mappingId: Long,
         request: CustomDataMappingRequest
     ): CustomDataMappingResponse {
+        validateMaskingCombination(request.action, request.maskingStrategy, request.fakeGeneratorType)
         val mapping = findMapping(workspaceId, mappingId)
         mapping.connectionId = request.connectionId
         mapping.tableName = request.tableName
@@ -78,6 +81,7 @@ class CustomDataMappingService(
             workspaceId, request.connectionId, request.tableName
         )
         val mappings = request.columnMappings.map { entry ->
+            validateMaskingCombination(entry.action, entry.maskingStrategy, entry.fakeGeneratorType)
             CustomDataMapping(
                 workspaceId = workspaceId,
                 connectionId = request.connectionId,
@@ -98,6 +102,21 @@ class CustomDataMappingService(
             throw NoSuchElementException("Mapping $mappingId does not belong to workspace $workspaceId")
         }
         return mapping
+    }
+
+    private fun validateMaskingCombination(
+        action: MappingAction,
+        maskingStrategy: MaskingStrategy?,
+        fakeGeneratorType: com.opendatamask.domain.model.GeneratorType?
+    ) {
+        if (action == MappingAction.MASK) {
+            if (maskingStrategy == null) {
+                throw IllegalArgumentException("maskingStrategy is required when action is MASK")
+            }
+            if (maskingStrategy == MaskingStrategy.FAKE && fakeGeneratorType == null) {
+                throw IllegalArgumentException("fakeGeneratorType is required when maskingStrategy is FAKE")
+            }
+        }
     }
 
     private fun CustomDataMapping.toResponse() = CustomDataMappingResponse(

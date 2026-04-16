@@ -6,7 +6,7 @@ import com.opendatamask.domain.model.MappingAction
 import com.opendatamask.domain.model.MaskingStrategy
 import com.opendatamask.domain.port.input.dto.BulkCustomDataMappingRequest
 import com.opendatamask.domain.port.input.dto.CustomDataMappingRequest
-import com.opendatamask.adapter.output.persistence.CustomDataMappingRepository
+import com.opendatamask.domain.port.output.CustomDataMappingPort
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -20,7 +20,7 @@ import java.util.Optional
 @ExtendWith(MockitoExtension::class)
 class CustomDataMappingServiceTest {
 
-    @Mock private lateinit var customDataMappingRepository: CustomDataMappingRepository
+    @Mock private lateinit var customDataMappingRepository: CustomDataMappingPort
 
     @InjectMocks
     private lateinit var service: CustomDataMappingService
@@ -248,5 +248,43 @@ class CustomDataMappingServiceTest {
         assertEquals(1, result.size)
         assertEquals(MaskingStrategy.HASH, result[0].maskingStrategy)
         assertNull(result[0].fakeGeneratorType)
+    }
+
+    // ── validation ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `createMapping throws when MASK action is missing maskingStrategy`() {
+        val request = CustomDataMappingRequest(
+            connectionId = 2L, tableName = "users", columnName = "email",
+            action = MappingAction.MASK, maskingStrategy = null
+        )
+
+        assertThrows<IllegalArgumentException> { service.createMapping(10L, request) }
+        verify(customDataMappingRepository, never()).save(any())
+    }
+
+    @Test
+    fun `createMapping throws when FAKE strategy is missing fakeGeneratorType`() {
+        val request = CustomDataMappingRequest(
+            connectionId = 2L, tableName = "users", columnName = "email",
+            action = MappingAction.MASK, maskingStrategy = MaskingStrategy.FAKE, fakeGeneratorType = null
+        )
+
+        assertThrows<IllegalArgumentException> { service.createMapping(10L, request) }
+        verify(customDataMappingRepository, never()).save(any())
+    }
+
+    @Test
+    fun `saveBulkMappings throws when MASK entry is missing maskingStrategy`() {
+        val request = BulkCustomDataMappingRequest(
+            connectionId = 2L,
+            tableName = "users",
+            columnMappings = listOf(
+                BulkCustomDataMappingRequest.ColumnMappingEntry("email", MappingAction.MASK, maskingStrategy = null)
+            )
+        )
+
+        assertThrows<IllegalArgumentException> { service.saveBulkMappings(10L, request) }
+        verify(customDataMappingRepository, never()).save(any())
     }
 }

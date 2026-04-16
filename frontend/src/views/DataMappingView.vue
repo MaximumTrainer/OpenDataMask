@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppModal from '@/components/AppModal.vue'
 import * as mappingApi from '@/api/mapping'
@@ -47,6 +47,14 @@ const loadingMappings = ref(false)
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
+let saveSuccessTimer: ReturnType<typeof setTimeout> | null = null
+
+onUnmounted(() => {
+  if (saveSuccessTimer !== null) {
+    clearTimeout(saveSuccessTimer)
+    saveSuccessTimer = null
+  }
+})
 
 // ── Delete state ──
 const showDeleteModal = ref(false)
@@ -203,9 +211,10 @@ async function saveMappings() {
     saveSuccess.value = true
     await fetchSavedMappings()
     // Return to step 2 after a short delay
-    setTimeout(() => {
+    saveSuccessTimer = setTimeout(() => {
       saveSuccess.value = false
       currentStep.value = 2
+      saveSuccessTimer = null
     }, 1500)
   } catch {
     saveError.value = 'Failed to save mappings.'
@@ -239,14 +248,12 @@ async function confirmDeleteTableMappings() {
   if (!mappingToDelete.value) return
   deleting.value = true
   try {
-    // Delete each mapping for this table individually
-    const toDelete = savedMappings.value.filter(
-      m => m.connectionId === mappingToDelete.value!.connectionId &&
-           m.tableName === mappingToDelete.value!.tableName
-    )
-    for (const m of toDelete) {
-      await mappingApi.deleteMapping(workspaceId.value, m.id)
-    }
+    // Use bulk-replace with empty list to atomically clear all mappings for this table
+    await mappingApi.saveBulkMappings(workspaceId.value, {
+      connectionId: mappingToDelete.value.connectionId,
+      tableName: mappingToDelete.value.tableName,
+      columnMappings: []
+    })
     showDeleteModal.value = false
     await fetchSavedMappings()
   } catch {
@@ -408,14 +415,14 @@ function strategyLabel(m: CustomDataMapping) {
                 <div class="action-toggle">
                   <button
                     class="toggle-btn"
-                    :class="{ active: columnMappings[col.name]?.action === 'MIGRATE_AS_IS' }"
+                    :class="{ active: columnMappings[col.name]?.action === MappingAction.MIGRATE_AS_IS }"
                     @click="setAction(col.name, MappingAction.MIGRATE_AS_IS)"
                   >
                     As-Is
                   </button>
                   <button
                     class="toggle-btn"
-                    :class="{ active: columnMappings[col.name]?.action === 'MASK' }"
+                    :class="{ active: columnMappings[col.name]?.action === MappingAction.MASK }"
                     @click="setAction(col.name, MappingAction.MASK)"
                   >
                     Mask
@@ -424,7 +431,7 @@ function strategyLabel(m: CustomDataMapping) {
               </td>
               <td>
                 <select
-                  v-if="columnMappings[col.name]?.action === 'MASK'"
+                  v-if="columnMappings[col.name]?.action === MappingAction.MASK"
                   :value="columnMappings[col.name]?.maskingStrategy ?? ''"
                   class="form-control form-control-sm"
                   @change="setMaskingStrategy(col.name, ($event.target as HTMLSelectElement).value as MaskingStrategy)"
@@ -437,7 +444,7 @@ function strategyLabel(m: CustomDataMapping) {
               </td>
               <td>
                 <select
-                  v-if="columnMappings[col.name]?.action === 'MASK' && columnMappings[col.name]?.maskingStrategy === 'FAKE'"
+                  v-if="columnMappings[col.name]?.action === MappingAction.MASK && columnMappings[col.name]?.maskingStrategy === MaskingStrategy.FAKE"
                   :value="columnMappings[col.name]?.fakeGeneratorType ?? ''"
                   class="form-control form-control-sm"
                   @change="(e) => setFakeGeneratorType(col.name, (e.target as HTMLSelectElement).value as GeneratorType)"

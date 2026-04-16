@@ -12,22 +12,30 @@ enum class MaskingStrategy {
 }
 
 @Entity
-@Table(name = "custom_data_mappings")
+@Table(
+    name = "custom_data_mappings",
+    uniqueConstraints = [
+        UniqueConstraint(
+            name = "uk_cdm_workspace_connection_table_column",
+            columnNames = ["workspace_id", "connection_id", "table_name", "column_name"]
+        )
+    ]
+)
 class CustomDataMapping(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    @Column(nullable = false)
+    @Column(name = "workspace_id", nullable = false)
     var workspaceId: Long,
 
-    @Column(nullable = false)
+    @Column(name = "connection_id", nullable = false)
     var connectionId: Long,
 
-    @Column(nullable = false)
+    @Column(name = "table_name", nullable = false)
     var tableName: String,
 
-    @Column(nullable = false)
+    @Column(name = "column_name", nullable = false)
     var columnName: String,
 
     @Enumerated(EnumType.STRING)

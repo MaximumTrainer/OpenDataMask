@@ -36,8 +36,13 @@ class CustomDataMappingController(
         @RequestParam(required = false) connectionId: Long?,
         @RequestParam(required = false) tableName: String?
     ): ResponseEntity<List<CustomDataMappingResponse>> {
-        val result = if (connectionId != null && tableName != null) {
-            customDataMappingService.listMappingsForTable(workspaceId, connectionId, tableName)
+        val hasConnectionId = connectionId != null
+        val hasTableName = !tableName.isNullOrBlank()
+        if (hasConnectionId != hasTableName) {
+            return ResponseEntity.badRequest().build()
+        }
+        val result = if (hasConnectionId && hasTableName) {
+            customDataMappingService.listMappingsForTable(workspaceId, connectionId!!, tableName!!)
         } else {
             customDataMappingService.listMappings(workspaceId)
         }

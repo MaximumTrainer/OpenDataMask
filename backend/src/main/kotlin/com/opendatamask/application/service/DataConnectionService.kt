@@ -109,6 +109,7 @@ class DataConnectionService(
         }
     }
 
+    @Transactional(readOnly = true)
     override fun browseConnectionSchema(workspaceId: Long, connectionId: Long): ConnectionSchemaResponse {
         val connection = findConnection(workspaceId, connectionId)
         val decryptedConnectionString = encryptionPort.decrypt(connection.connectionString)
