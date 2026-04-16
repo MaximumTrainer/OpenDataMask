@@ -20,7 +20,7 @@ import java.util.Optional
 @ExtendWith(MockitoExtension::class)
 class CustomDataMappingServiceTest {
 
-    @Mock private lateinit var customDataMappingRepository: CustomDataMappingPort
+    @Mock private lateinit var customDataMappingPort: CustomDataMappingPort
 
     @InjectMocks
     private lateinit var service: CustomDataMappingService
@@ -58,7 +58,7 @@ class CustomDataMappingServiceTest {
             maskingStrategy = MaskingStrategy.FAKE,
             fakeGeneratorType = GeneratorType.EMAIL
         )
-        whenever(customDataMappingRepository.save(any<CustomDataMapping>())).thenReturn(saved)
+        whenever(customDataMappingPort.save(any<CustomDataMapping>())).thenReturn(saved)
 
         val response = service.createMapping(10L, request)
 
@@ -83,7 +83,7 @@ class CustomDataMappingServiceTest {
             columnName = "id",
             action = MappingAction.MIGRATE_AS_IS
         )
-        whenever(customDataMappingRepository.save(any<CustomDataMapping>())).thenReturn(saved)
+        whenever(customDataMappingPort.save(any<CustomDataMapping>())).thenReturn(saved)
 
         val response = service.createMapping(10L, request)
 
@@ -97,7 +97,7 @@ class CustomDataMappingServiceTest {
     @Test
     fun `getMapping returns mapping by id`() {
         val mapping = makeMapping(id = 1L, workspaceId = 10L)
-        whenever(customDataMappingRepository.findById(1L)).thenReturn(Optional.of(mapping))
+        whenever(customDataMappingPort.findById(1L)).thenReturn(Optional.of(mapping))
 
         val response = service.getMapping(10L, 1L)
 
@@ -107,7 +107,7 @@ class CustomDataMappingServiceTest {
 
     @Test
     fun `getMapping throws when mapping not found`() {
-        whenever(customDataMappingRepository.findById(99L)).thenReturn(Optional.empty())
+        whenever(customDataMappingPort.findById(99L)).thenReturn(Optional.empty())
 
         assertThrows<NoSuchElementException> { service.getMapping(10L, 99L) }
     }
@@ -115,7 +115,7 @@ class CustomDataMappingServiceTest {
     @Test
     fun `getMapping throws when mapping belongs to different workspace`() {
         val mapping = makeMapping(id = 1L, workspaceId = 20L)
-        whenever(customDataMappingRepository.findById(1L)).thenReturn(Optional.of(mapping))
+        whenever(customDataMappingPort.findById(1L)).thenReturn(Optional.of(mapping))
 
         assertThrows<NoSuchElementException> { service.getMapping(10L, 1L) }
     }
@@ -125,7 +125,7 @@ class CustomDataMappingServiceTest {
     @Test
     fun `listMappings returns all mappings for workspace`() {
         val mappings = listOf(makeMapping(id = 1L), makeMapping(id = 2L, columnName = "phone"))
-        whenever(customDataMappingRepository.findByWorkspaceId(10L)).thenReturn(mappings)
+        whenever(customDataMappingPort.findByWorkspaceId(10L)).thenReturn(mappings)
 
         val result = service.listMappings(10L)
 
@@ -140,7 +140,7 @@ class CustomDataMappingServiceTest {
             makeMapping(id = 1L, tableName = "users", columnName = "email"),
             makeMapping(id = 2L, tableName = "users", columnName = "phone")
         )
-        whenever(customDataMappingRepository.findByWorkspaceIdAndConnectionIdAndTableName(10L, 2L, "users"))
+        whenever(customDataMappingPort.findByWorkspaceIdAndConnectionIdAndTableName(10L, 2L, "users"))
             .thenReturn(mappings)
 
         val result = service.listMappingsForTable(10L, 2L, "users")
@@ -160,8 +160,8 @@ class CustomDataMappingServiceTest {
             action = MappingAction.MASK,
             maskingStrategy = MaskingStrategy.NULL
         )
-        whenever(customDataMappingRepository.findById(1L)).thenReturn(Optional.of(existing))
-        whenever(customDataMappingRepository.save(any<CustomDataMapping>())).thenAnswer { it.arguments[0] as CustomDataMapping }
+        whenever(customDataMappingPort.findById(1L)).thenReturn(Optional.of(existing))
+        whenever(customDataMappingPort.save(any<CustomDataMapping>())).thenAnswer { it.arguments[0] as CustomDataMapping }
 
         val response = service.updateMapping(10L, 1L, request)
 
@@ -171,7 +171,7 @@ class CustomDataMappingServiceTest {
 
     @Test
     fun `updateMapping throws when mapping not found`() {
-        whenever(customDataMappingRepository.findById(99L)).thenReturn(Optional.empty())
+        whenever(customDataMappingPort.findById(99L)).thenReturn(Optional.empty())
 
         assertThrows<NoSuchElementException> {
             service.updateMapping(10L, 99L, CustomDataMappingRequest(
@@ -186,16 +186,16 @@ class CustomDataMappingServiceTest {
     @Test
     fun `deleteMapping removes mapping`() {
         val mapping = makeMapping(id = 1L, workspaceId = 10L)
-        whenever(customDataMappingRepository.findById(1L)).thenReturn(Optional.of(mapping))
+        whenever(customDataMappingPort.findById(1L)).thenReturn(Optional.of(mapping))
 
         service.deleteMapping(10L, 1L)
 
-        verify(customDataMappingRepository).deleteById(1L)
+        verify(customDataMappingPort).deleteById(1L)
     }
 
     @Test
     fun `deleteMapping throws when mapping not found`() {
-        whenever(customDataMappingRepository.findById(99L)).thenReturn(Optional.empty())
+        whenever(customDataMappingPort.findById(99L)).thenReturn(Optional.empty())
 
         assertThrows<NoSuchElementException> { service.deleteMapping(10L, 99L) }
     }
@@ -213,13 +213,13 @@ class CustomDataMappingServiceTest {
                 BulkCustomDataMappingRequest.ColumnMappingEntry("ssn", MappingAction.MASK, MaskingStrategy.NULL)
             )
         )
-        whenever(customDataMappingRepository.save(any<CustomDataMapping>()))
+        whenever(customDataMappingPort.save(any<CustomDataMapping>()))
             .thenAnswer { it.arguments[0] as CustomDataMapping }
 
         val result = service.saveBulkMappings(10L, request)
 
-        verify(customDataMappingRepository).deleteByWorkspaceIdAndConnectionIdAndTableName(10L, 2L, "users")
-        verify(customDataMappingRepository, times(3)).save(any<CustomDataMapping>())
+        verify(customDataMappingPort).deleteByWorkspaceIdAndConnectionIdAndTableName(10L, 2L, "users")
+        verify(customDataMappingPort, times(3)).save(any<CustomDataMapping>())
         assertEquals(3, result.size)
         assertEquals("id", result[0].columnName)
         assertEquals(MappingAction.MIGRATE_AS_IS, result[0].action)
@@ -241,7 +241,7 @@ class CustomDataMappingServiceTest {
             id = 1L, workspaceId = 10L, connectionId = 2L, tableName = "users",
             columnName = "user_ref", action = MappingAction.MASK, maskingStrategy = MaskingStrategy.HASH
         )
-        whenever(customDataMappingRepository.save(any<CustomDataMapping>())).thenReturn(savedMapping)
+        whenever(customDataMappingPort.save(any<CustomDataMapping>())).thenReturn(savedMapping)
 
         val result = service.saveBulkMappings(10L, request)
 
@@ -260,7 +260,7 @@ class CustomDataMappingServiceTest {
         )
 
         assertThrows<IllegalArgumentException> { service.createMapping(10L, request) }
-        verify(customDataMappingRepository, never()).save(any())
+        verify(customDataMappingPort, never()).save(any())
     }
 
     @Test
@@ -271,7 +271,7 @@ class CustomDataMappingServiceTest {
         )
 
         assertThrows<IllegalArgumentException> { service.createMapping(10L, request) }
-        verify(customDataMappingRepository, never()).save(any())
+        verify(customDataMappingPort, never()).save(any())
     }
 
     @Test
@@ -285,6 +285,6 @@ class CustomDataMappingServiceTest {
         )
 
         assertThrows<IllegalArgumentException> { service.saveBulkMappings(10L, request) }
-        verify(customDataMappingRepository, never()).save(any())
+        verify(customDataMappingPort, never()).save(any())
     }
 }

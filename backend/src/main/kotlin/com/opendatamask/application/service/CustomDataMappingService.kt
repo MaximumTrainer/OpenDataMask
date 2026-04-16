@@ -1,6 +1,7 @@
 package com.opendatamask.application.service
 
 import com.opendatamask.domain.model.CustomDataMapping
+import com.opendatamask.domain.model.GeneratorType
 import com.opendatamask.domain.model.MappingAction
 import com.opendatamask.domain.model.MaskingStrategy
 import com.opendatamask.domain.port.input.CustomDataMappingUseCase
@@ -107,7 +108,7 @@ class CustomDataMappingService(
     private fun validateMaskingCombination(
         action: MappingAction,
         maskingStrategy: MaskingStrategy?,
-        fakeGeneratorType: com.opendatamask.domain.model.GeneratorType?
+        fakeGeneratorType: GeneratorType?
     ) {
         if (action == MappingAction.MASK) {
             if (maskingStrategy == null) {
