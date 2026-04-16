@@ -1,6 +1,6 @@
 # OpenDataMask
 
-An open source reimplementation of [tonic-structural](https://www.tonic.ai/products/tonic-structural) — a data masking and anonymization platform.
+An open source solution inspired by tonic-structural](https://www.tonic.ai/products/tonic-structural) — a data masking and anonymisation tool.
 
 ## Overview
 
