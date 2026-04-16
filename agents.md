@@ -19,7 +19,7 @@ Follow the **Red → Green → Refactor** cycle for every feature or bug fix, wi
 
 ### Workflow
 
-1. **RED** — Write a failing test in `src/test/kotlin` that precisely describes the expected behaviour. The test must compile but fail at runtime.
+1. **RED** — Write a failing test in the appropriate module test directory that precisely describes the expected behaviour. Use the module-specific path that matches the code under change, for example `backend/src/test/kotlin`, `cli/src/test/kotlin`, or `frontend/src/test/`. The test must compile but fail at runtime.
 2. **GREEN** — Write the minimal production code required to make the test pass. Do not add any logic not demanded by the test.
 3. **REFACTOR** — Improve naming, eliminate duplication, and enhance readability. Tests must remain green throughout. Refactoring must **never** change observable behaviour.
 
@@ -39,10 +39,10 @@ Follow the **Red → Green → Refactor** cycle for every feature or bug fix, wi
 | Purpose | Library |
 |---|---|
 | Unit & integration tests | JUnit 5 (`org.junit.jupiter`) |
-| Mocking | MockK (`io.mockk:mockk`) or `mockito-kotlin` |
+| Mocking | `mockito-kotlin` |
 | Assertions | AssertJ or Kotest assertions |
 | Spring MVC layer | `MockMvc` via `spring-security-test` |
-| In-memory database | H2 (PostgreSQL compatibility mode) |
+| In-memory database | H2; some connector tests use compatibility modes like PostgreSQL/MSSQL/MySQL |
 
 > The project currently uses **JUnit 5 + mockito-kotlin + MockMvc**. Prefer these unless a new test category genuinely requires an alternative.
 
@@ -59,8 +59,8 @@ com.opendatamask
 ├── domain/               ← Core (innermost ring)
 │   ├── model/            ← Domain entities and value objects
 │   └── port/
-│       ├── input/        ← Use-case interfaces (driven ports)
-│       └── output/       ← Repository/external service interfaces (driving ports)
+│       ├── input/        ← Use-case interfaces (driving ports)
+│       └── output/       ← Repository/external service interfaces (driven ports)
 ├── application/          ← Application layer
 │   └── service/          ← Use-case implementations (@Service)
 ├── adapter/              ← Infrastructure (outermost ring)
@@ -73,10 +73,12 @@ com.opendatamask
 
 | Layer | Allowed dependencies | Forbidden dependencies |
 |---|---|---|
-| **Domain** (`domain/`) | Pure Kotlin / Java standard library only | Spring, Jackson, JDBC, any adapter or infrastructure class |
+| **Domain** (`domain/`) | Kotlin / Java standard library, plus existing `jakarta.persistence` annotations in `domain/model` where already used | Spring, Jackson, JDBC, any adapter or infrastructure class |
 | **Application** (`application/`) | Domain model + domain ports | Adapter classes, infrastructure beans, JPA annotations |
 | **Adapters** (`adapter/`) | Application ports + domain model | Other adapter packages (input ↔ output cross-calls forbidden) |
 | **Infrastructure** (`infrastructure/`) | Any layer for configuration wiring only | Direct business logic |
+
+> **Current-state note:** Some domain entities are still JPA-annotated (for example under `backend/src/main/kotlin/com/opendatamask/domain/model`). Treat framework-free domain models as the **target architecture**, not as a currently enforced hard rule, unless a task explicitly includes that refactor.
 
 - **Dependencies must always point inward toward the Domain.** An outer layer may depend on an inner layer, never the reverse.
 - Every `@Service` class must implement **at most one** input port interface.
