@@ -77,11 +77,18 @@ class DestinationSchemaService {
         sourceType: ConnectionType,
         destConnector: DatabaseConnector,
         destType: ConnectionType,
-        tableName: String
+        tableName: String,
+        selectedAttributes: List<String> = emptyList()
     ) {
         logger.info("Mirroring schema for table: $tableName ($sourceType -> $destType)")
         val sourceColumns = sourceConnector.listColumns(tableName)
-        val destColumns = sourceColumns.map { col ->
+        val filteredColumns = if (selectedAttributes.isEmpty()) {
+            sourceColumns
+        } else {
+            val normalizedSelected = selectedAttributes.map { it.lowercase() }.toSet()
+            sourceColumns.filter { it.name.lowercase() in normalizedSelected }
+        }
+        val destColumns = filteredColumns.map { col ->
             ColumnInfo(
                 name = col.name,
                 type = mapColumnType(col.type, sourceType, destType),

@@ -50,13 +50,19 @@ open class MongoDBConnector(
         }
     }
 
-    override fun fetchData(tableName: String, limit: Int?, whereClause: String?): List<Map<String, Any?>> {
+    override fun fetchData(tableName: String, limit: Int?, whereClause: String?, selectedAttributes: List<String>?): List<Map<String, Any?>> {
         // whereClause is expected to be a MongoDB query filter as JSON, e.g. {"age": {"$gt": 18}}
         return createMongoClient().use { client ->
             val collection = client.getDatabase(getDatabaseName()).getCollection(tableName)
             val filter = if (!whereClause.isNullOrBlank()) Document.parse(whereClause) else Document()
-            val cursor = if (limit != null) collection.find(filter).limit(limit) else collection.find(filter)
-            cursor.map { doc ->
+            var query = if (limit != null) collection.find(filter).limit(limit) else collection.find(filter)
+            if (!selectedAttributes.isNullOrEmpty()) {
+                val projection = Document().apply {
+                    selectedAttributes.forEach { field -> put(field, 1) }
+                }
+                query = query.projection(projection)
+            }
+            query.map { doc ->
                 doc.entries.associate { it.key to it.value }
             }.toList()
         }

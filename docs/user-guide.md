@@ -183,8 +183,50 @@ A **Workspace** is an isolated configuration scope. Each workspace has:
 | `MASK` | Replace column values with generated fake data |
 | `GENERATE` | Generate a completely new row set |
 | `PASSTHROUGH` | Copy data without modification |
-| `SUBSET` | Copy a filtered/sampled subset of rows |
+| `SUBSET` | Copy a filtered/sampled subset of rows using an optional WHERE clause |
+| `UPSERT` | Fetch rows from source, optionally mask them, and write to destination |
 | `SKIP` | Exclude the table from processing |
+
+### Subsetting & Attribute Filtering
+
+OpenDataMask supports two complementary mechanisms to control which data is extracted:
+
+#### Record Filtering (WHERE clause)
+
+Set a SQL `WHERE` clause on any table configuration to restrict which **rows** are extracted from the source. This predicate is pushed down to the source database for optimal performance.
+
+```json
+{
+  "tableName": "orders",
+  "mode": "SUBSET",
+  "whereClause": "created_at > '2023-01-01' AND tenant_id = 5"
+}
+```
+
+> For MongoDB, the `whereClause` is interpreted as a JSON query filter, e.g. `{"status": "active"}`.
+
+#### Attribute Filtering (Column Selection)
+
+Set a `selectedAttributes` list on any table configuration to restrict which **columns** are extracted from the source. OpenDataMask builds a `SELECT col1, col2, ...` query (instead of `SELECT *`) so the filtering happens at the source for maximum performance.
+
+```json
+{
+  "tableName": "users",
+  "mode": "PASSTHROUGH",
+  "selectedAttributes": ["id", "name", "email"]
+}
+```
+
+When `selectedAttributes` is set:
+- Only the listed columns are fetched from the source database.
+- The destination table schema is created with only those columns (no schema mismatch).
+- Applies to all modes that read from the source: `PASSTHROUGH`, `MASK`, `SUBSET`, and `UPSERT`.
+
+Leave `selectedAttributes` empty or omit it to include all columns (the default behaviour).
+
+#### UI Column Picker
+
+In the **Tables** view, the table configuration modal includes a **Selected Columns** field. Enter a comma-separated list of column names (e.g. `id, name, email`) to enable column-level filtering. Leave the field blank to include all columns.
 
 ### Generator Types
 

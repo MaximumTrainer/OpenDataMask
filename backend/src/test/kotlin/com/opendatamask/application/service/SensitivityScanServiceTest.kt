@@ -159,7 +159,7 @@ class SensitivityScanServiceTest {
         )).thenReturn(mockConnector)
         whenever(mockConnector.listTables()).thenReturn(listOf("users"))
         whenever(mockConnector.listColumns("users")).thenReturn(columns)
-        whenever(mockConnector.fetchData(eq("users"), eq(100), anyOrNull())).thenReturn(sampleRows)
+        whenever(mockConnector.fetchData(eq("users"), eq(100), anyOrNull(), anyOrNull())).thenReturn(sampleRows)
         whenever(columnSensitivityRepository.findByWorkspaceIdAndTableNameAndColumnName(
             any(), any(), any()
         )).thenReturn(null)

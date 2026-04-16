@@ -16,6 +16,7 @@ data class TableConfigExportDto(
     val mode: TableMode,
     val rowLimit: Long?,
     val whereClause: String?,
+    val selectedAttributes: List<String>? = null,
     val columnGenerators: List<ColumnGeneratorExportDto> = emptyList()
 )
 

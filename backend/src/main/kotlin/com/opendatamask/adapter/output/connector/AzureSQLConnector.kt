@@ -51,14 +51,21 @@ class AzureSQLConnector(
         }
     }
 
-    override fun fetchData(tableName: String, limit: Int?, whereClause: String?): List<Map<String, Any?>> {
+    override fun fetchData(tableName: String, limit: Int?, whereClause: String?, selectedAttributes: List<String>?): List<Map<String, Any?>> {
         // Use square-bracket quoting for SQL Server identifier safety; strip brackets from input
         val sanitizedTable = tableName.replace("[", "").replace("]", "")
+        val selectPart = if (!selectedAttributes.isNullOrEmpty()) {
+            selectedAttributes.joinToString(", ") { col ->
+                "[${col.replace("[", "").replace("]", "")}]"
+            }
+        } else {
+            "*"
+        }
         val wherePart = if (!whereClause.isNullOrBlank()) " WHERE $whereClause" else ""
         val query = if (limit != null) {
-            "SELECT TOP $limit * FROM [$sanitizedTable]$wherePart"
+            "SELECT TOP $limit $selectPart FROM [$sanitizedTable]$wherePart"
         } else {
-            "SELECT * FROM [$sanitizedTable]$wherePart"
+            "SELECT $selectPart FROM [$sanitizedTable]$wherePart"
         }
         return getConnection().use { conn ->
             conn.prepareStatement(query).use { stmt ->

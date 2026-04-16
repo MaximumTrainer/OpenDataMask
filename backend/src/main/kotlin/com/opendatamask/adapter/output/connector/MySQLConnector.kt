@@ -48,10 +48,15 @@ class MySQLConnector(
         }
     }
 
-    override fun fetchData(tableName: String, limit: Int?, whereClause: String?): List<Map<String, Any?>> {
+    override fun fetchData(tableName: String, limit: Int?, whereClause: String?, selectedAttributes: List<String>?): List<Map<String, Any?>> {
         getConnection().use { conn ->
+            val selectPart = if (!selectedAttributes.isNullOrEmpty()) {
+                selectedAttributes.joinToString(", ") { "`$it`" }
+            } else {
+                "*"
+            }
             val sql = buildString {
-                append("SELECT * FROM `$tableName`")
+                append("SELECT $selectPart FROM `$tableName`")
                 if (whereClause != null) append(" WHERE $whereClause")
                 if (limit != null) append(" LIMIT $limit")
             }

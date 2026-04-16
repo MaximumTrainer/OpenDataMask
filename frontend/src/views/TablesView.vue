@@ -28,7 +28,8 @@ const tableForm = ref<TableConfigurationRequest>({
   connectionId: 0,
   schemaName: 'public',
   tableName: '',
-  mode: TableMode.MASK
+  mode: TableMode.MASK,
+  selectedAttributes: []
 })
 const tableFormError = ref('')
 const savingTable = ref(false)
@@ -77,7 +78,8 @@ function openCreateTable() {
     connectionId: connections.value[0]?.id ?? 0,
     schemaName: 'public',
     tableName: '',
-    mode: TableMode.MASK
+    mode: TableMode.MASK,
+    selectedAttributes: []
   }
   tableFormError.value = ''
   showTableModal.value = true
@@ -90,7 +92,8 @@ function openEditTable(t: TableConfiguration) {
     schemaName: t.schemaName,
     tableName: t.tableName,
     mode: t.mode,
-    whereClause: t.whereClause
+    whereClause: t.whereClause,
+    selectedAttributes: t.selectedAttributes ? [...t.selectedAttributes] : []
   }
   tableFormError.value = ''
   showTableModal.value = true
@@ -104,16 +107,22 @@ async function submitTableForm() {
   savingTable.value = true
   tableFormError.value = ''
   try {
+    // Normalise: send null when no attributes selected (empty list = select all)
+    const payload: TableConfigurationRequest = {
+      ...tableForm.value,
+      selectedAttributes:
+        tableForm.value.selectedAttributes?.length ? tableForm.value.selectedAttributes : undefined
+    }
     if (editingTable.value) {
       const updated = await tablesApi.updateTableConfig(
         workspaceId.value,
         editingTable.value.id,
-        tableForm.value
+        payload
       )
       const idx = tables.value.findIndex((t) => t.id === updated.id)
       if (idx !== -1) tables.value[idx] = { ...tables.value[idx], ...updated }
     } else {
-      const created = await tablesApi.createTableConfig(workspaceId.value, tableForm.value)
+      const created = await tablesApi.createTableConfig(workspaceId.value, payload)
       tables.value.push({ ...created, columnGenerators: [] })
     }
     showTableModal.value = false
@@ -220,6 +229,17 @@ async function deleteColumn(t: TableConfiguration, col: ColumnGenerator) {
 }
 
 // ── Helpers ──
+// Computed getter/setter for selected attributes as a comma-separated string in the form
+const selectedAttributesText = computed({
+  get: () => (tableForm.value.selectedAttributes ?? []).join(', '),
+  set: (val: string) => {
+    tableForm.value.selectedAttributes = val
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+  }
+})
+
 function modeBadgeClass(mode: TableMode) {
   const map: Record<TableMode, string> = {
     [TableMode.PASSTHROUGH]: 'badge-gray',
@@ -286,6 +306,9 @@ function paramString(params?: Record<string, string>) {
               <div class="text-sm text-gray-500">
                 Connection: {{ connectionName(table.connectionId) }}
                 <span v-if="table.whereClause" class="ml-2">| WHERE: {{ table.whereClause }}</span>
+                <span v-if="table.selectedAttributes?.length" class="ml-2">
+                  | Columns: {{ table.selectedAttributes.join(', ') }}
+                </span>
               </div>
             </div>
           </div>
@@ -382,6 +405,16 @@ function paramString(params?: Record<string, string>) {
             class="form-control"
             placeholder="e.g. created_at > '2020-01-01'"
           />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Selected Columns (optional)</label>
+          <input
+            v-model="selectedAttributesText"
+            type="text"
+            class="form-control"
+            placeholder="e.g. id, name, email (leave blank to include all columns)"
+          />
+          <p class="form-hint">Comma-separated list of column names to extract. Leave blank to include all columns.</p>
         </div>
       </form>
       <template #footer>
@@ -504,5 +537,10 @@ function paramString(params?: Record<string, string>) {
   font-size: 0.85rem;
   color: #374151;
   font-weight: 500;
+}
+.form-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
 }
 </style>

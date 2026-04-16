@@ -17,7 +17,8 @@ data class TableConfigurationRequest(
     val mode: TableMode,
 
     val rowLimit: Long? = null,
-    val whereClause: String? = null
+    val whereClause: String? = null,
+    val selectedAttributes: List<String>? = null
 )
 
 data class TableConfigurationResponse(
@@ -28,6 +29,7 @@ data class TableConfigurationResponse(
     val mode: TableMode,
     val rowLimit: Long?,
     val whereClause: String?,
+    val selectedAttributes: List<String>?,
     val createdAt: LocalDateTime
 )
 

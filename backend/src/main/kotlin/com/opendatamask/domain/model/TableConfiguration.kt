@@ -33,6 +33,10 @@ class TableConfiguration(
     @Column(length = 4096)
     var whereClause: String? = null,
 
+    // Comma-separated list of column names to include in the extraction (null/empty = all columns).
+    @Column(length = 2048)
+    var selectedAttributes: String? = null,
+
     @Column(nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
 ) {
