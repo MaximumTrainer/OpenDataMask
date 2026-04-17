@@ -387,11 +387,23 @@ def step_data_mappings(page: Page, base_url: str, ws_id: int) -> None:
 def step_jobs(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}/jobs")
     wait_for_page_ready(page, "Jobs")
+
+    # Wait for the job data to render (job card or empty-state).
+    # This guarantees Vue has finished its reactive update after the API call.
+    try:
+        page.wait_for_selector(".job-card, .empty-state", timeout=10_000)
+    except Exception:
+        print("    [WARN] jobs: neither .job-card nor .empty-state appeared within 10 s")
+
     shot(page, "16-jobs-list.png")
 
-    # Open the "Run New Job" modal — optional
-    if try_click(page, "button:has-text('Run New Job')"):
-        try:
+    # Open the "Run New Job" modal
+    try:
+        run_btn = page.wait_for_selector(
+            "button:has-text('Run New Job')", state="visible", timeout=8_000
+        )
+        if run_btn:
+            run_btn.click()
             page.wait_for_selector("[role='dialog']", timeout=8_000)
             shot(page, "17-run-job-modal.png")
             selects = page.query_selector_all("[role='dialog'] select.form-control")
@@ -399,21 +411,22 @@ def step_jobs(page: Page, base_url: str, ws_id: int) -> None:
                 selects[0].select_option(index=0)
                 selects[1].select_option(index=0)
                 shot(page, "18-run-job-filled.png")
-        except Exception:
-            pass
-        try_dismiss_modal(page)
+    except Exception as exc:
+        print(f"    [WARN] jobs: Run New Job modal failed: {exc}")
+    try_dismiss_modal(page)
 
     # Expand logs for an existing job if present
     try:
         log_btn = page.wait_for_selector(
-            "button:has-text('View Logs')", timeout=3_000
+            "button:has-text('View Logs')", timeout=8_000
         )
         if log_btn:
             log_btn.click()
+            page.wait_for_selector(".logs-section", timeout=5_000)
             time.sleep(0.5)
             shot(page, "19-job-logs.png", full_page=True)
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"    [WARN] jobs: View Logs failed: {exc}")
 
 
 def step_sensitivity_rules(page: Page, base_url: str) -> None:
