@@ -11,6 +11,12 @@ import {
   waitForPageHeading,
   waitForLoadingDone,
   waitForJobCompletion,
+  type IdResponse,
+  type WorkspaceResponse,
+  type ConnectionResponse,
+  type JobResponse,
+  type JobLogEntry,
+  type ConnectionTestResponse,
 } from './odm-fixtures'
 
 // ── Full E2E Workflow Test ────────────────────────────────────────────────
@@ -92,13 +98,8 @@ test.describe('Full Verification Workflow', () => {
     await expect(page.locator('text=Full Verification Workspace')).toBeVisible({ timeout: 10_000 })
 
     // Get workspace ID via API for subsequent steps
-    const workspaces = (await apiCall('/api/workspaces', { token })) as unknown as Array<{
-      id: number
-      name: string
-    }>
-    const ws = (workspaces as Array<{ id: number; name: string }>).find(
-      (w) => w.name === 'Full Verification Workspace'
-    )
+    const workspaces = await apiCall<WorkspaceResponse[]>('/api/workspaces', { token })
+    const ws = workspaces.find((w) => w.name === 'Full Verification Workspace')
     expect(ws).toBeDefined()
     workspaceId = ws!.id
   })
@@ -135,12 +136,10 @@ test.describe('Full Verification Workflow', () => {
     await expect(page.locator('td:has-text("verification-source")')).toBeVisible()
 
     // Get connection ID via API
-    const conns = (await apiCall(`/api/workspaces/${workspaceId}/connections`, {
+    const conns = await apiCall<ConnectionResponse[]>(`/api/workspaces/${workspaceId}/connections`, {
       token,
-    })) as unknown as Array<{ id: number; name: string }>
-    const srcConn = (conns as Array<{ id: number; name: string }>).find(
-      (c) => c.name === 'verification-source'
-    )
+    })
+    const srcConn = conns.find((c) => c.name === 'verification-source')
     expect(srcConn).toBeDefined()
     sourceConnectionId = srcConn!.id
   })
@@ -176,19 +175,17 @@ test.describe('Full Verification Workflow', () => {
     await expect(page.locator('td:has-text("verification-target")')).toBeVisible()
 
     // Get connection ID via API
-    const conns = (await apiCall(`/api/workspaces/${workspaceId}/connections`, {
+    const conns = await apiCall<ConnectionResponse[]>(`/api/workspaces/${workspaceId}/connections`, {
       token,
-    })) as unknown as Array<{ id: number; name: string }>
-    const tgtConn = (conns as Array<{ id: number; name: string }>).find(
-      (c) => c.name === 'verification-target'
-    )
+    })
+    const tgtConn = conns.find((c) => c.name === 'verification-target')
     expect(tgtConn).toBeDefined()
     targetConnectionId = tgtConn!.id
   })
 
   test('step 5 — configure table masking for users table', async ({ page }) => {
     // Use API for table config (matching verification script's approach)
-    const tbl = await apiCall(`/api/workspaces/${workspaceId}/tables`, {
+    const tbl = await apiCall<IdResponse>(`/api/workspaces/${workspaceId}/tables`, {
       method: 'POST',
       body: {
         connectionId: sourceConnectionId,
@@ -198,7 +195,7 @@ test.describe('Full Verification Workflow', () => {
       },
       token,
     })
-    tableConfigId = tbl.id as number
+    tableConfigId = tbl.id
 
     // Verify via UI
     await page.goto('/login')
@@ -261,7 +258,7 @@ test.describe('Full Verification Workflow', () => {
   test('step 7 — run masking job and wait for completion', async ({ page }) => {
     // Trigger job via API
     jobId = (
-      await apiCall(`/api/workspaces/${workspaceId}/jobs`, {
+      await apiCall<IdResponse>(`/api/workspaces/${workspaceId}/jobs`, {
         method: 'POST',
         body: {
           name: 'Full Verification Masking Job',
@@ -270,7 +267,7 @@ test.describe('Full Verification Workflow', () => {
         },
         token,
       })
-    ).id as number
+    ).id
 
     // Wait for completion
     const status = await waitForJobCompletion(token, workspaceId, jobId, 180_000)
@@ -292,9 +289,9 @@ test.describe('Full Verification Workflow', () => {
 
   test('step 8 — verify record integrity (50 rows processed)', async () => {
     // Mirrors verification/verify.py check_record_integrity
-    const job = (await apiCall(`/api/workspaces/${workspaceId}/jobs/${jobId}`, {
+    const job = await apiCall<JobResponse>(`/api/workspaces/${workspaceId}/jobs/${jobId}`, {
       token,
-    })) as { rowsProcessed: number; tablesProcessed: number; status: string }
+    })
 
     expect(job.status).toBe('COMPLETED')
     expect(job.rowsProcessed).toBe(50)
@@ -303,32 +300,30 @@ test.describe('Full Verification Workflow', () => {
 
   test('step 9 — verify job logs contain masking activity', async () => {
     // Mirrors verification/verify.py's log inspection
-    const logs = (await apiCall(`/api/workspaces/${workspaceId}/jobs/${jobId}/logs`, {
+    const logs = await apiCall<JobLogEntry[]>(`/api/workspaces/${workspaceId}/jobs/${jobId}/logs`, {
       token,
-    })) as unknown as Array<{ level: string; message: string }>
+    })
 
-    expect((logs as Array<{ level: string; message: string }>).length).toBeGreaterThan(0)
+    expect(logs.length).toBeGreaterThan(0)
 
     // Logs should contain INFO-level entries about the masking process
-    const infoLogs = (logs as Array<{ level: string; message: string }>).filter(
-      (l) => l.level === 'INFO'
-    )
+    const infoLogs = logs.filter((l) => l.level === 'INFO')
     expect(infoLogs.length).toBeGreaterThan(0)
   })
 
   test('step 10 — verify connections remain healthy after job', async ({ page }) => {
     // Test both connections via API
-    const srcTest = await apiCall(
+    const srcTest = await apiCall<ConnectionTestResponse>(
       `/api/workspaces/${workspaceId}/connections/${sourceConnectionId}/test`,
       { method: 'POST', token }
     )
-    expect((srcTest as { success: boolean }).success).toBe(true)
+    expect(srcTest.success).toBe(true)
 
-    const tgtTest = await apiCall(
+    const tgtTest = await apiCall<ConnectionTestResponse>(
       `/api/workspaces/${workspaceId}/connections/${targetConnectionId}/test`,
       { method: 'POST', token }
     )
-    expect((tgtTest as { success: boolean }).success).toBe(true)
+    expect(tgtTest.success).toBe(true)
 
     // Also verify in UI
     await page.goto('/login')

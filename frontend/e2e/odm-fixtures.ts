@@ -34,16 +34,63 @@ export const TARGET_DB = {
 // These mirror verification/run_verification.sh — we use the API to seed
 // state and read results while keeping tests focused on the frontend.
 
+// ── API response types ────────────────────────────────────────────────────
+
 interface ApiOptions {
   method?: string
   body?: Record<string, unknown>
   token?: string
 }
 
-export async function apiCall(
+export interface IdResponse {
+  id: number
+}
+
+export interface AuthTokenResponse {
+  token: string
+}
+
+export interface ConnectionTestResponse {
+  success: boolean
+  message: string
+}
+
+export interface JobResponse {
+  id: number
+  status: string
+  rowsProcessed: number
+  tablesProcessed: number
+  name: string
+}
+
+export interface JobLogEntry {
+  level: string
+  message: string
+}
+
+export interface WorkspaceResponse {
+  id: number
+  name: string
+}
+
+export interface ConnectionResponse {
+  id: number
+  name: string
+  type: string
+  isSource: boolean
+  isDestination: boolean
+}
+
+export interface TableConfigResponse {
+  id: number
+  columnGenerators: Array<{ columnName: string; generatorType: string }>
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function apiCall<T = Record<string, any>>(
   path: string,
   { method = 'GET', body, token }: ApiOptions = {}
-): Promise<Record<string, unknown>> {
+): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
@@ -59,7 +106,7 @@ export async function apiCall(
   }
 
   const text = await res.text()
-  return text ? JSON.parse(text) : {}
+  return text ? JSON.parse(text) : ({} as T)
 }
 
 export async function registerUser(): Promise<void> {
@@ -74,11 +121,11 @@ export async function registerUser(): Promise<void> {
 }
 
 export async function loginViaApi(): Promise<string> {
-  const resp = await apiCall('/api/auth/login', {
+  const resp = await apiCall<AuthTokenResponse>('/api/auth/login', {
     method: 'POST',
     body: { username: ODM_USERNAME, password: ODM_PASSWORD },
   })
-  return resp.token as string
+  return resp.token
 }
 
 // ── Browser helpers ───────────────────────────────────────────────────────
@@ -118,14 +165,14 @@ export async function seedVerificationData(): Promise<SeedResult> {
   await registerUser()
   const token = await loginViaApi()
 
-  const ws = await apiCall('/api/workspaces', {
+  const ws = await apiCall<IdResponse>('/api/workspaces', {
     method: 'POST',
     body: { name: 'E2E Verification Workspace', description: 'Playwright E2E test workspace' },
     token,
   })
-  const workspaceId = ws.id as number
+  const workspaceId = ws.id
 
-  const src = await apiCall(`/api/workspaces/${workspaceId}/connections`, {
+  const src = await apiCall<IdResponse>(`/api/workspaces/${workspaceId}/connections`, {
     method: 'POST',
     body: {
       name: SOURCE_DB.name,
@@ -138,9 +185,9 @@ export async function seedVerificationData(): Promise<SeedResult> {
     },
     token,
   })
-  const sourceConnectionId = src.id as number
+  const sourceConnectionId = src.id
 
-  const tgt = await apiCall(`/api/workspaces/${workspaceId}/connections`, {
+  const tgt = await apiCall<IdResponse>(`/api/workspaces/${workspaceId}/connections`, {
     method: 'POST',
     body: {
       name: TARGET_DB.name,
@@ -153,9 +200,9 @@ export async function seedVerificationData(): Promise<SeedResult> {
     },
     token,
   })
-  const targetConnectionId = tgt.id as number
+  const targetConnectionId = tgt.id
 
-  const tbl = await apiCall(`/api/workspaces/${workspaceId}/tables`, {
+  const tbl = await apiCall<IdResponse>(`/api/workspaces/${workspaceId}/tables`, {
     method: 'POST',
     body: {
       connectionId: sourceConnectionId,
@@ -165,7 +212,7 @@ export async function seedVerificationData(): Promise<SeedResult> {
     },
     token,
   })
-  const tableConfigId = tbl.id as number
+  const tableConfigId = tbl.id
 
   const generators = [
     { columnName: 'full_name', generatorType: 'FULL_NAME' },
@@ -192,7 +239,7 @@ export async function runMaskingJobViaApi(
   sourceConnectionId: number,
   targetConnectionId: number
 ): Promise<number> {
-  const job = await apiCall(`/api/workspaces/${workspaceId}/jobs`, {
+  const job = await apiCall<IdResponse>(`/api/workspaces/${workspaceId}/jobs`, {
     method: 'POST',
     body: {
       name: 'E2E Verification Job',
@@ -201,7 +248,7 @@ export async function runMaskingJobViaApi(
     },
     token,
   })
-  return job.id as number
+  return job.id
 }
 
 export async function waitForJobCompletion(
@@ -212,8 +259,8 @@ export async function waitForJobCompletion(
 ): Promise<string> {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
-    const resp = await apiCall(`/api/workspaces/${workspaceId}/jobs/${jobId}`, { token })
-    const status = resp.status as string
+    const resp = await apiCall<JobResponse>(`/api/workspaces/${workspaceId}/jobs/${jobId}`, { token })
+    const status = resp.status
     if (status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELLED') {
       return status
     }

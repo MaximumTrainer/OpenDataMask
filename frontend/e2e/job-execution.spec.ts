@@ -10,6 +10,9 @@ import {
   waitForJobCompletion,
   waitForPageHeading,
   waitForLoadingDone,
+  type JobResponse,
+  type JobLogEntry,
+  type ConnectionTestResponse,
 } from './odm-fixtures'
 
 // ── Job Execution & Destination Transfer Verification ─────────────────────
@@ -262,26 +265,22 @@ test.describe('Destination Database Transfer Verification', () => {
     await page.waitForSelector('.job-card', { timeout: 10_000 })
 
     // Check via API that tablesProcessed > 0
-    const jobs = (await apiCall(`/api/workspaces/${seed.workspaceId}/jobs`, {
+    const jobs = await apiCall<JobResponse[]>(`/api/workspaces/${seed.workspaceId}/jobs`, {
       token: seed.token,
-    })) as unknown as Array<{ tablesProcessed: number; status: string }>
+    })
 
-    const completedJob = (jobs as Array<{ tablesProcessed: number; status: string }>).find(
-      (j) => j.status === 'COMPLETED'
-    )
+    const completedJob = jobs.find((j) => j.status === 'COMPLETED')
     expect(completedJob).toBeDefined()
     expect(completedJob!.tablesProcessed).toBeGreaterThan(0)
   })
 
   test('completed job shows non-zero rows processed', async ({ authenticatedPage: page }) => {
     // Verify via API
-    const jobs = (await apiCall(`/api/workspaces/${seed.workspaceId}/jobs`, {
+    const jobs = await apiCall<JobResponse[]>(`/api/workspaces/${seed.workspaceId}/jobs`, {
       token: seed.token,
-    })) as unknown as Array<{ rowsProcessed: number; status: string }>
+    })
 
-    const completedJob = (jobs as Array<{ rowsProcessed: number; status: string }>).find(
-      (j) => j.status === 'COMPLETED'
-    )
+    const completedJob = jobs.find((j) => j.status === 'COMPLETED')
     expect(completedJob).toBeDefined()
     expect(completedJob!.rowsProcessed).toBeGreaterThan(0)
 
@@ -296,22 +295,20 @@ test.describe('Destination Database Transfer Verification', () => {
 
   test('job logs show masking activity entries', async ({ authenticatedPage: page }) => {
     // Fetch job ID
-    const jobs = (await apiCall(`/api/workspaces/${seed.workspaceId}/jobs`, {
+    const jobs = await apiCall<JobResponse[]>(`/api/workspaces/${seed.workspaceId}/jobs`, {
       token: seed.token,
-    })) as unknown as Array<{ id: number; status: string }>
+    })
 
-    const completedJob = (jobs as Array<{ id: number; status: string }>).find(
-      (j) => j.status === 'COMPLETED'
-    )
+    const completedJob = jobs.find((j) => j.status === 'COMPLETED')
     expect(completedJob).toBeDefined()
 
     // Fetch logs via API
-    const logs = (await apiCall(
+    const logs = await apiCall<JobLogEntry[]>(
       `/api/workspaces/${seed.workspaceId}/jobs/${completedJob!.id}/logs`,
       { token: seed.token }
-    )) as unknown as Array<{ level: string; message: string }>
+    )
 
-    expect((logs as Array<{ level: string; message: string }>).length).toBeGreaterThan(0)
+    expect(logs.length).toBeGreaterThan(0)
 
     // View logs in UI
     await page.goto(`/workspaces/${seed.workspaceId}/jobs`)
@@ -324,23 +321,18 @@ test.describe('Destination Database Transfer Verification', () => {
       await expect(page.locator('.logs-section')).toBeVisible({ timeout: 10_000 })
 
       // Log entries should be visible
-      await expect(page.locator('.log-line')).toHaveCount(
-        (logs as Array<{ level: string; message: string }>).length,
-        { timeout: 10_000 }
-      )
+      await expect(page.locator('.log-line')).toHaveCount(logs.length, { timeout: 10_000 })
     }
   })
 
   test('record integrity — source and target row counts match (API verification)', async () => {
     // This test verifies data transfer by checking the job's reported row count
     // against the known source data (50 users in source_db.sql).
-    const jobs = (await apiCall(`/api/workspaces/${seed.workspaceId}/jobs`, {
+    const jobs = await apiCall<JobResponse[]>(`/api/workspaces/${seed.workspaceId}/jobs`, {
       token: seed.token,
-    })) as unknown as Array<{ rowsProcessed: number; tablesProcessed: number; status: string }>
+    })
 
-    const completedJob = (jobs as Array<{ rowsProcessed: number; tablesProcessed: number; status: string }>).find(
-      (j) => j.status === 'COMPLETED'
-    )
+    const completedJob = jobs.find((j) => j.status === 'COMPLETED')
     expect(completedJob).toBeDefined()
 
     // The source database has 50 user records (per verification/init/source_db.sql)

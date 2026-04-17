@@ -7,6 +7,7 @@ import {
   apiCall,
   waitForPageHeading,
   waitForLoadingDone,
+  type TableConfigResponse,
 } from './odm-fixtures'
 
 // ── Masking Definition Tests ──────────────────────────────────────────────
@@ -455,12 +456,12 @@ test.describe('Masking Definition — Verification of Column Generators', () => 
 
   test('column generator count matches verification script configuration', async ({ authenticatedPage: page }) => {
     // Verify via API that exactly 5 generators exist
-    const tableConfig = await apiCall(
+    const tableConfig = await apiCall<TableConfigResponse>(
       `/api/workspaces/${workspaceId}/tables/${tableConfigId}`,
       { token }
     )
 
-    const generators = (tableConfig as { columnGenerators?: unknown[] }).columnGenerators ?? []
+    const generators = tableConfig.columnGenerators ?? []
     expect(generators.length).toBe(5)
   })
 })
