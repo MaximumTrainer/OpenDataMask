@@ -70,6 +70,10 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('user')
   }
 
+  // Eagerly restore JWT auth state from localStorage so the router guard
+  // can check isAuthenticated before App.vue's onMounted fires.
+  initializeFromStorage()
+
   return {
     token,
     user,
