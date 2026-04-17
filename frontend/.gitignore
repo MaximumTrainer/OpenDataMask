@@ -20,3 +20,9 @@ dist-ssr/
 # Build cache
 *.tsbuildinfo
 .eslintcache
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
