@@ -96,8 +96,9 @@ def wait_for_page_ready(page: Page, heading_text: str, timeout: int = 15_000) ->
     try:
         page.wait_for_selector(f"h1:has-text('{heading_text}')", timeout=timeout)
     except Exception:
+        # Heading may not exist yet or page uses a different structure; continue best-effort
         pass
-    # Also wait for any loading overlay to disappear
+    # Wait for loading overlay to appear then disappear (Vue shows it briefly while fetching data)
     try:
         page.wait_for_selector(
             ".loading-overlay", state="attached", timeout=2_000
@@ -106,6 +107,7 @@ def wait_for_page_ready(page: Page, heading_text: str, timeout: int = 15_000) ->
             ".loading-overlay", state="hidden", timeout=15_000
         )
     except Exception:
+        # Overlay may never appear if data loads instantly; safe to continue
         pass
 
 
@@ -275,7 +277,7 @@ def step_workspaces_list(page: Page, base_url: str) -> None:
     # Open create workspace modal — optional screenshot
     if try_click(page, "button:has-text('New Workspace')"):
         try:
-            page.wait_for_selector("[role='dialog'] input.form-control", timeout=5_000)
+            page.wait_for_selector("[role='dialog'] input.form-control", timeout=8_000)
             shot(page, "05-create-workspace-modal.png")
             page.locator("[role='dialog'] input.form-control").first.fill("My Production Workspace")
             shot(page, "06-create-workspace-filled.png")
@@ -298,7 +300,7 @@ def step_connections(page: Page, base_url: str, ws_id: int) -> None:
     # Open add connection modal — optional screenshot
     if try_click(page, "button:has-text('Add Connection')"):
         try:
-            page.wait_for_selector("[role='dialog'] input[placeholder='Production DB']", timeout=5_000)
+            page.wait_for_selector("[role='dialog'] input[placeholder='Production DB']", timeout=8_000)
             shot(page, "09-add-connection-modal.png")
             page.fill("[role='dialog'] input[placeholder='Production DB']", "demo-source")
             page.fill("[role='dialog'] input[placeholder='localhost']", "source_db")
@@ -333,7 +335,7 @@ def step_tables(page: Page, base_url: str, ws_id: int) -> None:
     # Open add-table modal — optional screenshot
     if try_click(page, "button:has-text('Add Table')"):
         try:
-            page.wait_for_selector("[role='dialog'] input[placeholder='users']", timeout=5_000)
+            page.wait_for_selector("[role='dialog'] input[placeholder='users']", timeout=8_000)
             shot(page, "13-add-table-modal.png")
         except Exception:
             pass
@@ -374,7 +376,7 @@ def step_jobs(page: Page, base_url: str, ws_id: int) -> None:
     # Open the "Run New Job" modal — optional
     if try_click(page, "button:has-text('Run New Job')"):
         try:
-            page.wait_for_selector("[role='dialog']", timeout=5_000)
+            page.wait_for_selector("[role='dialog']", timeout=8_000)
             shot(page, "17-run-job-modal.png")
             selects = page.query_selector_all("[role='dialog'] select.form-control")
             if len(selects) >= 2:
@@ -411,15 +413,15 @@ def step_sensitivity_rules(page: Page, base_url: str) -> None:
         time.sleep(0.4)
         shot(page, "21-new-pii-rule-drawer.png")
 
-        name_input = page.query_selector("input[placeholder*='Internal'], input.form-input")
+        name_input = page.query_selector(".drawer-body input[placeholder*='Internal'], .drawer-body input.form-input")
         if name_input:
             name_input.fill("EMPLOYEE_ID")
 
-        add_matcher = page.query_selector("button:has-text('Add Matcher')")
+        add_matcher = page.query_selector(".drawer-body button:has-text('Add Matcher')")
         if add_matcher:
             add_matcher.click()
             time.sleep(0.2)
-            matcher_val = page.query_selector("input[placeholder='value'], input.form-input-sm")
+            matcher_val = page.query_selector(".drawer-body input[placeholder='value']")
             if matcher_val:
                 matcher_val.fill("employee_id")
 
