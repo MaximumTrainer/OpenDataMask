@@ -362,7 +362,23 @@ def step_data_mappings(page: Page, base_url: str, ws_id: int) -> None:
             table_card = page.query_selector("button.table-card")
             if table_card:
                 table_card.click()
-                time.sleep(1)
+                # Wait for the step-3 column mapping UI to render before capturing
+                step3_selectors = [
+                    "text=Step 3",
+                    "table",
+                    "select",
+                    "input",
+                ]
+                for selector in step3_selectors:
+                    try:
+                        page.wait_for_selector(selector, state="visible", timeout=3_000)
+                        break
+                    except Exception:
+                        pass
+                try:
+                    page.wait_for_selector(".loading-overlay", state="hidden", timeout=10_000)
+                except Exception:
+                    pass
             shot(page, "15-data-mapping-columns.png")
     except Exception:
         pass

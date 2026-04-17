@@ -151,7 +151,8 @@ jobs:
           FOUND=$((TOTAL - MISSING))
           echo "✅ ${FOUND}/${TOTAL} expected screenshots found."
           if [ "${MISSING}" -gt 0 ]; then
-            echo "::warning::${MISSING} screenshots missing — guide placeholders will be shown."
+            echo "::error::${MISSING} screenshots missing — failing workflow to prevent deploying docs with missing guide images."
+            exit 1
           fi
 
       - name: Upload screenshots artifact
