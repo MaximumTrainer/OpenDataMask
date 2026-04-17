@@ -1,13 +1,23 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '@/api/auth'
-import type { User, LoginRequest, RegisterRequest, UserRole } from '@/types'
+import type { User, LoginRequest, RegisterRequest, UserRole, AuthResponse } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null)
   const user = ref<User | null>(null)
 
   const isAuthenticated = computed(() => !!user.value)
+
+  function userFromAuthResponse(response: AuthResponse): User {
+    return {
+      id: response.userId,
+      username: response.username,
+      email: response.email,
+      role: response.role,
+      createdAt: new Date().toISOString()
+    }
+  }
 
   function initializeFromStorage(): void {
     const storedToken = localStorage.getItem('token')
@@ -45,13 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(credentials: LoginRequest): Promise<void> {
     const response = await authApi.login(credentials)
     token.value = response.token
-    const loginUser: User = {
-      id: response.userId,
-      username: response.username,
-      email: response.email,
-      role: response.role,
-      createdAt: new Date().toISOString()
-    }
+    const loginUser = userFromAuthResponse(response)
     user.value = loginUser
     localStorage.setItem('token', response.token)
     localStorage.setItem('user', JSON.stringify(loginUser))
@@ -60,13 +64,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(payload: RegisterRequest & { role?: UserRole }): Promise<void> {
     const response = await authApi.register(payload)
     token.value = response.token
-    const regUser: User = {
-      id: response.userId,
-      username: response.username,
-      email: response.email,
-      role: response.role,
-      createdAt: new Date().toISOString()
-    }
+    const regUser = userFromAuthResponse(response)
     user.value = regUser
     localStorage.setItem('token', response.token)
     localStorage.setItem('user', JSON.stringify(regUser))
