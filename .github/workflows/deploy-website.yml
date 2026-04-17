@@ -91,7 +91,6 @@ jobs:
           echo "::warning::Frontend did not respond within 5 minutes."
 
       - name: Generate screenshots
-        continue-on-error: true
         run: |
           python3 verification/take_screenshots.py \
             --url "http://localhost" \
@@ -107,6 +106,7 @@ jobs:
             --target-db   target_db \
             --target-user target_user \
             --target-pass target_pass \
+            --run-job \
             --output-dir  docs/website/screenshots
         env:
           PYTHONUNBUFFERED: "1"
@@ -115,6 +115,44 @@ jobs:
         run: |
           echo "Screenshots in docs/website/screenshots/:"
           ls -la docs/website/screenshots/ || echo "(directory not found)"
+
+      - name: Verify expected screenshots
+        run: |
+          EXPECTED_IMAGES=(
+            01-login-page.png
+            02-register-page.png
+            03-login-filled.png
+            04-workspaces-list.png
+            05-create-workspace-modal.png
+            07-workspace-overview.png
+            08-connections-configured.png
+            09-add-connection-modal.png
+            10-connection-form-filled.png
+            11-tables-configured.png
+            12-generators-expanded.png
+            13-add-table-modal.png
+            14-data-mapping-wizard.png
+            15-data-mapping-columns.png
+            16-jobs-list.png
+            17-run-job-modal.png
+            19-job-logs.png
+            20-sensitivity-rules.png
+            21-new-pii-rule-drawer.png
+            22-pii-rule-configured.png
+          )
+          MISSING=0
+          for img in "${EXPECTED_IMAGES[@]}"; do
+            if [ ! -f "docs/website/screenshots/${img}" ]; then
+              echo "::warning::Missing screenshot: ${img}"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          TOTAL=${#EXPECTED_IMAGES[@]}
+          FOUND=$((TOTAL - MISSING))
+          echo "✅ ${FOUND}/${TOTAL} expected screenshots found."
+          if [ "${MISSING}" -gt 0 ]; then
+            echo "::warning::${MISSING} screenshots missing — guide placeholders will be shown."
+          fi
 
       - name: Upload screenshots artifact
         uses: actions/upload-artifact@v4
