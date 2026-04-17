@@ -94,6 +94,108 @@ describe('useAuthStore – SAML session initialisation', () => {
   })
 })
 
+describe('useAuthStore – login / register with flat AuthResponse', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    vi.resetAllMocks()
+  })
+
+  const flatLoginResponse = {
+    token: 'jwt.login.token',
+    userId: 42,
+    username: 'test-user',
+    email: 'test@example.com',
+    role: UserRole.USER
+  }
+
+  const flatRegisterResponse = {
+    token: 'jwt.register.token',
+    userId: 99,
+    username: 'new-user',
+    email: 'new@example.com',
+    role: UserRole.ADMIN
+  }
+
+  it('populates user correctly after login with flat AuthResponse', async () => {
+    vi.mocked(authApi.login).mockResolvedValue(flatLoginResponse)
+
+    const auth = useAuthStore()
+    await auth.login({ username: 'test-user', password: 'secret' })
+
+    expect(auth.user).not.toBeNull()
+    expect(auth.user?.id).toBe(42)
+    expect(auth.user?.username).toBe('test-user')
+    expect(auth.user?.email).toBe('test@example.com')
+    expect(auth.user?.role).toBe(UserRole.USER)
+    expect(auth.token).toBe('jwt.login.token')
+  })
+
+  it('sets isAuthenticated to true after login', async () => {
+    vi.mocked(authApi.login).mockResolvedValue(flatLoginResponse)
+
+    const auth = useAuthStore()
+    expect(auth.isAuthenticated).toBe(false)
+
+    await auth.login({ username: 'test-user', password: 'secret' })
+
+    expect(auth.isAuthenticated).toBe(true)
+  })
+
+  it('persists constructed User to localStorage after login', async () => {
+    vi.mocked(authApi.login).mockResolvedValue(flatLoginResponse)
+
+    const auth = useAuthStore()
+    await auth.login({ username: 'test-user', password: 'secret' })
+
+    expect(localStorage.getItem('token')).toBe('jwt.login.token')
+    const storedUser = JSON.parse(localStorage.getItem('user')!)
+    expect(storedUser.id).toBe(42)
+    expect(storedUser.username).toBe('test-user')
+    expect(storedUser.email).toBe('test@example.com')
+    expect(storedUser.role).toBe(UserRole.USER)
+  })
+
+  it('populates user correctly after register with flat AuthResponse', async () => {
+    vi.mocked(authApi.register).mockResolvedValue(flatRegisterResponse)
+
+    const auth = useAuthStore()
+    await auth.register({ username: 'new-user', email: 'new@example.com', password: 'secret123' })
+
+    expect(auth.user).not.toBeNull()
+    expect(auth.user?.id).toBe(99)
+    expect(auth.user?.username).toBe('new-user')
+    expect(auth.user?.email).toBe('new@example.com')
+    expect(auth.user?.role).toBe(UserRole.ADMIN)
+    expect(auth.token).toBe('jwt.register.token')
+  })
+
+  it('sets isAuthenticated to true after register', async () => {
+    vi.mocked(authApi.register).mockResolvedValue(flatRegisterResponse)
+
+    const auth = useAuthStore()
+    expect(auth.isAuthenticated).toBe(false)
+
+    await auth.register({ username: 'new-user', email: 'new@example.com', password: 'secret123' })
+
+    expect(auth.isAuthenticated).toBe(true)
+  })
+
+  it('persists constructed User to localStorage after register', async () => {
+    vi.mocked(authApi.register).mockResolvedValue(flatRegisterResponse)
+
+    const auth = useAuthStore()
+    await auth.register({ username: 'new-user', email: 'new@example.com', password: 'secret123' })
+
+    expect(localStorage.getItem('token')).toBe('jwt.register.token')
+    const storedUser = JSON.parse(localStorage.getItem('user')!)
+    expect(storedUser.id).toBe(99)
+    expect(storedUser.username).toBe('new-user')
+    expect(storedUser.email).toBe('new@example.com')
+    expect(storedUser.role).toBe(UserRole.ADMIN)
+  })
+})
+
 describe('useAuthStore – mocking the SAML user directly (unit-test style)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
