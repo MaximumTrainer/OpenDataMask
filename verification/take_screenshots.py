@@ -91,6 +91,26 @@ def wait_for_load(page: Page, timeout: int = 10_000) -> None:
     page.wait_for_load_state("networkidle", timeout=timeout)
 
 
+def wait_for_page_ready(page: Page, heading_text: str, timeout: int = 15_000) -> None:
+    """Wait for the Vue SPA to fully render by checking for a page heading."""
+    try:
+        page.wait_for_selector(f"h1:has-text('{heading_text}')", timeout=timeout)
+    except Exception:
+        # Heading may not exist yet or page uses a different structure; continue best-effort
+        pass
+    # Wait for loading overlay to appear then disappear (Vue shows it briefly while fetching data)
+    try:
+        page.wait_for_selector(
+            ".loading-overlay", state="attached", timeout=2_000
+        )
+        page.wait_for_selector(
+            ".loading-overlay", state="hidden", timeout=15_000
+        )
+    except Exception:
+        # Overlay may never appear if data loads instantly; safe to continue
+        pass
+
+
 def try_dismiss_modal(page: Page) -> None:
     """Best-effort modal dismiss via Cancel button or Escape."""
     try:
@@ -100,7 +120,7 @@ def try_dismiss_modal(page: Page) -> None:
         else:
             page.keyboard.press("Escape")
         page.wait_for_selector(
-            ".modal-overlay, dialog, [role='dialog']",
+            ".modal-backdrop, .drawer-overlay, [role='dialog']",
             state="hidden", timeout=3_000
         )
     except Exception:
@@ -115,7 +135,7 @@ def wait_loading_done(page: Page, timeout: int = 8_000) -> None:
         pass
 
 
-def try_click(page: Page, selector: str, timeout: int = 6_000) -> bool:
+def try_click(page: Page, selector: str, timeout: int = 8_000) -> bool:
     """Click a selector; return True on success, False if not found/timed-out."""
     try:
         page.click(selector, timeout=timeout)
@@ -251,15 +271,15 @@ def step_login_filled(page: Page, base_url: str, username: str, password: str) -
 
 def step_workspaces_list(page: Page, base_url: str) -> None:
     nav(page, f"{base_url}/workspaces")
-    wait_loading_done(page)
+    wait_for_page_ready(page, "Workspaces")
     shot(page, "04-workspaces-list.png")
 
     # Open create workspace modal — optional screenshot
     if try_click(page, "button:has-text('New Workspace')"):
         try:
-            page.wait_for_selector("input.form-control", timeout=5_000)
+            page.wait_for_selector("[role='dialog'] input.form-control", timeout=8_000)
             shot(page, "05-create-workspace-modal.png")
-            page.locator("input.form-control").first.fill("My Production Workspace")
+            page.locator("[role='dialog'] input.form-control").first.fill("My Production Workspace")
             shot(page, "06-create-workspace-filled.png")
         except Exception:
             pass
@@ -268,26 +288,26 @@ def step_workspaces_list(page: Page, base_url: str) -> None:
 
 def step_workspace_overview(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}")
-    wait_for_load(page)
+    wait_for_page_ready(page, "Guide Workspace")
     shot(page, "07-workspace-overview.png")
 
 
 def step_connections(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}/connections")
-    wait_loading_done(page)
+    wait_for_page_ready(page, "Data Connections")
     shot(page, "08-connections-configured.png")
 
     # Open add connection modal — optional screenshot
     if try_click(page, "button:has-text('Add Connection')"):
         try:
-            page.wait_for_selector("input[placeholder='Production DB']", timeout=5_000)
+            page.wait_for_selector("[role='dialog'] input[placeholder='Production DB']", timeout=8_000)
             shot(page, "09-add-connection-modal.png")
-            page.fill("input[placeholder='Production DB']", "demo-source")
-            page.fill("input[placeholder='localhost']", "source_db")
-            page.fill("input[placeholder='mydb']", "source_db")
-            page.fill("input[placeholder='admin']", "source_user")
-            page.fill("input[type='password'][autocomplete='new-password']", "•••••••••")
-            src_label = page.locator("label").filter(has_text="Source (read data")
+            page.fill("[role='dialog'] input[placeholder='Production DB']", "demo-source")
+            page.fill("[role='dialog'] input[placeholder='localhost']", "source_db")
+            page.fill("[role='dialog'] input[placeholder='mydb']", "source_db")
+            page.fill("[role='dialog'] input[placeholder='admin']", "source_user")
+            page.fill("[role='dialog'] input[type='password']", "•••••••••")
+            src_label = page.locator("label").filter(has_text="Source")
             src_cb = src_label.locator("input[type='checkbox']")
             if not src_cb.is_checked():
                 src_cb.click()
@@ -299,11 +319,11 @@ def step_connections(page: Page, base_url: str, ws_id: int) -> None:
 
 def step_tables(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}/tables")
-    wait_loading_done(page)
+    wait_for_page_ready(page, "Table Configurations")
     shot(page, "11-tables-configured.png")
 
     # Expand the first table to show column generators
-    expand_btn = page.query_selector("button:has-text('▼ Columns')")
+    expand_btn = page.query_selector("button:has-text('Columns')")
     if expand_btn:
         try:
             expand_btn.click()
@@ -315,7 +335,7 @@ def step_tables(page: Page, base_url: str, ws_id: int) -> None:
     # Open add-table modal — optional screenshot
     if try_click(page, "button:has-text('Add Table')"):
         try:
-            page.wait_for_selector("input[placeholder='users']", timeout=5_000)
+            page.wait_for_selector("[role='dialog'] input[placeholder='users']", timeout=8_000)
             shot(page, "13-add-table-modal.png")
         except Exception:
             pass
@@ -324,15 +344,41 @@ def step_tables(page: Page, base_url: str, ws_id: int) -> None:
 
 def step_data_mappings(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}/mappings")
-    wait_loading_done(page)
+    wait_for_page_ready(page, "Custom Data Mapping")
     shot(page, "14-data-mapping-wizard.png")
 
-    # Click the first connection card to advance the wizard
+    # Click the first connection card to advance to step 2
     try:
-        card = page.query_selector(".card button, .cursor-pointer, [role='button']")
+        card = page.wait_for_selector("button.conn-card", timeout=8_000)
         if card:
             card.click()
-            time.sleep(0.5)
+            # Wait for step 2 to load (table list)
+            page.wait_for_selector("button.table-card, .loading-overlay", timeout=8_000)
+            try:
+                page.wait_for_selector(".loading-overlay", state="hidden", timeout=10_000)
+            except Exception:
+                pass
+            # Click the first table card to advance to step 3 (column mapping)
+            table_card = page.query_selector("button.table-card")
+            if table_card:
+                table_card.click()
+                # Wait for the step-3 column mapping UI to render before capturing
+                step3_selectors = [
+                    "text=Step 3",
+                    "table",
+                    "select",
+                    "input",
+                ]
+                for selector in step3_selectors:
+                    try:
+                        page.wait_for_selector(selector, state="visible", timeout=3_000)
+                        break
+                    except Exception:
+                        pass
+                try:
+                    page.wait_for_selector(".loading-overlay", state="hidden", timeout=10_000)
+                except Exception:
+                    pass
             shot(page, "15-data-mapping-columns.png")
     except Exception:
         pass
@@ -340,15 +386,15 @@ def step_data_mappings(page: Page, base_url: str, ws_id: int) -> None:
 
 def step_jobs(page: Page, base_url: str, ws_id: int) -> None:
     nav(page, f"{base_url}/workspaces/{ws_id}/jobs")
-    wait_loading_done(page)
+    wait_for_page_ready(page, "Jobs")
     shot(page, "16-jobs-list.png")
 
     # Open the "Run New Job" modal — optional
     if try_click(page, "button:has-text('Run New Job')"):
         try:
-            page.wait_for_selector("input[placeholder*='Mask Production']", timeout=5_000)
+            page.wait_for_selector("[role='dialog']", timeout=8_000)
             shot(page, "17-run-job-modal.png")
-            selects = page.query_selector_all(".modal-body select.form-control, dialog select.form-control")
+            selects = page.query_selector_all("[role='dialog'] select.form-control")
             if len(selects) >= 2:
                 selects[0].select_option(index=0)
                 selects[1].select_option(index=0)
@@ -359,7 +405,9 @@ def step_jobs(page: Page, base_url: str, ws_id: int) -> None:
 
     # Expand logs for an existing job if present
     try:
-        log_btn = page.query_selector("button:has-text('View Logs')")
+        log_btn = page.wait_for_selector(
+            "button:has-text('View Logs')", timeout=3_000
+        )
         if log_btn:
             log_btn.click()
             time.sleep(0.5)
@@ -370,31 +418,32 @@ def step_jobs(page: Page, base_url: str, ws_id: int) -> None:
 
 def step_sensitivity_rules(page: Page, base_url: str) -> None:
     nav(page, f"{base_url}/settings/sensitivity-rules")
+    wait_for_page_ready(page, "Sensitivity Rules")
     shot(page, "20-sensitivity-rules.png")
 
     new_btn = page.query_selector(
-        "button:has-text('New Rule'), button:has-text('＋ New'), button:has-text('Create')"
+        "button:has-text('New Rule'), button:has-text('Create')"
     )
     if new_btn:
         new_btn.click()
         time.sleep(0.4)
         shot(page, "21-new-pii-rule-drawer.png")
 
-        name_input = page.query_selector("input[placeholder*='ule name'], input[placeholder*='Name']")
+        name_input = page.query_selector(".drawer-body input[placeholder*='Internal'], .drawer-body input.form-input")
         if name_input:
             name_input.fill("EMPLOYEE_ID")
 
-        add_matcher = page.query_selector("button:has-text('Add Matcher'), button:has-text('Matcher')")
+        add_matcher = page.query_selector(".drawer-body button:has-text('Add Matcher')")
         if add_matcher:
             add_matcher.click()
             time.sleep(0.2)
-            matcher_val = page.query_selector("input[placeholder*='alue'], input[placeholder*='pattern']")
+            matcher_val = page.query_selector(".drawer-body input[placeholder='value']")
             if matcher_val:
                 matcher_val.fill("employee_id")
 
         shot(page, "22-pii-rule-configured.png")
 
-        close_btn = page.query_selector("button:has-text('Cancel'), button[aria-label='Close']")
+        close_btn = page.query_selector(".drawer-footer button:has-text('Cancel'), button[aria-label='Close']")
         if close_btn:
             close_btn.click()
         else:
