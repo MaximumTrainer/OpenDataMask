@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test'
 import {
   ODM_USERNAME,
   ODM_PASSWORD,
-  ODM_EMAIL,
   registerUser,
   waitForLoadingDone,
 } from './odm-fixtures'

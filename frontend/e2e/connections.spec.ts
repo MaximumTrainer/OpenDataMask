@@ -196,9 +196,8 @@ test.describe('Database Connections', () => {
 
   test('test connection button triggers connection test', async ({ authenticatedPage: page }) => {
     // Seed a connection via API
-    let connId: number
     try {
-      const conn = await apiCall(`/api/workspaces/${workspaceId}/connections`, {
+      await apiCall(`/api/workspaces/${workspaceId}/connections`, {
         method: 'POST',
         body: {
           name: 'test-btn-conn',
@@ -211,7 +210,6 @@ test.describe('Database Connections', () => {
         },
         token,
       })
-      connId = conn.id as number
     } catch {
       // May already exist — just view the page
     }
@@ -233,7 +231,7 @@ test.describe('Database Connections', () => {
 
   test('edit connection modal pre-fills existing data', async ({ authenticatedPage: page }) => {
     // Seed a connection via API
-    const conn = await apiCall(`/api/workspaces/${workspaceId}/connections`, {
+    await apiCall(`/api/workspaces/${workspaceId}/connections`, {
       method: 'POST',
       body: {
         name: 'edit-test-conn',

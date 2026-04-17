@@ -86,8 +86,7 @@ export interface TableConfigResponse {
   columnGenerators: Array<{ columnName: string; generatorType: string }>
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function apiCall<T = Record<string, any>>(
+export async function apiCall<T = unknown>(
   path: string,
   { method = 'GET', body, token }: ApiOptions = {}
 ): Promise<T> {
@@ -106,7 +105,17 @@ export async function apiCall<T = Record<string, any>>(
   }
 
   const text = await res.text()
-  return text ? JSON.parse(text) : ({} as T)
+  return text ? (JSON.parse(text) as T) : (undefined as unknown as T)
+}
+
+function isAlreadyRegisteredError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const message = error.message.toLowerCase()
+  return (
+    message.includes('→ 409:') ||
+    message.includes('already exists') ||
+    message.includes('already registered')
+  )
 }
 
 export async function registerUser(): Promise<void> {
@@ -115,8 +124,10 @@ export async function registerUser(): Promise<void> {
       method: 'POST',
       body: { username: ODM_USERNAME, email: ODM_EMAIL, password: ODM_PASSWORD },
     })
-  } catch {
-    // User may already exist — safe to ignore.
+  } catch (error) {
+    if (!isAlreadyRegisteredError(error)) {
+      throw error
+    }
   }
 }
 

@@ -2,7 +2,6 @@ import { test, expect } from './odm-fixtures'
 import {
   ODM_USERNAME,
   ODM_PASSWORD,
-  ODM_EMAIL,
   SOURCE_DB,
   TARGET_DB,
   registerUser,

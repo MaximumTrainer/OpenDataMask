@@ -113,7 +113,7 @@ test.describe('Masking Definition — Table Configurations', () => {
 
   test('expand table to view column generators section', async ({ authenticatedPage: page }) => {
     // Seed a table config via API
-    const tbl = await apiCall(`/api/workspaces/${workspaceId}/tables`, {
+    await apiCall(`/api/workspaces/${workspaceId}/tables`, {
       method: 'POST',
       body: {
         connectionId: sourceConnectionId,

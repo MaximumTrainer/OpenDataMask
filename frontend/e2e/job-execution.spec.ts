@@ -12,7 +12,6 @@ import {
   waitForLoadingDone,
   type JobResponse,
   type JobLogEntry,
-  type ConnectionTestResponse,
 } from './odm-fixtures'
 
 // ── Job Execution & Destination Transfer Verification ─────────────────────
