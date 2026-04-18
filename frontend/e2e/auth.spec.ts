@@ -60,7 +60,7 @@ test.describe('Authentication', () => {
     await page.fill('#password', ODM_PASSWORD)
     await page.click("button[type='submit']")
 
-    await page.waitForURL(/\/workspaces/, { timeout: 15_000 })
+    await page.waitForURL(/\/workspaces(?:[?#/]|$)/, { timeout: 15_000 })
     await waitForLoadingDone(page)
 
     await expect(page.locator('h1')).toContainText('Workspaces', { timeout: 10_000 })
@@ -72,7 +72,7 @@ test.describe('Authentication', () => {
     await page.fill('#username', ODM_USERNAME)
     await page.fill('#password', ODM_PASSWORD)
     await page.click("button[type='submit']")
-    await page.waitForURL(/\/workspaces/, { timeout: 15_000 })
+    await page.waitForURL(/\/workspaces(?:[?#/]|$)/, { timeout: 15_000 })
 
     // Now navigate to /login — should redirect back
     await page.goto('/login')

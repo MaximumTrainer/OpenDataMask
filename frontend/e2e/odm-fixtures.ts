@@ -148,7 +148,7 @@ export async function loginViaUi(page: Page): Promise<void> {
   await page.fill('#username', ODM_USERNAME)
   await page.fill('#password', ODM_PASSWORD)
   await page.click("button[type='submit']")
-  await page.waitForURL(/\/workspaces/, { timeout: 15_000 })
+  await page.waitForURL(/\/workspaces(?:[?#/]|$)/, { timeout: 15_000 })
 }
 
 export async function waitForLoadingDone(page: Page, timeout = 10_000): Promise<void> {

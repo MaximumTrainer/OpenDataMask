@@ -2,10 +2,8 @@ import { test, expect, registerUser, loginViaApi, apiCall, type IdResponse } fro
 
 test.describe('Workspaces', () => {
   test('workspaces list page loads after login', async ({ authenticatedPage: page }) => {
-    await expect(page).toHaveURL(/\/workspaces/)
-    await expect(
-      page.locator('h1, h2, [class*="workspace"]').first()
-    ).toBeVisible({ timeout: 10_000 })
+    await expect(page).toHaveURL(/\/workspaces(?:[?#/]|$)/)
+    await expect(page.locator('h1')).toContainText('Workspaces', { timeout: 10_000 })
   })
 
   test('create workspace button is present', async ({ authenticatedPage: page }) => {

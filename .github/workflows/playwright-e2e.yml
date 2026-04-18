@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
 
 env:
-  API_BASE:   http://localhost:8080
-  ODM_USER:   e2e_playwright
-  ODM_PASS:   "E2ePlaywright!99"
-  ODM_EMAIL:  e2e@odm-e2e.local
+  API_BASE:     http://localhost:8080
+  ODM_USERNAME: e2e_playwright
+  ODM_PASSWORD: "E2ePlaywright!99"
+  ODM_EMAIL:    e2e@odm-e2e.local
   # Screenshot-generation user (separate account to keep data clean)
   SHOT_USER:  guide_user
   SHOT_PASS:  "Guide!Pass123"
