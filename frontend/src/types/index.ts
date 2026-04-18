@@ -28,10 +28,7 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   token: string
-  userId: number
-  username: string
-  email: string
-  role: UserRole
+  user: User
 }
 
 // ── Workspace ─────────────────────────────────────────────────────────────

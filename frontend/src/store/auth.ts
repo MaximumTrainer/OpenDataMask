@@ -1,23 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '@/api/auth'
-import type { User, LoginRequest, RegisterRequest, UserRole, AuthResponse } from '@/types'
+import type { User, LoginRequest, RegisterRequest, UserRole } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null)
   const user = ref<User | null>(null)
 
   const isAuthenticated = computed(() => !!user.value)
-
-  function userFromAuthResponse(response: AuthResponse): User {
-    return {
-      id: response.userId,
-      username: response.username,
-      email: response.email,
-      role: response.role,
-      createdAt: new Date().toISOString()
-    }
-  }
 
   function initializeFromStorage(): void {
     const storedToken = localStorage.getItem('token')
@@ -55,19 +45,17 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(credentials: LoginRequest): Promise<void> {
     const response = await authApi.login(credentials)
     token.value = response.token
-    const loginUser = userFromAuthResponse(response)
-    user.value = loginUser
+    user.value = response.user
     localStorage.setItem('token', response.token)
-    localStorage.setItem('user', JSON.stringify(loginUser))
+    localStorage.setItem('user', JSON.stringify(response.user))
   }
 
   async function register(payload: RegisterRequest & { role?: UserRole }): Promise<void> {
     const response = await authApi.register(payload)
     token.value = response.token
-    const regUser = userFromAuthResponse(response)
-    user.value = regUser
+    user.value = response.user
     localStorage.setItem('token', response.token)
-    localStorage.setItem('user', JSON.stringify(regUser))
+    localStorage.setItem('user', JSON.stringify(response.user))
   }
 
   async function logout(): Promise<void> {
