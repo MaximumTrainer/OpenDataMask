@@ -5,9 +5,10 @@ import { test as base, expect, type Page } from '@playwright/test'
 // and verification/docker-compose.yml so the tests work out-of-the-box
 // against the sandboxed environment without any extra configuration.
 
-export const ODM_USERNAME = process.env.ODM_USERNAME ?? 'e2e_test_user'
+const _runSuffix = process.env.GITHUB_RUN_ID ?? Math.random().toString(36).slice(2, 8)
+export const ODM_USERNAME = process.env.ODM_USERNAME ?? `e2e_user_${_runSuffix}`
 export const ODM_PASSWORD = process.env.ODM_PASSWORD ?? 'E2eTest!Pass123'
-export const ODM_EMAIL = process.env.ODM_EMAIL ?? 'e2e@odm-test.local'
+export const ODM_EMAIL = process.env.ODM_EMAIL ?? `e2e_${_runSuffix}@odm-test.local`
 export const API_BASE = process.env.ODM_API ?? 'http://localhost:8080'
 
 export const SOURCE_DB = {
