@@ -1,3 +1,5 @@
+# RETIRED — Gradle smoke tests superseded by sandbox-verification.yml (Docker-based PII masking verification).
+# This file is kept for historical reference only and will never run.
 name: Deployment Verification
 
 on:
@@ -23,7 +25,7 @@ jobs:
   smoke-test:
     name: Smoke Tests
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: false  # RETIRED — see sandbox-verification.yml
     environment:
       name: ${{ github.event.inputs.environment || 'staging' }}
 

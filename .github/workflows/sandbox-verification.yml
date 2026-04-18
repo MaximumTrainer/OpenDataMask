@@ -19,8 +19,12 @@ name: Sandbox Masking Verification
 #  • Manual dispatch from the Actions UI (workflow_dispatch).
 
 on:
-  push:
+  # Runs automatically after CI passes on main — keeping the sandbox chain intact.
+  workflow_run:
+    workflows: ["CI"]
     branches: [main]
+    types: [completed]
+  # Also runs on pull requests so masking correctness is verified before merge.
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -30,6 +34,7 @@ jobs:
     name: Sandbox PII Masking Verification
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     permissions:
       contents: read

@@ -1,3 +1,5 @@
+# RETIRED — Docker build & push has been merged into ci.yml.
+# This file is kept for historical reference only and will never run.
 name: Docker Build & Push
 
 on:
@@ -10,6 +12,7 @@ jobs:
   docker:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
+    if: false  # RETIRED — see ci.yml docker job
     permissions:
       contents: read
       packages: write

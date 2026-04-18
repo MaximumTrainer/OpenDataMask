@@ -1,0 +1,223 @@
+name: Frontend E2E Tests
+
+# Runs after Sandbox Masking Verification proves the backend is correct.
+# Spins up the same docker-compose sandbox, executes the TypeScript Playwright
+# test suite, then runs take_screenshots.py to capture UI screenshots for the
+# website. Screenshots are uploaded as an artifact consumed by deploy-website.yml.
+#
+# Chain position:
+#   CI → Sandbox Masking Verification → [this workflow] → Deploy Website
+
+on:
+  workflow_run:
+    workflows: ["Sandbox Masking Verification"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+env:
+  API_BASE:   http://localhost:8080
+  ODM_USER:   e2e_playwright
+  ODM_PASS:   "E2ePlaywright!99"
+  ODM_EMAIL:  e2e@odm-e2e.local
+  # Screenshot-generation user (separate account to keep data clean)
+  SHOT_USER:  guide_user
+  SHOT_PASS:  "Guide!Pass123"
+  SHOT_EMAIL: guide@odm-docs.local
+
+jobs:
+  e2e:
+    name: Playwright E2E + Screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+      # ── Checkout ─────────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Python (for take_screenshots.py) ────────────────────────────────────
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: verification/requirements.txt
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install -q -r verification/requirements.txt
+          python3 -m pip install -q playwright
+
+      - name: Install Python Playwright browsers
+        run: python3 -m playwright install chromium --with-deps
+
+      # ── Node.js (for Playwright TypeScript tests) ────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Node.js dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright browsers
+        run: cd frontend && npx playwright install chromium --with-deps
+
+      # ── Start docker-compose sandbox ─────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start sandbox services
+        working-directory: verification
+        run: docker compose up -d --build
+
+      # ── Wait for backend ──────────────────────────────────────────────────────
+      - name: Wait for backend health
+        timeout-minutes: 12
+        run: |
+          echo "Waiting for backend to become healthy…"
+          for i in $(seq 1 144); do
+            STATUS=$(curl -sf "${API_BASE}/actuator/health" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" \
+              2>/dev/null || true)
+            if [ "${STATUS}" = "UP" ]; then
+              echo "✅ Backend healthy after ~$((i*5))s"
+              exit 0
+            fi
+            echo "  [${i}/144] status='${STATUS}' – retrying in 5s…"
+            sleep 5
+          done
+          echo "::error::Backend did not become healthy within 12 minutes."
+          docker compose -f verification/docker-compose.yml logs --tail=100 backend
+          exit 1
+
+      # ── Wait for frontend ─────────────────────────────────────────────────────
+      - name: Wait for frontend
+        timeout-minutes: 5
+        run: |
+          echo "Waiting for frontend…"
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost/ -o /dev/null; then
+              echo "✅ Frontend ready after ~$((i*5))s"
+              exit 0
+            fi
+            echo "  [${i}/60] not ready – retrying in 5s…"
+            sleep 5
+          done
+          echo "::warning::Frontend did not respond within 5 minutes."
+
+      # ── Run TypeScript Playwright tests ──────────────────────────────────────
+      - name: Run Playwright E2E tests
+        id: playwright
+        working-directory: frontend
+        run: npx playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost
+          PLAYWRIGHT_API_URL:  http://localhost:8080
+
+      - name: Upload Playwright HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
+
+      - name: Upload Playwright JUnit XML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-junit
+          path: frontend/playwright-results.xml
+          retention-days: 14
+
+      - name: Publish Playwright test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Playwright E2E Results
+          path: frontend/playwright-results.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      # ── Generate UI screenshots for the website ───────────────────────────────
+      # continue-on-error so a flaky screenshot step never blocks the chain;
+      # the deploy-website job tolerates a missing artifact gracefully.
+      - name: Generate UI screenshots
+        id: screenshots
+        continue-on-error: true
+        run: |
+          python3 verification/take_screenshots.py \
+            --url   "http://localhost" \
+            --api   "${API_BASE}" \
+            --username "${SHOT_USER}" \
+            --password "${SHOT_PASS}" \
+            --email    "${SHOT_EMAIL}" \
+            --source-host source_db \
+            --source-db   source_db \
+            --source-user source_user \
+            --source-pass source_pass \
+            --target-host target_db \
+            --target-db   target_db \
+            --target-user target_user \
+            --target-pass target_pass \
+            --run-job \
+            --output-dir  docs/website/screenshots
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: List generated screenshots
+        run: |
+          echo "Screenshots in docs/website/screenshots/:"
+          ls -la docs/website/screenshots/ || echo "(directory not found or empty)"
+
+      - name: Upload screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: docs/website/screenshots/
+          retention-days: 7
+          if-no-files-found: warn
+
+      # ── Collect container logs on failure ─────────────────────────────────────
+      - name: Collect Docker logs on failure
+        if: failure()
+        working-directory: verification
+        run: |
+          echo "=== backend ===" && docker compose logs --tail=200 backend  || true
+          echo "=== frontend ===" && docker compose logs --tail=50  frontend || true
+          echo "=== source_db ===" && docker compose logs --tail=50 source_db || true
+          echo "=== target_db ===" && docker compose logs --tail=50 target_db || true
+
+      # ── Tear down sandbox ─────────────────────────────────────────────────────
+      - name: Tear down sandbox
+        if: always()
+        working-directory: verification
+        run: docker compose down --volumes --remove-orphans
+
+      # ── Job summary ───────────────────────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Frontend E2E Tests" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.playwright.outcome }}" = "success" ]; then
+            echo "✅ **All Playwright E2E tests passed.**" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ **Playwright E2E tests failed.** See the playwright-report artifact for details." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.screenshots.outcome }}" = "success" ]; then
+            SHOT_COUNT=$(ls docs/website/screenshots/*.png 2>/dev/null | wc -l || echo 0)
+            echo "📸 **Screenshots generated:** ${SHOT_COUNT}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "⚠️ **Screenshots step did not complete** — website will use previously cached screenshots." >> "$GITHUB_STEP_SUMMARY"
+          fi
