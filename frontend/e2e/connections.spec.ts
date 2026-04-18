@@ -36,7 +36,7 @@ test.describe('Database Connections', () => {
 
     await expect(page.locator('.empty-state')).toBeVisible()
     await expect(page.locator('h3')).toContainText('No connections yet')
-    await expect(page.locator("button:has-text('Add Connection')")).toBeVisible()
+    await expect(page.locator('.empty-state button:has-text("Add Connection")')).toBeVisible()
   })
 
   test('add connection modal opens and contains expected fields', async ({ authenticatedPage: page }) => {

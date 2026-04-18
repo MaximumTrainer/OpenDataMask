@@ -52,7 +52,7 @@ class JobService(
     private val logger = LoggerFactory.getLogger(JobService::class.java)
 
     @Transactional
-    override fun createJob(workspaceId: Long, createdBy: Long, connectionPairId: Long?): JobResponse {
+    override fun createJob(workspaceId: Long, createdBy: Long, connectionPairId: Long?, name: String?): JobResponse {
         workspaceRepository.findById(workspaceId)
             .orElseThrow { NoSuchElementException("Workspace not found: $workspaceId") }
 
@@ -60,7 +60,8 @@ class JobService(
             workspaceId = workspaceId,
             status = JobStatus.PENDING,
             createdBy = createdBy,
-            connectionPairId = connectionPairId
+            connectionPairId = connectionPairId,
+            name = name
         )
         val saved = jobRepository.save(job)
         return saved.toResponse()
@@ -152,6 +153,13 @@ class JobService(
             val tableConfigs = tableConfigurationRepository.findByWorkspaceId(job.workspaceId)
             addLog(job.id, "Processing ${tableConfigs.size} table(s)", LogLevel.INFO)
 
+            // Record the number of non-SKIP tables before processing begins
+            val nonSkipCount = tableConfigs.count { it.mode != TableMode.SKIP }
+            jobRepository.findById(job.id).orElse(job).let { initJob ->
+                initJob.tablesTotal = nonSkipCount
+                jobRepository.save(initJob)
+            }
+
             val localSubsetRepo = subsetTableConfigPort
             val localSubsetExec = subsetExecutionService
             val subsetRows: Map<String, List<Map<String, Any?>>> =
@@ -179,7 +187,11 @@ class JobService(
                     tableConfig.tableName,
                     selectedAttrs
                 )
-                processTable(job.id, tableConfig, sourceConnector, destConnector, subsetRows, job.workspaceId, sourceConn.id)
+                val rowsWritten = processTable(job.id, tableConfig, sourceConnector, destConnector, subsetRows, job.workspaceId, sourceConn.id)
+                val progressJob = jobRepository.findById(job.id).orElse(job)
+                progressJob.rowsProcessed = (progressJob.rowsProcessed ?: 0L) + rowsWritten
+                progressJob.tablesProcessed = (progressJob.tablesProcessed ?: 0) + 1
+                jobRepository.save(progressJob)
             }
 
             updateJobStatus(job, JobStatus.COMPLETED)
@@ -210,13 +222,13 @@ class JobService(
         preComputedRows: Map<String, List<Map<String, Any?>>> = emptyMap(),
         workspaceId: Long? = null,
         sourceConnectionId: Long? = null
-    ) {
+    ): Long {
         addLog(jobId, "Processing table: ${tableConfig.tableName} (mode: ${tableConfig.mode})", LogLevel.INFO)
 
         val selectedAttrs = tableConfig.selectedAttributes
             ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }
 
-        when (tableConfig.mode) {
+        return when (tableConfig.mode) {
             TableMode.PASSTHROUGH -> {
                 val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), null, selectedAttrs)
                 addLog(jobId, "Fetched ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
@@ -227,6 +239,7 @@ class JobService(
                 }
                 val written = destConnector.writeData(tableConfig.tableName, transformed)
                 addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                written.toLong()
             }
             TableMode.MASK -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
@@ -239,6 +252,7 @@ class JobService(
                 val maskedData = data.map { row -> generatorService.applyGenerators(row, generators) }
                 val written = destConnector.writeData(tableConfig.tableName, maskedData)
                 addLog(jobId, "Wrote $written masked rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                written.toLong()
             }
             TableMode.GENERATE -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
@@ -247,6 +261,7 @@ class JobService(
                 val generatedData = generatorService.generateRows(generators, rowCount)
                 val written = destConnector.writeData(tableConfig.tableName, generatedData)
                 addLog(jobId, "Wrote $written generated rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                written.toLong()
             }
             TableMode.SUBSET -> {
                 val data = preComputedRows[tableConfig.tableName]
@@ -259,6 +274,7 @@ class JobService(
                 addLog(jobId, "Subsetting ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
                 val written = destConnector.writeData(tableConfig.tableName, data)
                 addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                written.toLong()
             }
             TableMode.UPSERT -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
@@ -267,10 +283,9 @@ class JobService(
                 val maskedData = if (generators.isNotEmpty()) data.map { row -> generatorService.applyGenerators(row, generators) } else data
                 val written = destConnector.writeData(tableConfig.tableName, maskedData)
                 addLog(jobId, "Wrote $written upserted rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                written.toLong()
             }
-            TableMode.SKIP -> {
-                // unreachable: SKIP tables are short-circuited in the calling loop
-            }
+            TableMode.SKIP -> 0L  // unreachable: SKIP tables are short-circuited in the calling loop
         }
     }
 
@@ -368,7 +383,11 @@ class JobService(
         createdAt = createdAt,
         errorMessage = errorMessage,
         createdBy = createdBy,
-        connectionPairId = connectionPairId
+        connectionPairId = connectionPairId,
+        rowsProcessed = rowsProcessed ?: 0L,
+        tablesProcessed = tablesProcessed ?: 0,
+        tablesTotal = tablesTotal ?: 0,
+        name = name
     )
 
     private fun JobLog.toLogResponse() = JobLogResponse(

@@ -64,17 +64,26 @@ class JobControllerTest {
     @MockBean private lateinit var jwtTokenProvider: JwtTokenProvider
     @MockBean private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
 
-    private fun makeJobResponse(id: Long = 1L, workspaceId: Long = 1L, status: JobStatus = JobStatus.PENDING) =
-        JobResponse(
-            id = id,
-            workspaceId = workspaceId,
-            status = status,
-            startedAt = null,
-            completedAt = null,
-            createdAt = LocalDateTime.now(),
-            errorMessage = null,
-            createdBy = 1L
-        )
+    private fun makeJobResponse(
+        id: Long = 1L,
+        workspaceId: Long = 1L,
+        status: JobStatus = JobStatus.PENDING,
+        rowsProcessed: Long = 0L,
+        tablesProcessed: Int = 0,
+        tablesTotal: Int = 0
+    ) = JobResponse(
+        id = id,
+        workspaceId = workspaceId,
+        status = status,
+        startedAt = null,
+        completedAt = null,
+        createdAt = LocalDateTime.now(),
+        errorMessage = null,
+        createdBy = 1L,
+        rowsProcessed = rowsProcessed,
+        tablesProcessed = tablesProcessed,
+        tablesTotal = tablesTotal
+    )
 
     private fun makeJobLogResponse(id: Long = 1L, jobId: Long = 1L) =
         JobLogResponse(
@@ -134,11 +143,24 @@ class JobControllerTest {
     }
 
     @Test
+    fun `GET job by id includes progress fields in response`() {
+        whenever(jobService.getJob(1L, 1L)).thenReturn(
+            makeJobResponse(id = 1L, status = JobStatus.COMPLETED, rowsProcessed = 50L, tablesProcessed = 1, tablesTotal = 1)
+        )
+
+        mockMvc.perform(get("/api/workspaces/1/jobs/1"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.rowsProcessed").value(50))
+            .andExpect(jsonPath("$.tablesProcessed").value(1))
+            .andExpect(jsonPath("$.tablesTotal").value(1))
+    }
+
+    @Test
     @WithMockUser(username = "alice")
     fun `POST create and run job returns 201`() {
         val mockUser = User(id = 1L, username = "alice", email = "alice@example.com", passwordHash = "hash")
         whenever(userRepository.findByUsername("alice")).thenReturn(Optional.of(mockUser))
-        whenever(jobService.createJob(1L, 1L)).thenReturn(makeJobResponse(id = 1L, status = JobStatus.PENDING))
+        whenever(jobService.createJob(1L, 1L, null, null)).thenReturn(makeJobResponse(id = 1L, status = JobStatus.PENDING))
         doNothing().whenever(jobService).runJob(1L)
 
         mockMvc.perform(post("/api/workspaces/1/jobs"))
@@ -146,8 +168,7 @@ class JobControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.status").value("PENDING"))
 
-        verify(jobService).createJob(1L, 1L)
+        verify(jobService).createJob(1L, 1L, null, null)
         verify(jobService).runJob(1L)
     }
 }
-

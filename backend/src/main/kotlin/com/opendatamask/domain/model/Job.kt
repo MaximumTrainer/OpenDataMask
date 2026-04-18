@@ -39,7 +39,19 @@ class Job(
     // Optional reference to a ConnectionPair; when set, the job uses that pair's
     // source and destination connections instead of the workspace defaults.
     @Column
-    var connectionPairId: Long? = null
+    var connectionPairId: Long? = null,
+
+    @Column
+    var rowsProcessed: Long? = 0L,
+
+    @Column
+    var tablesProcessed: Int? = 0,
+
+    @Column
+    var tablesTotal: Int? = 0,
+
+    @Column
+    var name: String? = null
 ) {
     @PrePersist
     fun prePersist() {

@@ -108,7 +108,7 @@ test.describe('Masking Definition — Table Configurations', () => {
 
     // Verify the table appears in the list
     await expect(page.locator('text=users')).toBeVisible()
-    await expect(page.locator('text=MASK')).toBeVisible()
+    await expect(page.locator('text=MASK').first()).toBeVisible()
   })
 
   test('expand table to view column generators section', async ({ authenticatedPage: page }) => {
@@ -179,7 +179,7 @@ test.describe('Masking Definition — Table Configurations', () => {
       await genSelect.selectOption('EMAIL')
 
       // Save
-      const saveBtn = page.locator("[role='dialog'] button:has-text('Add'), [role='dialog'] button:has-text('Save')")
+      const saveBtn = page.locator("[role='dialog'] button:has-text('Add Column'), [role='dialog'] button:has-text('Save Changes')")
       await saveBtn.first().click()
 
       await page.waitForSelector("[role='dialog']", { state: 'hidden', timeout: 10_000 })
@@ -424,7 +424,7 @@ test.describe('Masking Definition — Verification of Column Generators', () => 
     await waitForLoadingDone(page)
 
     await expect(page.locator('text=users')).toBeVisible()
-    await expect(page.locator('text=MASK')).toBeVisible()
+    await expect(page.locator('text=MASK').first()).toBeVisible()
   })
 
   test('expanding table shows all 5 configured column generators', async ({ authenticatedPage: page }) => {
@@ -432,36 +432,36 @@ test.describe('Masking Definition — Verification of Column Generators', () => 
     await waitForPageHeading(page, 'Table Configurations')
     await waitForLoadingDone(page)
 
-    // Expand column generators
+    // Expand to see generators
     const expandBtn = page.locator("button:has-text('Columns')").first()
     if (await expandBtn.isVisible()) {
       await expandBtn.click()
-      await page.waitForTimeout(500)
 
-      // Verify all generator names are visible
-      await expect(page.locator('text=full_name')).toBeVisible()
-      await expect(page.locator('text=email')).toBeVisible()
-      await expect(page.locator('text=phone_number')).toBeVisible()
-      await expect(page.locator('text=date_of_birth')).toBeVisible()
-      await expect(page.locator('text=salary')).toBeVisible()
+      // Wait for async generator fetch to populate the table rows
+      await page.waitForSelector('.font-mono', { timeout: 10_000 }).catch(() => {})
+
+      await expect(page.locator('text=full_name').first()).toBeVisible()
+      await expect(page.locator('text=email').first()).toBeVisible()
+      await expect(page.locator('text=phone_number').first()).toBeVisible()
+      await expect(page.locator('text=date_of_birth').first()).toBeVisible()
+      await expect(page.locator('text=salary').first()).toBeVisible()
 
       // Verify generator types
-      await expect(page.locator('text=FULL_NAME')).toBeVisible()
-      await expect(page.locator('text=EMAIL')).toBeVisible()
-      await expect(page.locator('text=PHONE')).toBeVisible()
-      await expect(page.locator('text=BIRTH_DATE')).toBeVisible()
-      await expect(page.locator('text=RANDOM_INT')).toBeVisible()
+      await expect(page.locator('text=FULL_NAME').first()).toBeVisible()
+      await expect(page.locator('text=EMAIL').first()).toBeVisible()
+      await expect(page.locator('text=PHONE').first()).toBeVisible()
+      await expect(page.locator('text=BIRTH_DATE').first()).toBeVisible()
+      await expect(page.locator('text=RANDOM_INT').first()).toBeVisible()
     }
   })
 
   test('column generator count matches verification script configuration', async ({ authenticatedPage: page }) => {
     // Verify via API that exactly 5 generators exist
-    const tableConfig = await apiCall<TableConfigResponse>(
-      `/api/workspaces/${workspaceId}/tables/${tableConfigId}`,
+    const generators = await apiCall<Array<{ id: number; columnName: string; generatorType: string }>>(
+      `/api/workspaces/${workspaceId}/tables/${tableConfigId}/generators`,
       { token }
     )
 
-    const generators = tableConfig.columnGenerators ?? []
     expect(generators.length).toBe(5)
   })
 })

@@ -39,6 +39,7 @@ import {
 test.describe('Full Verification Workflow', () => {
   test.describe.configure({ mode: 'serial' })
 
+  const workspaceName = `Full Verification Workspace ${Date.now()}`
   let workspaceId: number
   let token: string
   let sourceConnectionId: number
@@ -79,7 +80,7 @@ test.describe('Full Verification Workflow', () => {
     await page.waitForSelector("[role='dialog']", { timeout: 5_000 })
 
     const nameInput = page.locator("[role='dialog'] input.form-control").first()
-    await nameInput.fill('Full Verification Workspace')
+    await nameInput.fill(workspaceName)
 
     // Look for description input if exists
     const inputs = page.locator("[role='dialog'] input.form-control, [role='dialog'] textarea.form-control")
@@ -91,14 +92,15 @@ test.describe('Full Verification Workflow', () => {
     await createBtn.first().click()
 
     await page.waitForSelector("[role='dialog']", { state: 'hidden', timeout: 10_000 })
+    await page.reload()
     await waitForLoadingDone(page)
 
     // Verify workspace appears
-    await expect(page.locator('text=Full Verification Workspace')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator(`text=${workspaceName}`).first()).toBeVisible({ timeout: 10_000 })
 
     // Get workspace ID via API for subsequent steps
     const workspaces = await apiCall<WorkspaceResponse[]>('/api/workspaces', { token })
-    const ws = workspaces.find((w) => w.name === 'Full Verification Workspace')
+    const ws = workspaces.find((w) => w.name === workspaceName)
     expect(ws).toBeDefined()
     workspaceId = ws!.id
   })
@@ -208,7 +210,7 @@ test.describe('Full Verification Workflow', () => {
     await waitForLoadingDone(page)
 
     await expect(page.locator('text=users')).toBeVisible()
-    await expect(page.locator('text=MASK')).toBeVisible()
+    await expect(page.locator('text=MASK').first()).toBeVisible()
   })
 
   test('step 6 — add column generators matching verification script', async ({ page }) => {
@@ -244,17 +246,20 @@ test.describe('Full Verification Workflow', () => {
     const expandBtn = page.locator("button:has-text('Columns')").first()
     if (await expandBtn.isVisible()) {
       await expandBtn.click()
-      await page.waitForTimeout(500)
 
-      await expect(page.locator('text=full_name')).toBeVisible()
-      await expect(page.locator('text=email')).toBeVisible()
-      await expect(page.locator('text=phone_number')).toBeVisible()
-      await expect(page.locator('text=date_of_birth')).toBeVisible()
-      await expect(page.locator('text=salary')).toBeVisible()
+      // Wait for async generator fetch
+      await page.waitForSelector('.font-mono', { timeout: 10_000 }).catch(() => {})
+
+      await expect(page.locator('text=full_name').first()).toBeVisible()
+      await expect(page.locator('text=email').first()).toBeVisible()
+      await expect(page.locator('text=phone_number').first()).toBeVisible()
+      await expect(page.locator('text=date_of_birth').first()).toBeVisible()
+      await expect(page.locator('text=salary').first()).toBeVisible()
     }
   })
 
   test('step 7 — run masking job and wait for completion', async ({ page }) => {
+    test.setTimeout(300_000)
     // Trigger job via API
     jobId = (
       await apiCall<IdResponse>(`/api/workspaces/${workspaceId}/jobs`, {

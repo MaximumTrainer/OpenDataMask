@@ -62,7 +62,7 @@ export async function listColumnGenerators(
   tableId: number
 ): Promise<ColumnGenerator[]> {
   const { data } = await apiClient.get<ColumnGenerator[]>(
-    `/workspaces/${workspaceId}/tables/${tableId}/columns`
+    `/workspaces/${workspaceId}/tables/${tableId}/generators`
   )
   return data
 }
@@ -73,7 +73,7 @@ export async function createColumnGenerator(
   payload: ColumnGeneratorRequest
 ): Promise<ColumnGenerator> {
   const { data } = await apiClient.post<ColumnGenerator>(
-    `/workspaces/${workspaceId}/tables/${tableId}/columns`,
+    `/workspaces/${workspaceId}/tables/${tableId}/generators`,
     payload
   )
   return data
@@ -86,7 +86,7 @@ export async function updateColumnGenerator(
   payload: ColumnGeneratorRequest
 ): Promise<ColumnGenerator> {
   const { data } = await apiClient.put<ColumnGenerator>(
-    `/workspaces/${workspaceId}/tables/${tableId}/columns/${columnId}`,
+    `/workspaces/${workspaceId}/tables/${tableId}/generators/${columnId}`,
     payload
   )
   return data
@@ -98,6 +98,6 @@ export async function deleteColumnGenerator(
   columnId: number
 ): Promise<void> {
   await apiClient.delete(
-    `/workspaces/${workspaceId}/tables/${tableId}/columns/${columnId}`
+    `/workspaces/${workspaceId}/tables/${tableId}/generators/${columnId}`
   )
 }

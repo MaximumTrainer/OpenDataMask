@@ -13,7 +13,11 @@ data class JobResponse(
     val createdAt: LocalDateTime,
     val errorMessage: String?,
     val createdBy: Long,
-    val connectionPairId: Long? = null
+    val connectionPairId: Long? = null,
+    val rowsProcessed: Long = 0,
+    val tablesProcessed: Int = 0,
+    val tablesTotal: Int = 0,
+    val name: String? = null
 )
 
 data class JobLogResponse(
@@ -27,5 +31,6 @@ data class JobLogResponse(
 // Optional request body for job creation; all fields are nullable for backward compatibility.
 // When connectionPairId is null/omitted, the job falls back to the workspace-wide source/destination lookup.
 data class CreateJobRequest(
-    val connectionPairId: Long? = null
+    val connectionPairId: Long? = null,
+    val name: String? = null
 )

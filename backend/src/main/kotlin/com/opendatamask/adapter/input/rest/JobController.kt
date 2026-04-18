@@ -29,7 +29,7 @@ class JobController(
     ): ResponseEntity<JobResponse> {
         val userId = getUserId(userDetails)
         permissionService.requirePermission(userId, workspaceId, WorkspacePermission.RUN_JOBS)
-        val job = jobService.createJob(workspaceId, userId, request?.connectionPairId)
+        val job = jobService.createJob(workspaceId, userId, request?.connectionPairId, request?.name)
         jobService.runJob(job.id)
         return ResponseEntity.status(HttpStatus.CREATED).body(job)
     }

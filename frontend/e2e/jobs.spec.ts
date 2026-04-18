@@ -76,7 +76,7 @@ test.describe('Jobs', () => {
     })
     await page.goto(`/workspaces/${ws.id}/jobs`)
     await page.waitForLoadState('networkidle')
-    const jobEntry = page.locator(`[data-job-id="${job.id}"], text=${job.id}`).first()
+    const jobEntry = page.locator(`[data-job-id="${job.id}"]`)
     const statusBadge = page.locator('[class*="status"], [class*="badge"], [class*="job-card"]').first()
     await expect(jobEntry.or(statusBadge)).toBeVisible({ timeout: 15_000 })
   })

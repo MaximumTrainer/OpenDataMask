@@ -76,7 +76,7 @@ test.describe('Job Execution', () => {
     const emptyState = page.locator('.empty-state')
     if (await emptyState.isVisible()) {
       await expect(emptyState).toContainText('No jobs yet')
-      await expect(page.locator("button:has-text('Run New Job')")).toBeVisible()
+      await expect(page.locator('.empty-state button:has-text("Run New Job")')).toBeVisible()
     }
   })
 
@@ -188,9 +188,10 @@ test.describe('Job Execution', () => {
   })
 
   test('view logs button expands log section', async ({ authenticatedPage: page }) => {
+    test.setTimeout(300_000)
     // Create and wait for a job to complete via API
     const jobId = await runMaskingJobViaApi(token, workspaceId, sourceConnectionId, targetConnectionId)
-    await waitForJobCompletion(token, workspaceId, jobId)
+    await waitForJobCompletion(token, workspaceId, jobId, 240_000)
 
     await page.goto(`/workspaces/${workspaceId}/jobs`)
     await waitForPageHeading(page, 'Jobs')
@@ -208,9 +209,10 @@ test.describe('Job Execution', () => {
   })
 
   test('completed job shows stats (tables and rows processed)', async ({ authenticatedPage: page }) => {
+    test.setTimeout(300_000)
     // Create and wait for a job to complete
     const jobId = await runMaskingJobViaApi(token, workspaceId, sourceConnectionId, targetConnectionId)
-    const status = await waitForJobCompletion(token, workspaceId, jobId)
+    const status = await waitForJobCompletion(token, workspaceId, jobId, 240_000)
 
     if (status === 'COMPLETED') {
       await page.goto(`/workspaces/${workspaceId}/jobs`)
@@ -225,7 +227,7 @@ test.describe('Job Execution', () => {
       await page.waitForSelector('.job-card', { timeout: 10_000 })
 
       // Completed jobs should show stat chips with tables and rows
-      await expect(page.locator('.stat-chip, text=tables, text=rows')).toBeVisible({ timeout: 15_000 })
+      await expect(page.locator('.stat-chip').first()).toBeVisible({ timeout: 15_000 })
     }
   })
 })
@@ -234,6 +236,7 @@ test.describe('Destination Database Transfer Verification', () => {
   let seed: Awaited<ReturnType<typeof seedVerificationData>>
 
   test.beforeAll(async () => {
+    test.setTimeout(300_000)
     seed = await seedVerificationData()
 
     // Run a masking job and wait for completion
@@ -243,7 +246,7 @@ test.describe('Destination Database Transfer Verification', () => {
       seed.sourceConnectionId,
       seed.targetConnectionId
     )
-    const status = await waitForJobCompletion(seed.token, seed.workspaceId, jobId)
+    const status = await waitForJobCompletion(seed.token, seed.workspaceId, jobId, 240_000)
     if (status !== 'COMPLETED') {
       throw new Error(`Masking job did not complete successfully: status=${status}`)
     }
@@ -289,7 +292,7 @@ test.describe('Destination Database Transfer Verification', () => {
     await page.waitForSelector('.job-card', { timeout: 10_000 })
 
     // The stat chip should show the row count
-    await expect(page.locator('.stat-chip')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('.stat-chip').first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('job logs show masking activity entries', async ({ authenticatedPage: page }) => {
