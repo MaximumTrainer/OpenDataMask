@@ -115,7 +115,8 @@ function isAlreadyRegisteredError(error: unknown): boolean {
   return (
     message.includes('→ 409:') ||
     message.includes('already exists') ||
-    message.includes('already registered')
+    message.includes('already registered') ||
+    message.includes('already taken')
   )
 }
 

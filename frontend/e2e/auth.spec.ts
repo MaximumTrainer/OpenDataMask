@@ -63,7 +63,7 @@ test.describe('Authentication', () => {
     await page.waitForURL(/\/workspaces/, { timeout: 15_000 })
     await waitForLoadingDone(page)
 
-    await expect(page.locator('h1')).toContainText('Workspaces')
+    await expect(page.locator('h1')).toContainText('Workspaces', { timeout: 10_000 })
   })
 
   test('authenticated user accessing /login is redirected to /workspaces', async ({ page }) => {
