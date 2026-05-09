@@ -51,7 +51,10 @@ class Job(
     var tablesTotal: Int? = 0,
 
     @Column
-    var name: String? = null
+    var name: String? = null,
+
+    @Column(nullable = false)
+    var dryRun: Boolean = false
 ) {
     @PrePersist
     fun prePersist() {

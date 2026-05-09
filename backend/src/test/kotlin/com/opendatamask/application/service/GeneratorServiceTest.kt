@@ -300,4 +300,135 @@ class GeneratorServiceTest {
         assertNotNull(result)
         assertInstanceOf(java.sql.Timestamp::class.java, result)
     }
+
+    @Test
+    fun `HASH generator produces 64-char hex digest`() {
+        val result = service.generateValue(GeneratorType.HASH, "hello", null)
+        assertNotNull(result)
+        val hex = result.toString()
+        assertEquals(64, hex.length, "SHA-256 produces 64 hex chars")
+        assertTrue(hex.all { it.isDigit() || it in 'a'..'f' })
+    }
+
+    @Test
+    fun `HASH generator is deterministic for same input`() {
+        val a = service.generateValue(GeneratorType.HASH, "test-value", null)
+        val b = service.generateValue(GeneratorType.HASH, "test-value", null)
+        assertEquals(a, b)
+    }
+
+    @Test
+    fun `HASH generator returns null for null input`() {
+        assertNull(service.generateValue(GeneratorType.HASH, null, null))
+    }
+
+    @Test
+    fun `SCRAMBLE generator contains same characters`() {
+        val input = "hello123"
+        val result = service.generateValue(GeneratorType.SCRAMBLE, input, null)?.toString() ?: ""
+        assertEquals(input.toList().sorted(), result.toList().sorted())
+    }
+
+    @Test
+    fun `TOKENIZE generator preserves character classes`() {
+        val input = "AB-12-cd"
+        val result = service.generateValue(GeneratorType.TOKENIZE, input, null)?.toString() ?: ""
+        assertEquals(input.length, result.length)
+        input.zip(result).forEach { (orig, masked) ->
+            when {
+                orig.isUpperCase() -> assertTrue(masked.isUpperCase())
+                orig.isLowerCase() -> assertTrue(masked.isLowerCase())
+                orig.isDigit() -> assertTrue(masked.isDigit())
+                else -> assertEquals(orig, masked)
+            }
+        }
+    }
+
+    @Test
+    fun `DATE_SHIFT generator shifts LocalDate within range`() {
+        val original = java.time.LocalDate.of(2024, 6, 15)
+        val result = service.generateValue(GeneratorType.DATE_SHIFT, original, mapOf("maxDays" to "30"))
+        assertNotNull(result)
+        val shifted = result as java.time.LocalDate
+        assertTrue(shifted >= original.minusDays(30))
+        assertTrue(shifted <= original.plusDays(30))
+    }
+
+    @Test
+    fun `DATE_BUCKET generator rounds to month start`() {
+        val original = java.time.LocalDate.of(2024, 6, 17)
+        val result = service.generateValue(GeneratorType.DATE_BUCKET, original, mapOf("bucket" to "month"))
+        assertEquals(java.time.LocalDate.of(2024, 6, 1), result)
+    }
+
+    @Test
+    fun `DATE_BUCKET generator rounds to year start`() {
+        val original = java.time.LocalDate.of(2024, 9, 30)
+        val result = service.generateValue(GeneratorType.DATE_BUCKET, original, mapOf("bucket" to "year"))
+        assertEquals(java.time.LocalDate.of(2024, 1, 1), result)
+    }
+
+    @Test
+    fun `DATE_BUCKET generator rounds to quarter start`() {
+        val original = java.time.LocalDate.of(2024, 8, 15)
+        val result = service.generateValue(GeneratorType.DATE_BUCKET, original, mapOf("bucket" to "quarter"))
+        assertEquals(java.time.LocalDate.of(2024, 7, 1), result)
+    }
+
+    @Test
+    fun `NUMERIC_NOISE generator adds noise within percentage`() {
+        val result = service.generateValue(GeneratorType.NUMERIC_NOISE, 100.0, mapOf("percentage" to "10"))
+        assertNotNull(result)
+        val value = (result as Number).toDouble()
+        assertTrue(value >= 90.0 && value <= 110.0)
+    }
+
+    @Test
+    fun `NUMERIC_NOISE generator returns null for null input`() {
+        assertNull(service.generateValue(GeneratorType.NUMERIC_NOISE, null, null))
+    }
+
+    @Test
+    fun `GENERALISE generator buckets numeric value`() {
+        val rawParams = """{"buckets":[{"min":0,"max":18,"label":"0-17"},{"min":18,"max":65,"label":"18-64"}]}"""
+        val result = service.generateValue(GeneratorType.GENERALISE, "25", null, rawParams = rawParams)
+        assertEquals("18-64", result)
+    }
+
+    @Test
+    fun `GENERALISE generator truncates string when no buckets`() {
+        val result = service.generateValue(GeneratorType.GENERALISE, "London", mapOf("keepChars" to "3"))
+        assertEquals("Lon...", result)
+    }
+
+    @Test
+    fun `TEXT_REDACT redacts email addresses in free text`() {
+        val text = "Contact john.doe@example.com for info"
+        val result = service.generateValue(GeneratorType.TEXT_REDACT, text, null)
+        assertFalse(result.toString().contains("john.doe@example.com"))
+        assertTrue(result.toString().contains("[REDACTED]"))
+    }
+
+    @Test
+    fun `TEXT_REDACT redacts phone numbers in free text`() {
+        val text = "Call me at 555-123-4567 anytime"
+        val result = service.generateValue(GeneratorType.TEXT_REDACT, text, null)
+        assertFalse(result.toString().contains("555-123-4567"))
+        assertTrue(result.toString().contains("[REDACTED]"))
+    }
+
+    @Test
+    fun `TEXT_REDACT returns null when original value is null`() {
+        val result = service.generateValue(GeneratorType.TEXT_REDACT, null, null)
+        assertNull(result)
+    }
+
+    @Test
+    fun `TEXT_REDACT uses custom redact token from params`() {
+        val text = "Email: test@corp.org"
+        val result = service.generateValue(GeneratorType.TEXT_REDACT, text, mapOf("token" to "***"))
+        assertTrue(result.toString().contains("***"))
+        assertFalse(result.toString().contains("test@corp.org"))
+    }
 }
+

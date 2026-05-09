@@ -62,6 +62,11 @@ class Webhook(
     @Column(columnDefinition = "TEXT")
     var githubInputsJson: String? = null,
 
+    // Encrypted HMAC-SHA256 signing secret. When set, every outbound custom webhook POST
+    // carries an `X-ODM-Signature: sha256=<hex>` header so consumers can verify authenticity.
+    @Column(columnDefinition = "TEXT")
+    var signingSecretEncrypted: String? = null,
+
     @Column(nullable = false)
     val createdAt: Instant = Instant.now()
 )

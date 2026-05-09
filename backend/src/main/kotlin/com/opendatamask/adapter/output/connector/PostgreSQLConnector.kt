@@ -112,6 +112,18 @@ class PostgreSQLConnector(
         }
     }
 
+    override fun countRows(tableName: String, whereClause: String?): Long {
+        val quotedTable = "\"${tableName.replace("\"", "")}\""
+        val wherePart = if (!whereClause.isNullOrBlank()) " WHERE $whereClause" else ""
+        val query = "SELECT COUNT(*) FROM $quotedTable$wherePart"
+        return getConnection().use { conn ->
+            conn.createStatement().use { stmt ->
+                val rs = stmt.executeQuery(query)
+                if (rs.next()) rs.getLong(1) else 0L
+            }
+        }
+    }
+
     override fun listForeignKeys(tableName: String): List<ForeignKeyInfo> {
         return getConnection().use { conn ->
             val fks = mutableListOf<ForeignKeyInfo>()

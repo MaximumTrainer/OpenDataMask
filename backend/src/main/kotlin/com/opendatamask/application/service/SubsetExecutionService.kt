@@ -36,9 +36,9 @@ class SubsetExecutionService(
                     logger.debug("Lookup table ${config.tableName}: collected ${rows.size} rows")
                 }
                 config.isTargetTable -> {
-                    val rows = fetchWithLimit(sourceConnector, config.tableName, config.limitType, config.limitValue)
+                    val rows = fetchWithLimit(sourceConnector, config.tableName, config.limitType, config.limitValue, config.seedFilter)
                     collectedRows.getOrPut(config.tableName) { mutableListOf() }.addAll(rows)
-                    logger.debug("Target table ${config.tableName}: seeded ${rows.size} rows")
+                    logger.debug("Target table ${config.tableName}: seeded ${rows.size} rows (filter=${config.seedFilter})")
                 }
             }
         }
@@ -126,15 +126,15 @@ class SubsetExecutionService(
         connector: DatabaseConnector,
         tableName: String,
         limitType: SubsetLimitType,
-        limitValue: Int
+        limitValue: Int,
+        seedFilter: String? = null
     ): List<Map<String, Any?>> {
         return when (limitType) {
-            SubsetLimitType.ALL -> connector.fetchData(tableName)
-            SubsetLimitType.ROW_COUNT -> connector.fetchData(tableName, limit = limitValue)
+            SubsetLimitType.ALL -> connector.fetchData(tableName, whereClause = seedFilter)
+            SubsetLimitType.ROW_COUNT -> connector.fetchData(tableName, limit = limitValue, whereClause = seedFilter)
             SubsetLimitType.PERCENTAGE -> {
-                // Fetch all to calculate percentage; for large tables a COUNT query would be preferable
-                // but DatabaseConnector doesn't expose COUNT, so we fetch with a row cap heuristic
-                val allRows = connector.fetchData(tableName)
+                // Fetch all matching rows to calculate percentage
+                val allRows = connector.fetchData(tableName, whereClause = seedFilter)
                 val count = (allRows.size * limitValue / 100).coerceAtLeast(1)
                 allRows.take(count)
             }

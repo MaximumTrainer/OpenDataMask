@@ -1,7 +1,10 @@
 package com.opendatamask.adapter.input.rest
 
+import com.opendatamask.application.service.JobCompareService
+import com.opendatamask.domain.port.input.dto.JobCompareResponse
 import com.opendatamask.domain.port.input.dto.JobLogResponse
 import com.opendatamask.domain.port.input.dto.JobResponse
+import com.opendatamask.domain.port.input.dto.JobTableStatsResponse
 import com.opendatamask.domain.model.JobStatus
 import com.opendatamask.domain.model.LogLevel
 import com.opendatamask.domain.model.User
@@ -9,6 +12,7 @@ import com.opendatamask.domain.model.WorkspacePermission
 import com.opendatamask.adapter.output.persistence.UserRepository
 import com.opendatamask.infrastructure.security.JwtTokenProvider
 import com.opendatamask.infrastructure.security.UserDetailsServiceImpl
+import com.opendatamask.application.service.JobProgressEmitterRegistry
 import com.opendatamask.application.service.JobService
 import com.opendatamask.application.service.PermissionService
 import org.junit.jupiter.api.Test
@@ -59,10 +63,12 @@ class JobControllerTest {
     @Autowired private lateinit var mockMvc: MockMvc
 
     @MockBean private lateinit var jobService: JobService
+    @MockBean private lateinit var jobProgressEmitterRegistry: JobProgressEmitterRegistry
     @MockBean private lateinit var userRepository: UserRepository
     @MockBean private lateinit var permissionService: PermissionService
     @MockBean private lateinit var jwtTokenProvider: JwtTokenProvider
     @MockBean private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
+    @MockBean private lateinit var jobCompareService: JobCompareService
 
     private fun makeJobResponse(
         id: Long = 1L,
@@ -160,7 +166,7 @@ class JobControllerTest {
     fun `POST create and run job returns 201`() {
         val mockUser = User(id = 1L, username = "alice", email = "alice@example.com", passwordHash = "hash")
         whenever(userRepository.findByUsername("alice")).thenReturn(Optional.of(mockUser))
-        whenever(jobService.createJob(1L, 1L, null, null)).thenReturn(makeJobResponse(id = 1L, status = JobStatus.PENDING))
+        whenever(jobService.createJob(1L, 1L, null, null, false)).thenReturn(makeJobResponse(id = 1L, status = JobStatus.PENDING))
         doNothing().whenever(jobService).runJob(1L)
 
         mockMvc.perform(post("/api/workspaces/1/jobs"))
@@ -168,7 +174,46 @@ class JobControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.status").value("PENDING"))
 
-        verify(jobService).createJob(1L, 1L, null, null)
+        verify(jobService).createJob(1L, 1L, null, null, false)
         verify(jobService).runJob(1L)
+    }
+
+    @Test
+    fun `GET job stats returns 200 with per-table stats list`() {
+        val stats = listOf(
+            JobTableStatsResponse(
+                id = 1L, jobId = 1L, tableName = "users",
+                rowsRead = 100, rowsWritten = 100, rowsSkipped = 0,
+                startedAt = java.time.LocalDateTime.now(), completedAt = java.time.LocalDateTime.now(),
+                elapsedMs = 250, rowsPerSecond = 400.0, errorMessage = null
+            )
+        )
+        whenever(jobService.getJobTableStats(1L, 1L)).thenReturn(stats)
+
+        mockMvc.perform(get("/api/workspaces/1/jobs/1/stats"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[0].tableName").value("users"))
+            .andExpect(jsonPath("$[0].rowsRead").value(100))
+            .andExpect(jsonPath("$[0].elapsedMs").value(250))
+    }
+
+    @Test
+    fun `GET compare returns job comparison report`() {
+        val compareResponse = JobCompareResponse(
+            jobAId = 1L,
+            jobBId = 2L,
+            rowsDelta = 50L,
+            tablesAddedInB = listOf("payments"),
+            tablesRemovedInB = emptyList(),
+            tablesInCommon = listOf("users")
+        )
+        whenever(jobCompareService.compareJobs(1L, 1L, 2L)).thenReturn(compareResponse)
+
+        mockMvc.perform(get("/api/workspaces/1/jobs/compare?jobA=1&jobB=2"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.jobAId").value(1))
+            .andExpect(jsonPath("$.jobBId").value(2))
+            .andExpect(jsonPath("$.rowsDelta").value(50))
+            .andExpect(jsonPath("$.tablesAddedInB[0]").value("payments"))
     }
 }

@@ -6,7 +6,7 @@
 
 Core capabilities:
 - **Multi-database support**: PostgreSQL, MySQL, MongoDB, Azure SQL, Azure Cosmos DB (MongoDB API), flat files
-- **60+ generator types**: Names, emails, phones, SSNs, credit cards, addresses, medical IDs, financial data, and more
+- **63 generator types**: Names, emails, phones, SSNs, credit cards, addresses, medical IDs, financial data, and more
 - **Workspace model**: Isolated masking configurations with role-based access control and inheritance
 - **Privacy intelligence**: Automatic sensitive column detection, privacy hub dashboards, and compliance reports
 - **Job scheduling**: Cron-based automated masking runs
@@ -95,10 +95,10 @@ npm run build
 cd cli
 
 # Build
-go build -o opendatamask-cli ./...
+go build -o odm .
 
 # Run
-./opendatamask-cli --help
+./odm --help
 ```
 
 ---
@@ -290,7 +290,7 @@ In the **Tables** view, the table configuration modal includes a **Selected Colu
 
 ### Generator Types
 
-OpenDataMask includes 60+ built-in generators. Key examples:
+OpenDataMask includes 63 built-in generators. Key examples:
 
 | Generator | Sample Output |
 |---|---|
@@ -333,11 +333,14 @@ The **Custom Data Mapping** wizard provides a guided, column-level alternative t
 
 ### Masking Strategies (when `MASK` is selected)
 
-| Strategy | Description |
-|----------|-------------|
-| `FAKE` | Replace with realistic synthetic data. Select a generator type (e.g. `EMAIL`, `FULL_NAME`, `PHONE`). |
-| `HASH` | Apply deterministic SHA-256 hashing to preserve joins while anonymising the value. |
-| `NULL` | Remove the value entirely (sets the column to `NULL`). |
+| Strategy | Description | Required `piiRuleParams` keys |
+|----------|-------------|-------------------------------|
+| `FAKE` | Replace with realistic synthetic data. Select a generator type (e.g. `EMAIL`, `FULL_NAME`, `PHONE`). | — |
+| `HASH` | Apply deterministic SHA-256 hashing to preserve joins while anonymising the value. | `salt` (optional) |
+| `NULL` | Remove the value entirely (sets the column to `NULL`). | — |
+| `REDACT` | Replace with the literal token `[REDACTED]`. | — |
+| `PARTIAL_MASK` | Keep a configurable number of leading/trailing characters and mask the middle. | `keepFirst` (default `0`), `keepLast` (default `4`), `maskChar` (default `*`) |
+| `REGEX` | Apply a regular expression find-and-replace to the string value. | `pattern` (required), `replacement` (required) |
 
 ### How to use the wizard
 
@@ -401,19 +404,19 @@ The Go CLI provides quick access to common operations:
 
 ```bash
 # Authenticate and save credentials locally
-opendatamask-cli auth login --url http://localhost:8080 --username admin --password secret
+odm auth login --url http://localhost:8080 --username admin --password secret
 
 # List workspaces
-opendatamask-cli workspace list
+odm workspace list
 
 # Get workspace details
-opendatamask-cli workspace get <workspace-id>
+odm workspace get <workspace-id>
 
 # List jobs
-opendatamask-cli job list --workspace <workspace-id>
+odm job list --workspace <workspace-id>
 
 # Trigger a masking job
-opendatamask-cli job run --workspace <workspace-id>
+odm job run --workspace <workspace-id>
 ```
 
 Configuration is stored at `~/.opendatamask/config.yaml`.
@@ -547,26 +550,27 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 #### CI/CD Pipeline (GitHub Actions)
 
-The full automated pipeline runs in 4 sequential stages after every push to `main`:
+The full automated pipeline runs sequentially after every push to `main`:
 
 ```
-CI (tests pass)
-    └─► Docker Build & Push (images → GHCR)
-            └─► Deploy workflow:
-                    ├─ Job 1: terraform apply (provision/update infrastructure)
-                    ├─ Job 2: docker push (parallel with Job 1)
-                    ├─ Job 3: SSH deploy (write .env, docker-compose pull && up)
-                    └─ Job 4: verify (curl /actuator/health, assert HTTP 200)
+CI (build + test + Docker push → GHCR)
+    └─► Deploy workflow:
+            ├─ Job 1: terraform apply (provision/update infrastructure)
+            ├─ Job 2: SSH deploy (write .env, docker-compose pull && up)
+            └─ Job 3: verify (curl /actuator/health, assert HTTP 200)
+                └─► Sandbox Masking Verification (end-to-end PII masking check)
+                        └─► Frontend E2E Tests (Playwright)
+                                └─► Deploy Website (docs → GitHub Pages)
 ```
 
 | Workflow file | Purpose |
 |---|---|
-| `.github/workflows/ci.yml` | Build, lint, test all three components |
-| `.github/workflows/docker.yml` | Build and push images to GHCR |
-| `.github/workflows/deploy.yml` | **Full deploy pipeline** (terraform → docker → deploy → verify) |
-| `.github/workflows/verify-deployment.yml` | Spring Boot smoke tests + optional live server health check |
+| `.github/workflows/ci.yml` | Build, lint, test all three components; build and push Docker images to GHCR |
+| `.github/workflows/deploy.yml` | **Full deploy pipeline** (terraform → SSH deploy → health verify) |
 | `.github/workflows/sandbox-verification.yml` | **End-to-end masking verification** — proves PII masking correctness; publishes JUnit report |
-| `.github/workflows/codeql.yml` | Weekly security analysis |
+| `.github/workflows/playwright-e2e.yml` | Playwright E2E tests against the deployed frontend |
+| `.github/workflows/deploy-website.yml` | Generate screenshots and publish documentation to GitHub Pages |
+| `.github/workflows/codeql.yml` | Weekly static security analysis (Kotlin, TypeScript, Go) |
 
 GitHub **Environments** (`staging`, `production`) are used for deployment tracking, enabling Copilot and the GitHub UI to display live deployment status, history, and URL.
 

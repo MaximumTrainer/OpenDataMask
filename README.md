@@ -1,6 +1,6 @@
 # OpenDataMask
 
-An open source solution inspired by tonic-structural](https://www.tonic.ai/products/tonic-structural) — a data masking and anonymisation tool.
+An open source solution inspired by [Tonic Structural](https://www.tonic.ai/products/tonic-structural) — a data masking and anonymisation tool.
 
 ## Overview
 
@@ -30,34 +30,33 @@ OpenDataMask connects to your source databases, applies configurable masking/gen
 - **File (CSV/JSON)** — AES-encrypted upload/download, multipart REST endpoints
 
 ### Data Masking & Generation
-- **61 generator types** powered by [Datafaker](https://datafaker.net/): names, addresses, emails, phones, SSNs, credit cards, IBANs, IPs, VINs, medical codes, job titles, nationalities, and more
-- **Composite generators**: `PARTIAL_MASK`, `FORMAT_PRESERVING`, `CONDITIONAL`, `SEQUENTIAL`
+- **63 generator types** powered by [Datafaker](https://datafaker.net/) and built-in utilities: names, addresses, emails, phones, SSNs, credit cards, IBANs, IPs, VINs, medical codes, job titles, nationalities, `HASH` (SHA-256), `SCRAMBLE` (shuffle), `PARTIAL_MASK`, `FORMAT_PRESERVING`, `CONDITIONAL`, `SEQUENTIAL`, `RANDOM_INT`, `NULL`, `CONSTANT`, and more
 - **Deterministic consistency**: HMAC-SHA256 seeding ensures same input → same output across runs; linked columns share a Faker instance
 - **Generator presets**: 24 built-in system presets; workspace-level custom presets; one-click apply
 
 ### Sensitivity & Privacy
-- **Sensitivity scanning**: 19 PII detection rules (column name + value pattern matching) with `FULL`/`HIGH`/`MEDIUM` confidence; daily scheduled scan
-- **Privacy Hub**: AT_RISK / PROTECTED / NOT_SENSITIVE column classification, bulk recommendation apply
-- **Privacy reports**: downloadable current-config and per-job JSON reports; auto-generated on job completion
+- **Sensitivity scanning**: 19 PII detection rules (column name + value pattern matching) with `FULL`/`HIGH`/`MEDIUM` confidence; dedicated Sensitivity Scan UI with live polling, column-level sensitivity overrides, and scan log download
+- **Privacy Hub**: AT_RISK / PROTECTED / NOT_SENSITIVE column classification, bulk recommendation apply, k-anonymity assessment
+- **Privacy reports**: downloadable current-config and per-job JSON reports; GDPR/CCPA/HIPAA compliance summaries; auto-generated on job completion
 - **Column comments**: per-column discussion threads with email notification
 
 ### Job Orchestration
 - **Table modes**: `PASSTHROUGH`, `MASK`, `GENERATE`, `SUBSET`, `UPSERT`, `SKIP`
 - **Full write pipeline**: destination schema mirroring, type mapping (PostgreSQL ↔ Azure SQL ↔ MySQL ↔ MongoDB), batch writes
-- **Subsetting with referential integrity**: FK graph traversal (real + virtual FKs), topological execution order, circular-dependency handling
-- **Job scheduling**: cron-based scheduler with `FULL_GENERATION` / `UPSERT` modes, next-run tracking
+- **Subsetting with referential integrity**: FK graph traversal (real + virtual FKs), topological execution order, circular-dependency handling; dedicated Subset Configuration UI
+- **Job scheduling**: cron-based scheduler with `FULL_GENERATION` / `UPSERT` modes, next-run tracking, inline cron validation
 - **Webhooks**: custom HTTP POST and GitHub Actions workflow dispatch; template variable substitution; per-job and per-schema-change triggers
 - **Post-job actions**: Webhook, Email, Script
 
 ### Schema Management
-- **Schema change detection**: background scan every 2 hours; detects new/dropped tables, new/dropped columns, type/nullability changes
-- **Schema change resolution API**: resolve exposing changes, dismiss notifications, per-workspace `BLOCK_ALL` / `BLOCK_EXPOSING` / `NEVER_BLOCK` policy
+- **Schema change detection**: background scan every 2 hours; detects new/dropped tables, new/dropped columns, type/nullability changes; dedicated Schema Changes UI
+- **Schema change resolution**: resolve exposing changes, dismiss notifications, per-workspace `BLOCK_ALL` / `BLOCK_EXPOSING` / `NEVER_BLOCK` policy; statuses: `UNRESOLVED` → `RESOLVED` / `DISMISSED`
 - **Workspace configuration export/import**: portable JSON snapshots (table configs, column generators, subset settings)
 - **Workspace tags**: tag-based filtering on the workspace list
 - **Workspace inheritance**: parent → child config propagation; child can override any generator; sync-with-parent
 
 ### Access Control
-- **JWT authentication** with BCrypt-hashed passwords
+- **JWT authentication** with BCrypt-hashed passwords; optional OIDC/SSO via `VITE_OIDC_ENABLED=true` / `VITE_SAML_ENABLED=true`
 - **Workspace roles**: Admin, User, Viewer
 - **Fine-grained permissions**: 9 permission types (`CONFIGURE_GENERATORS`, `PREVIEW_SOURCE_DATA`, `PREVIEW_DESTINATION_DATA`, `CONFIGURE_SUBSETTING`, `CONFIGURE_SENSITIVITY`, `CONFIGURE_POST_JOB_ACTIONS`, `CONFIGURE_SCHEMA_CHANGE_SETTINGS`, `RESOLVE_SCHEMA_CHANGES`, `RUN_JOBS`); role defaults + custom per-user overrides
 - **Startup security validator**: refuses to start if `JWT_SECRET` or `ENCRYPTION_KEY` are unset/insecure
@@ -71,7 +70,7 @@ OpenDataMask connects to your source databases, applies configurable masking/gen
 | CLI       | Go (cobra) |
 | App DB    | PostgreSQL |
 | Test DB   | H2 (PostgreSQL mode, in-memory) |
-| Tests     | JUnit 5 + Mockito + MockMvc (400+ tests) |
+| Tests     | JUnit 5 + Mockito + MockMvc (766+ tests) |
 | Deploy    | Docker + Docker Compose + Terraform (AWS) |
 
 ## Quick Start
@@ -165,6 +164,7 @@ The REST API is available at `http://localhost:8080/api`. Key endpoints:
 | POST | `/api/workspaces/{id}/schedules` | Create schedule (cron) |
 | PUT | `/api/workspaces/{id}/schedules/{sid}` | Update schedule |
 | DELETE | `/api/workspaces/{id}/schedules/{sid}` | Delete schedule |
+| POST | `/api/workspaces/{id}/schedules/validate-cron` | Validate a cron expression |
 
 ### Connections & Tables
 | Method | Path | Description |
@@ -190,8 +190,11 @@ The REST API is available at `http://localhost:8080/api`. Key endpoints:
 ### Jobs
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/workspaces/{id}/jobs` | Start a masking job |
+| POST | `/api/workspaces/{id}/jobs` | Start a masking job (body: `{"connectionPairId": 5}` optional) |
+| GET | `/api/workspaces/{id}/jobs/{jid}` | Get job status, progress, source/target connection names |
+| POST | `/api/workspaces/{id}/jobs/{jid}/cancel` | Cancel a running job |
 | GET | `/api/workspaces/{id}/jobs/{jid}/logs` | Get job logs |
+| GET | `/api/workspaces/{id}/jobs/{jid}/stats` | Per-table throughput statistics |
 | GET | `/api/workspaces/{id}/jobs/{jid}/privacy-report` | Per-job privacy report |
 
 ### Files (FILE connector)

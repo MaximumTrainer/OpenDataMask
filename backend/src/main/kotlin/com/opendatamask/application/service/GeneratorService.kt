@@ -192,6 +192,129 @@ class GeneratorService(
                     originalValue
                 }
             }
+            GeneratorType.HASH -> {
+                val algorithm = params?.get("algorithm") ?: "SHA-256"
+                val input = originalValue?.toString() ?: return null
+                val digest = MessageDigest.getInstance(algorithm)
+                digest.digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
+            }
+            GeneratorType.SCRAMBLE -> {
+                val s = originalValue?.toString() ?: return null
+                s.toCharArray().apply { shuffle() }.concatToString()
+            }
+            GeneratorType.TOKENIZE -> {
+                // Format-preserving substitution using HMAC-derived seed (pseudo-reversible with key)
+                val s = originalValue?.toString() ?: return null
+                val key = params?.get("key") ?: encryptionKey
+                val mac = Mac.getInstance("HmacSHA256")
+                mac.init(SecretKeySpec(key.toByteArray(), "HmacSHA256"))
+                val seedBytes = mac.doFinal(s.toByteArray())
+                val seed = ByteBuffer.wrap(seedBytes).long
+                val seededFaker = Faker(java.util.Random(seed))
+                s.map { c ->
+                    when {
+                        c.isDigit() -> ('0'.code + seededFaker.number().numberBetween(0, 10)).toChar()
+                        c.isUpperCase() -> ('A'.code + seededFaker.number().numberBetween(0, 26)).toChar()
+                        c.isLowerCase() -> ('a'.code + seededFaker.number().numberBetween(0, 26)).toChar()
+                        else -> c
+                    }
+                }.joinToString("")
+            }
+            GeneratorType.DATE_SHIFT -> {
+                val original = originalValue ?: return null
+                val maxDays = params?.get("maxDays")?.toLongOrNull() ?: 30L
+                val shiftDays = faker.number().numberBetween(-maxDays, maxDays)
+                when (original) {
+                    is java.sql.Date -> java.sql.Date(original.time + shiftDays * 86_400_000L)
+                    is java.sql.Timestamp -> java.sql.Timestamp(original.time + shiftDays * 86_400_000L)
+                    is java.time.LocalDate -> original.plusDays(shiftDays)
+                    is java.time.LocalDateTime -> original.plusDays(shiftDays)
+                    else -> {
+                        try {
+                            java.sql.Date.valueOf(original.toString())
+                                .let { java.sql.Date(it.time + shiftDays * 86_400_000L) }
+                        } catch (_: Exception) { original }
+                    }
+                }
+            }
+            GeneratorType.DATE_BUCKET -> {
+                val original = originalValue ?: return null
+                val bucket = params?.get("bucket") ?: "month" // month | quarter | year
+                fun roundDate(ld: java.time.LocalDate): java.time.LocalDate = when (bucket.lowercase()) {
+                    "year" -> java.time.LocalDate.of(ld.year, 1, 1)
+                    "quarter" -> java.time.LocalDate.of(ld.year, ((ld.monthValue - 1) / 3) * 3 + 1, 1)
+                    else -> java.time.LocalDate.of(ld.year, ld.monthValue, 1)
+                }
+                when (original) {
+                    is java.sql.Date -> java.sql.Date.valueOf(roundDate(original.toLocalDate()))
+                    is java.sql.Timestamp -> java.sql.Date.valueOf(roundDate(original.toLocalDateTime().toLocalDate()))
+                    is java.time.LocalDate -> roundDate(original)
+                    is java.time.LocalDateTime -> roundDate(original.toLocalDate())
+                    else -> {
+                        try { java.sql.Date.valueOf(roundDate(java.sql.Date.valueOf(original.toString()).toLocalDate())) }
+                        catch (_: Exception) { original }
+                    }
+                }
+            }
+            GeneratorType.NUMERIC_NOISE -> {
+                val original = originalValue ?: return null
+                val percentage = params?.get("percentage")?.toDoubleOrNull() ?: 10.0
+                val numericValue = when (original) {
+                    is Number -> original.toDouble()
+                    else -> original.toString().toDoubleOrNull() ?: return original
+                }
+                val noiseRange = numericValue * percentage / 100.0
+                val noise = (faker.number().randomDouble(6, -1, 1)) * noiseRange
+                val result = numericValue + noise
+                when (original) {
+                    is Int -> result.toInt()
+                    is Long -> result.toLong()
+                    is Float -> result.toFloat()
+                    is java.math.BigDecimal -> java.math.BigDecimal(result).setScale(original.scale(), java.math.RoundingMode.HALF_UP)
+                    else -> result
+                }
+            }
+            GeneratorType.GENERALISE -> {
+                val s = originalValue?.toString() ?: return null
+                val jsonParams = rawParams?.let {
+                    try { mapper.readValue<Map<String, Any?>>(it) } catch (_: Exception) { null }
+                }
+                // Support numeric range buckets: [{"min":0,"max":18,"label":"0-18"}, ...]
+                val buckets = jsonParams?.get("buckets") as? List<*>
+                if (buckets != null) {
+                    val num = s.toDoubleOrNull()
+                    if (num != null) {
+                        buckets.filterIsInstance<Map<String, *>>().firstOrNull { bucket ->
+                            val min = (bucket["min"] as? Number)?.toDouble() ?: Double.MIN_VALUE
+                            val max = (bucket["max"] as? Number)?.toDouble() ?: Double.MAX_VALUE
+                            num >= min && num < max
+                        }?.get("label")?.toString() ?: s
+                    } else s
+                } else {
+                    // Fallback: truncate string to first N chars (e.g., city → region via a map, or just coarsen)
+                    val keepChars = params?.get("keepChars")?.toIntOrNull() ?: 3
+                    s.take(keepChars) + "..."
+                }
+            }
+            GeneratorType.TEXT_REDACT -> {
+                val text = originalValue?.toString() ?: return null
+                val redactToken = params?.get("token") ?: "[REDACTED]"
+                // Redact common PII patterns in free text: emails, phone numbers, SSNs, names preceded by keywords
+                var result = text
+                // Email addresses
+                result = result.replace(Regex("""[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"""), redactToken)
+                // US phone numbers (various formats)
+                result = result.replace(Regex("""\b(\+?1[\s\-.]?)?\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}\b"""), redactToken)
+                // US SSNs
+                result = result.replace(Regex("""\b\d{3}[- ]\d{2}[- ]\d{4}\b"""), redactToken)
+                // Credit card numbers (basic 16-digit detection)
+                result = result.replace(Regex("""\b(?:\d[ \-]?){13,16}\b"""), redactToken)
+                // Words preceded by name-indicating keywords
+                result = result.replace(
+                    Regex("""(?i)\b(name|patient|client|user|dr\.?|mr\.?|mrs\.?|ms\.?|prof\.?)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)""")
+                ) { mr -> "${mr.groupValues[1]} $redactToken" }
+                result
+            }
         }
     }
 

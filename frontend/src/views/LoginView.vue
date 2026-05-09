@@ -14,6 +14,9 @@ const loading = ref(false)
 
 const samlEnabled = import.meta.env.VITE_SAML_ENABLED === 'true'
 const samlAuthEndpoint = '/saml2/authenticate/default'
+const oidcEnabled = import.meta.env.VITE_OIDC_ENABLED === 'true'
+const oidcAuthEndpoint = '/oauth2/authorization/oidc'
+const ssoEnabled = samlEnabled || oidcEnabled
 
 async function handleLogin() {
   if (!username.value || !password.value) {
@@ -92,12 +95,15 @@ function extractMessage(e: unknown): string {
         <RouterLink to="/register">Create one</RouterLink>
       </div>
 
-      <div v-if="samlEnabled" class="sso-divider">
+      <div v-if="ssoEnabled" class="sso-divider">
         <span>or</span>
       </div>
 
-      <div v-if="samlEnabled" class="sso-section">
-        <a :href="samlAuthEndpoint" class="btn btn-sso btn-full">
+      <div v-if="ssoEnabled" class="sso-section">
+        <a v-if="oidcEnabled" :href="oidcAuthEndpoint" class="btn btn-sso btn-full">
+          🔑 Sign in with SSO (OIDC)
+        </a>
+        <a v-else-if="samlEnabled" :href="samlAuthEndpoint" class="btn btn-sso btn-full">
           🔑 Sign in with SSO
         </a>
       </div>

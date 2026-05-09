@@ -21,6 +21,7 @@ class SubsetConfigService(
         config.limitValue = request.limitValue
         config.isTargetTable = request.isTargetTable
         config.isLookupTable = request.isLookupTable
+        config.seedFilter = request.seedFilter
         return subsetTableConfigRepository.save(config)
     }
 
@@ -34,6 +35,7 @@ class SubsetConfigService(
         config.limitValue = request.limitValue
         config.isTargetTable = request.isTargetTable
         config.isLookupTable = request.isLookupTable
+        config.seedFilter = request.seedFilter
         return subsetTableConfigRepository.save(config)
     }
 

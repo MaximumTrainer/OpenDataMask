@@ -8,5 +8,7 @@ data class SubsetTableConfigRequest(
     val limitType: SubsetLimitType = SubsetLimitType.PERCENTAGE,
     val limitValue: Int = 10,
     val isTargetTable: Boolean = false,
-    val isLookupTable: Boolean = false
+    val isLookupTable: Boolean = false,
+    /** Optional WHERE clause to filter the seed rows for this target table (Issue 23: multi-root seeding). */
+    val seedFilter: String? = null
 )

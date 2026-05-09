@@ -312,6 +312,105 @@ class WebhookServiceTest {
             webhookService.deleteWebhook(1L, 99L)
         }
     }
+
+    // ── HMAC-SHA256 signature ──────────────────────────────────────────────
+
+    @Test
+    fun `fireCustom includes X-ODM-Signature header when signingSecret is set`() {
+        val secret = "test-signing-secret"
+        val webhook = makeWebhook(
+            triggerEvents = setOf("COMPLETED")
+        ).also { it.signingSecretEncrypted = "encrypted:$secret" }
+
+        whenever(webhookRepository.findByWorkspaceIdAndTriggerTypeAndEnabledTrue(1L, WebhookTriggerType.DATA_GENERATION))
+            .thenReturn(listOf(webhook))
+        whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(makeWorkspace()))
+        whenever(EncryptionPort.decrypt("encrypted:$secret")).thenReturn(secret)
+
+        var capturedHeaders: org.springframework.http.HttpHeaders? = null
+        var capturedBody: String? = null
+        whenever(restTemplate.exchange(any<String>(), eq(HttpMethod.POST), any<HttpEntity<String>>(), eq(String::class.java)))
+            .thenAnswer { invocation ->
+                @Suppress("UNCHECKED_CAST")
+                val entity = invocation.arguments[2] as HttpEntity<String>
+                capturedHeaders = entity.headers
+                capturedBody = entity.body
+                ResponseEntity.ok("ok")
+            }
+
+        webhookService.triggerForJob(makeJob(), "COMPLETED")
+
+        assertNotNull(capturedHeaders)
+        val signature = capturedHeaders!!.getFirst("X-ODM-Signature")
+        assertNotNull(signature, "Expected X-ODM-Signature header to be present")
+        assertTrue(signature!!.startsWith("sha256="), "Signature must start with sha256=: $signature")
+
+        // Verify the HMAC is correct
+        val expectedHmac = webhookService.computeHmacSha256(secret, capturedBody!!)
+        assertEquals("sha256=$expectedHmac", signature)
+    }
+
+    @Test
+    fun `fireCustom does not include X-ODM-Signature header when no signingSecret`() {
+        val webhook = makeWebhook(triggerEvents = setOf("COMPLETED"))
+        // signingSecretEncrypted is null by default
+
+        whenever(webhookRepository.findByWorkspaceIdAndTriggerTypeAndEnabledTrue(1L, WebhookTriggerType.DATA_GENERATION))
+            .thenReturn(listOf(webhook))
+        whenever(workspaceRepository.findById(1L)).thenReturn(Optional.of(makeWorkspace()))
+
+        var capturedHeaders: org.springframework.http.HttpHeaders? = null
+        whenever(restTemplate.exchange(any<String>(), eq(HttpMethod.POST), any<HttpEntity<String>>(), eq(String::class.java)))
+            .thenAnswer { invocation ->
+                @Suppress("UNCHECKED_CAST")
+                val entity = invocation.arguments[2] as HttpEntity<String>
+                capturedHeaders = entity.headers
+                ResponseEntity.ok("ok")
+            }
+
+        webhookService.triggerForJob(makeJob(), "COMPLETED")
+
+        assertNotNull(capturedHeaders)
+        assertNull(capturedHeaders!!.getFirst("X-ODM-Signature"), "X-ODM-Signature must not be present when no secret")
+    }
+
+    @Test
+    fun `computeHmacSha256 produces consistent hex-encoded result`() {
+        val result1 = webhookService.computeHmacSha256("secret", "hello world")
+        val result2 = webhookService.computeHmacSha256("secret", "hello world")
+        assertEquals(result1, result2, "HMAC must be deterministic")
+        assertEquals(64, result1.length, "HMAC-SHA256 hex output must be 64 characters")
+        assertTrue(result1.all { it.isDigit() || it in 'a'..'f' }, "HMAC must be lowercase hex")
+    }
+
+    @Test
+    fun `computeHmacSha256 produces different result for different secrets`() {
+        val r1 = webhookService.computeHmacSha256("secret1", "payload")
+        val r2 = webhookService.computeHmacSha256("secret2", "payload")
+        assertNotEquals(r1, r2)
+    }
+
+    @Test
+    fun `createWebhook encrypts and stores signingSecret`() {
+        val request = WebhookRequest(
+            name = "Signed Hook",
+            triggerType = WebhookTriggerType.DATA_GENERATION,
+            triggerEvents = setOf("COMPLETED"),
+            url = "https://example.com/hook",
+            signingSecret = "my-secret"
+        )
+        whenever(EncryptionPort.encrypt("my-secret")).thenReturn("enc:my-secret")
+        var savedWebhook: Webhook? = null
+        whenever(webhookRepository.save(any<Webhook>())).thenAnswer {
+            savedWebhook = it.arguments[0] as Webhook
+            savedWebhook
+        }
+
+        webhookService.createWebhook(1L, request)
+
+        assertNotNull(savedWebhook?.signingSecretEncrypted)
+        assertEquals("enc:my-secret", savedWebhook?.signingSecretEncrypted)
+    }
 }
 
 

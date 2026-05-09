@@ -4,21 +4,21 @@ import { useRoute } from 'vue-router'
 import AppModal from '@/components/AppModal.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import * as jobsApi from '@/api/jobs'
-import * as connectionsApi from '@/api/connections'
-import type { Job, JobRequest, JobLog, DataConnection } from '@/types'
+import * as pairsApi from '@/api/connectionPairs'
+import type { Job, JobRequest, JobLog, ConnectionPair } from '@/types'
 import { JobStatus } from '@/types'
 
 const route = useRoute()
 const workspaceId = computed(() => Number(route.params.id))
 
 const jobs = ref<Job[]>([])
-const connections = ref<DataConnection[]>([])
+const connectionPairs = ref<ConnectionPair[]>([])
 const loading = ref(false)
 const error = ref('')
 
 // Create modal
 const showCreateModal = ref(false)
-const createForm = ref<JobRequest>({ connectionPairId: null })
+const createForm = ref<JobRequest>({ name: '', connectionPairId: null })
 const createError = ref('')
 const creating = ref(false)
 
@@ -27,14 +27,23 @@ const expandedJobId = ref<number | null>(null)
 const jobLogs = ref<Record<number, JobLog[]>>({})
 const loadingLogs = ref<number | null>(null)
 
-// Auto-refresh for running jobs
-let refreshTimer: ReturnType<typeof setInterval> | null = null
+// Toast notification
+const toast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
+
+// SSE streams keyed by jobId
+const activeStreams = ref<Map<number, EventSource>>(new Map())
 
 async function fetchJobs() {
   loading.value = true
   error.value = ''
   try {
     jobs.value = await jobsApi.listJobs(workspaceId.value)
+    // Connect SSE for any running jobs found on load
+    jobs.value.forEach((job) => {
+      if (job.status === JobStatus.RUNNING || job.status === JobStatus.PENDING) {
+        connectStream(job.id)
+      }
+    })
   } catch {
     error.value = 'Failed to load jobs.'
   } finally {
@@ -42,34 +51,63 @@ async function fetchJobs() {
   }
 }
 
-async function fetchConnections() {
+async function fetchConnectionPairs() {
   try {
-    connections.value = await connectionsApi.listConnections(workspaceId.value)
+    connectionPairs.value = await pairsApi.listConnectionPairs(workspaceId.value)
   } catch {
     // ignore
   }
 }
 
-onMounted(async () => {
-  await Promise.all([fetchJobs(), fetchConnections()])
-  startAutoRefresh()
-})
-
-function startAutoRefresh() {
-  refreshTimer = setInterval(async () => {
-    const hasActive = jobs.value.some(
-      (j) => j.status === JobStatus.RUNNING || j.status === JobStatus.PENDING
-    )
-    if (hasActive) {
-      const fresh = await jobsApi.listJobs(workspaceId.value)
-      jobs.value = fresh
+function connectStream(jobId: number) {
+  if (activeStreams.value.has(jobId)) return
+  const es = jobsApi.connectJobStream(
+    workspaceId.value,
+    jobId,
+    (event) => {
+      const idx = jobs.value.findIndex((j) => j.id === jobId)
+      if (idx !== -1) {
+        jobs.value[idx] = {
+          ...jobs.value[idx],
+          status: event.status as JobStatus,
+          rowsProcessed: event.rowsProcessed,
+          tablesProcessed: event.tablesProcessed,
+          tablesTotal: event.tablesTotal
+        }
+      }
+    },
+    async () => {
+      activeStreams.value.delete(jobId)
+      // Refresh job to get final status and timestamps
+      try {
+        const updated = await jobsApi.getJob(workspaceId.value, jobId)
+        const idx = jobs.value.findIndex((j) => j.id === jobId)
+        if (idx !== -1) jobs.value[idx] = updated
+        if (updated.status === JobStatus.COMPLETED) {
+          showToast('Job completed successfully!', 'success')
+        } else if (updated.status === JobStatus.FAILED) {
+          showToast(`Job failed: ${updated.errorMessage ?? 'unknown error'}`, 'error')
+        }
+      } catch {
+        // ignore
+      }
     }
-  }, 5000)
+  )
+  activeStreams.value.set(jobId, es)
 }
 
-// Cleanup timer on unmount
+function showToast(message: string, type: 'success' | 'error') {
+  toast.value = { message, type }
+  setTimeout(() => { toast.value = null }, 4000)
+}
+
+onMounted(async () => {
+  await Promise.all([fetchJobs(), fetchConnectionPairs()])
+})
+
 onUnmounted(() => {
-  if (refreshTimer !== null) clearInterval(refreshTimer)
+  activeStreams.value.forEach((es) => es.close())
+  activeStreams.value.clear()
 })
 
 // ── Create ──
@@ -84,7 +122,7 @@ function openCreate() {
 }
 
 async function submitCreate() {
-  if (!createForm.value.name || !createForm.value.sourceConnectionId || !createForm.value.targetConnectionId) {
+  if (!createForm.value.name) {
     createError.value = 'All fields are required.'
     return
   }
@@ -94,6 +132,8 @@ async function submitCreate() {
     const job = await jobsApi.createJob(workspaceId.value, createForm.value)
     jobs.value.unshift(job)
     showCreateModal.value = false
+    // Connect SSE immediately for the new job
+    connectStream(job.id)
   } catch {
     createError.value = 'Failed to create job.'
   } finally {
@@ -108,6 +148,8 @@ async function handleCancel(job: Job) {
     const updated = await jobsApi.cancelJob(workspaceId.value, job.id)
     const idx = jobs.value.findIndex((j) => j.id === job.id)
     if (idx !== -1) jobs.value[idx] = updated
+    activeStreams.value.get(job.id)?.close()
+    activeStreams.value.delete(job.id)
   } catch {
     alert('Failed to cancel job.')
   }
@@ -147,8 +189,7 @@ function duration(job: Job): string {
   return `${Math.floor(secs / 3600)}h ${Math.floor((secs % 3600) / 60)}m`
 }
 
-function connectionName(id: number) {
-  return connections.value.find((c) => c.id === id)?.name ?? `#${id}`
+`
 }
 
 function logLevelClass(level: string) {
@@ -169,6 +210,10 @@ function progressPercent(job: Job) {
   if (!job.tablesTotal) return 0
   return Math.round((job.tablesProcessed / job.tablesTotal) * 100)
 }
+
+function isLive(jobId: number) {
+  return activeStreams.value.has(jobId)
+}
 </script>
 
 <template>
@@ -188,6 +233,11 @@ function progressPercent(job: Job) {
         <p class="text-gray-500 text-sm mt-1">Monitor and manage masking jobs</p>
       </div>
       <button class="btn btn-primary" @click="openCreate">⚙ Run New Job</button>
+    </div>
+
+    <!-- Toast notification -->
+    <div v-if="toast" :class="`toast toast-${toast.type}`">
+      {{ toast.message }}
     </div>
 
     <div v-if="loading" class="loading-overlay">
@@ -211,10 +261,11 @@ function progressPercent(job: Job) {
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-semibold text-lg">{{ job.name }}</span>
                 <StatusBadge :status="job.status" />
+                <span v-if="isLive(job.id)" class="live-badge" title="Receiving live updates">● LIVE</span>
               </div>
               <div class="text-sm text-gray-500 flex flex-wrap gap-3">
-                <span>Source: <strong>{{ connectionName(job.sourceConnectionId) }}</strong></span>
-                <span>Target: <strong>{{ connectionName(job.targetConnectionId) }}</strong></span>
+                <span>Source: <strong>{{ (job.sourceConnectionName ?? 'Default') }}</strong></span>
+                <span>Target: <strong>{{ (job.targetConnectionName ?? 'Default') }}</strong></span>
                 <span>Created: {{ formatDate(job.createdAt) }}</span>
                 <span v-if="job.startedAt">Duration: {{ duration(job) }}</span>
               </div>
@@ -237,18 +288,26 @@ function progressPercent(job: Job) {
           </div>
         </div>
 
-        <!-- Progress bar (for RUNNING) -->
-        <div v-if="job.status === JobStatus.RUNNING && job.tablesTotal > 0" class="progress-section">
+        <!-- Progress bar (for RUNNING/PENDING with SSE) -->
+        <div v-if="(job.status === JobStatus.RUNNING || job.status === JobStatus.PENDING) && job.tablesTotal > 0" class="progress-section">
           <div class="progress-label">
             <span class="text-sm text-gray-600">
               Tables: {{ job.tablesProcessed }}/{{ job.tablesTotal }}
-              · Rows processed: {{ job.rowsProcessed.toLocaleString() }}
+              · Rows: {{ job.rowsProcessed.toLocaleString() }}
             </span>
             <span class="text-sm font-semibold">{{ progressPercent(job) }}%</span>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: `${progressPercent(job)}%` }" />
+            <div class="progress-fill" :class="{ 'progress-fill-animated': isLive(job.id) }" :style="{ width: `${progressPercent(job)}%` }" />
           </div>
+        </div>
+
+        <!-- Pending without table data yet -->
+        <div v-else-if="job.status === JobStatus.RUNNING || job.status === JobStatus.PENDING" class="progress-section">
+          <div class="progress-bar">
+            <div class="progress-fill progress-fill-indeterminate" />
+          </div>
+          <p class="text-sm text-gray-400 mt-1">Waiting for progress data…</p>
         </div>
 
         <!-- Error message -->
@@ -293,12 +352,7 @@ function progressPercent(job: Job) {
     <AppModal v-if="showCreateModal" title="Run New Masking Job" @close="showCreateModal = false">
       <form @submit.prevent="submitCreate">
         <div v-if="createError" class="alert alert-error">{{ createError }}</div>
-
-        <div v-if="connections.length < 2" class="alert alert-warning">
-          You need at least 2 connections (source and target) to run a job.
-        </div>
-
-        <div class="form-group">
+<div class="form-group">
           <label class="form-label">Job Name *</label>
           <input
             v-model="createForm.name"
@@ -325,7 +379,7 @@ function progressPercent(job: Job) {
         <button class="btn btn-secondary" @click="showCreateModal = false">Cancel</button>
         <button
           class="btn btn-primary"
-          :disabled="creating || connections.length < 2"
+          :disabled="creating"
           @click="submitCreate"
         >
           <span v-if="creating" class="spinner" style="width:.9rem;height:.9rem;border-width:2px;" />
@@ -348,6 +402,18 @@ function progressPercent(job: Job) {
 }
 .job-title-row { flex: 1; min-width: 0; }
 
+.live-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #10b981;
+  letter-spacing: 0.04em;
+  animation: pulse-text 1.5s ease-in-out infinite;
+}
+@keyframes pulse-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .progress-section { margin-top: 1rem; }
 .progress-label {
   display: flex;
@@ -359,12 +425,30 @@ function progressPercent(job: Job) {
   background: #e5e7eb;
   border-radius: 9999px;
   overflow: hidden;
+  position: relative;
 }
 .progress-fill {
   height: 100%;
   background: #3b82f6;
   border-radius: 9999px;
-  transition: width 0.4s ease;
+  transition: width 0.6s ease;
+}
+.progress-fill-animated {
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #3b82f6 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.progress-fill-indeterminate {
+  width: 40%;
+  animation: indeterminate 1.4s ease-in-out infinite;
+}
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
 }
 
 .job-stats {
@@ -387,4 +471,23 @@ function progressPercent(job: Job) {
   border-top: 1px solid #e5e7eb;
   padding-top: 1rem;
 }
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  padding: 0.875rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 9999;
+  animation: slide-up 0.25s ease;
+}
+@keyframes slide-up {
+  from { transform: translateY(1rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.toast-success { background: #10b981; color: white; }
+.toast-error   { background: #ef4444; color: white; }
 </style>

@@ -33,7 +33,9 @@
           <li><a href="#auth">Auth</a></li>
           <li><a href="#workspaces">Workspaces</a></li>
           <li><a href="#connections">Data Connections</a></li>
+          <li><a href="#connection-pairs">Connection Pairs</a></li>
           <li><a href="#tables">Table Config</a></li>
+          <li><a href="#data-mappings">Data Mappings</a></li>
           <li><a href="#jobs">Jobs</a></li>
           <li><a href="#sensitivity">Sensitivity Scans</a></li>
           <li><a href="#privacy">Privacy Hub</a></li>
@@ -85,6 +87,16 @@
         <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/connections/{cid}/test</code></td><td>Test connection</td></tr>
       </table>
 
+      <h2 id="connection-pairs">Connection Pairs</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/connection-pairs</code></td><td>List active connection pairs</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/connection-pairs</code></td><td>Create a connection pair (name, sourceConnectionId, destinationConnectionId)</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/connection-pairs/{pid}</code></td><td>Get a single pair</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}/connection-pairs/{pid}</code></td><td>Update a pair</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/connection-pairs/{pid}</code></td><td>Soft-delete a pair (retained in audit history)</td></tr>
+      </table>
+
       <h2 id="tables">Table Configuration</h2>
       <table>
         <tr><th>Method</th><th>Path</th><th>Description</th></tr>
@@ -96,13 +108,25 @@
         <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/workspaces/{id}/tables/{tid}/columns/{col}</code></td><td>Set column generator</td></tr>
       </table>
 
+      <h2 id="data-mappings">Data Mappings</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/mappings</code></td><td>List custom data mappings</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/mappings</code></td><td>Create a single column mapping (action: MASK|MIGRATE_AS_IS, maskingStrategy, piiRuleParams)</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/mappings/bulk</code></td><td>Create/replace all column mappings for a table in one request</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/mappings/{mid}</code></td><td>Delete a mapping</td></tr>
+      </table>
+
       <h2 id="jobs">Jobs</h2>
       <table>
         <tr><th>Method</th><th>Path</th><th>Description</th></tr>
         <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/jobs</code></td><td>List jobs</td></tr>
-        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/jobs</code></td><td>Run a new job</td></tr>
-        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/jobs/{jid}</code></td><td>Get job status &amp; progress</td></tr>
-        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/jobs/{jid}</code></td><td>Cancel / delete job</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/jobs</code></td><td>Run a new job. Body: <code>{"connectionPairId": 5}</code> (optional — omit to use workspace defaults)</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/jobs/{jid}</code></td><td>Get job status, progress, and connection details</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/jobs/{jid}/cancel</code></td><td>Cancel a running job</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/workspaces/{id}/jobs/{jid}</code></td><td>Delete job record</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/jobs/{jid}/logs</code></td><td>Get job log entries</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/jobs/{jid}/stats</code></td><td>Get per-table throughput statistics (rows read/written, elapsed ms, rows/sec)</td></tr>
       </table>
 
       <h2 id="sensitivity">Sensitivity Scans</h2>
@@ -121,7 +145,7 @@
         <tr><th>Method</th><th>Path</th><th>Description</th></tr>
         <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-hub</code></td><td>Get privacy summary</td></tr>
         <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-hub/recommendations</code></td><td>Get masking recommendations</td></tr>
-        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/privacy-hub/apply-recommendations</code></td><td>Apply all recommendations</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/workspaces/{id}/privacy-hub/recommendations/apply</code></td><td>Apply all recommendations</td></tr>
         <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-report</code></td><td>Get current privacy report</td></tr>
         <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-report/download</code></td><td>Download report as JSON</td></tr>
         <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/workspaces/{id}/privacy-report/jobs/{jid}</code></td><td>Get report for specific job</td></tr>

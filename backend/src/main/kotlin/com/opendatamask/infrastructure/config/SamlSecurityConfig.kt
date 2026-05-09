@@ -50,7 +50,7 @@ class SamlSecurityConfig(
     // CSRF protection is enabled via CookieCsrfTokenRepository so the SPA can read the
     // XSRF-TOKEN cookie and send it back in an X-XSRF-TOKEN header on mutating requests.
     @Bean
-    @Order(2)
+    @Order(3)
     fun samlSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .cors { it.configurationSource(corsConfig.corsConfigurationSource()) }

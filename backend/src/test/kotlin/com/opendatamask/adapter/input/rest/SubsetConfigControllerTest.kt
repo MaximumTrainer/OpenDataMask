@@ -3,6 +3,9 @@ package com.opendatamask.adapter.input.rest
 import com.opendatamask.domain.model.SubsetLimitType
 import com.opendatamask.domain.model.SubsetTableConfig
 import com.opendatamask.application.service.SubsetConfigService
+import com.opendatamask.application.service.SubsetEstimationService
+import com.opendatamask.domain.port.input.dto.SubsetEstimateResponse
+import com.opendatamask.domain.port.input.dto.TableEstimate
 import com.opendatamask.infrastructure.security.JwtTokenProvider
 import com.opendatamask.infrastructure.security.UserDetailsServiceImpl
 import org.junit.jupiter.api.Test
@@ -51,6 +54,7 @@ class SubsetConfigControllerTest {
     @Autowired private lateinit var mockMvc: MockMvc
 
     @MockBean private lateinit var subsetConfigService: SubsetConfigService
+    @MockBean private lateinit var subsetEstimationService: SubsetEstimationService
     @MockBean private lateinit var jwtTokenProvider: JwtTokenProvider
     @MockBean private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
 
@@ -131,5 +135,45 @@ class SubsetConfigControllerTest {
                 .content(validRequestBody)
         )
             .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `POST estimate returns 200 with table estimates`() {
+        val estimate = SubsetEstimateResponse(
+            workspaceId = 1L,
+            totalEstimatedRows = 150L,
+            success = true,
+            tableEstimates = listOf(
+                TableEstimate("users", totalRows = 1000L, estimatedRows = 100L, limitType = SubsetLimitType.PERCENTAGE, limitValue = 10),
+                TableEstimate("orders", totalRows = 500L, estimatedRows = 50L, limitType = SubsetLimitType.PERCENTAGE, limitValue = 10)
+            )
+        )
+        whenever(subsetEstimationService.estimate(1L)).thenReturn(estimate)
+
+        mockMvc.perform(post("/api/workspaces/1/subset-config/estimate"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.totalEstimatedRows").value(150))
+            .andExpect(jsonPath("$.tableEstimates.length()").value(2))
+            .andExpect(jsonPath("$.tableEstimates[0].tableName").value("users"))
+            .andExpect(jsonPath("$.tableEstimates[0].totalRows").value(1000))
+            .andExpect(jsonPath("$.tableEstimates[0].estimatedRows").value(100))
+    }
+
+    @Test
+    fun `POST estimate returns 200 with error when no source configured`() {
+        val errorResponse = SubsetEstimateResponse(
+            workspaceId = 1L,
+            totalEstimatedRows = 0L,
+            success = false,
+            errorMessage = "No source connection configured",
+            tableEstimates = emptyList()
+        )
+        whenever(subsetEstimationService.estimate(1L)).thenReturn(errorResponse)
+
+        mockMvc.perform(post("/api/workspaces/1/subset-config/estimate"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.errorMessage").exists())
     }
 }

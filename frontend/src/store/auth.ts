@@ -72,6 +72,21 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('user', JSON.stringify(userObj))
   }
 
+  // Stores an externally-issued JWT (e.g. from OIDC/SAML callback redirect).
+  // Decodes the user identity from the stored /api/auth/me endpoint.
+  async function loginWithToken(jwt: string): Promise<void> {
+    token.value = jwt
+    localStorage.setItem('token', jwt)
+    try {
+      const sessionUser = await authApi.me()
+      user.value = sessionUser
+      localStorage.setItem('user', JSON.stringify(sessionUser))
+    } catch {
+      clearStorage()
+      token.value = null
+    }
+  }
+
   async function logout(): Promise<void> {
     await authApi.logout()
     token.value = null
@@ -95,6 +110,7 @@ export const useAuthStore = defineStore('auth', () => {
     initializeFromStorage,
     initializeFromSession,
     login,
+    loginWithToken,
     logout,
     register
   }

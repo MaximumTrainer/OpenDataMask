@@ -165,28 +165,29 @@ terraform output server_public_ip</code></pre>
       <p>Reference the secret in your Deployment <code>envFrom</code> block. A PostgreSQL StatefulSet or a managed cloud database (AWS RDS, Azure Database for PostgreSQL, Google Cloud SQL) is recommended for production.</p>
 
       <h2 id="cicd">CI / CD Pipelines</h2>
-      <p>OpenDataMask ships with five GitHub Actions workflows delivering a complete terraform → docker → deploy → verify pipeline:</p>
+      <p>OpenDataMask ships with six GitHub Actions workflows delivering a complete build → deploy → verify → docs pipeline:</p>
       <table>
         <tr><th>Workflow</th><th>File</th><th>Trigger</th><th>Purpose</th></tr>
-        <tr><td>CI</td><td><code>ci.yml</code></td><td>push / PR to main</td><td>Build, lint, test backend + frontend + CLI</td></tr>
-        <tr><td>Docker Build</td><td><code>docker.yml</code></td><td>push to main</td><td>Build and push images to GHCR</td></tr>
-        <tr><td><strong>Deploy</strong></td><td><code>deploy.yml</code></td><td>after Docker Build</td><td><strong>Full pipeline: terraform → docker → SSH deploy → health verify</strong></td></tr>
-        <tr><td>Deployment Verification</td><td><code>verify-deployment.yml</code></td><td>manual / after CI</td><td>Spring Boot smoke tests + optional live server health check</td></tr>
+        <tr><td>CI</td><td><code>ci.yml</code></td><td>push / PR to main</td><td>Build, lint, test backend + frontend + CLI; build and push Docker images to GHCR</td></tr>
+        <tr><td><strong>Deploy</strong></td><td><code>deploy.yml</code></td><td>after CI on main</td><td><strong>Full pipeline: terraform apply → SSH deploy → health verify</strong></td></tr>
+        <tr><td>Sandbox Verification</td><td><code>sandbox-verification.yml</code></td><td>push / PR to main</td><td>End-to-end masking correctness check; publishes JUnit report artifact</td></tr>
+        <tr><td>Playwright E2E</td><td><code>playwright-e2e.yml</code></td><td>after Sandbox Verification</td><td>Full browser E2E test suite against the deployed frontend</td></tr>
+        <tr><td>Deploy Website</td><td><code>deploy-website.yml</code></td><td>after E2E on main</td><td>Generate screenshots and publish documentation to GitHub Pages</td></tr>
         <tr><td>CodeQL</td><td><code>codeql.yml</code></td><td>push / PR / weekly</td><td>Static security analysis for Kotlin, JS/TS, Go</td></tr>
       </table>
 
       <h3>Deploy Pipeline Flow</h3>
       <pre><code>push to main
-  └─► CI (tests pass)
-        └─► Docker Build &amp; Push (images → GHCR)
-              └─► deploy.yml:
-                    ├─ Job 1: terraform apply   ← provision/update AWS infra
-                    ├─ Job 2: docker push        ← parallel image build
-                    ├─ Job 3: SSH deploy         ← docker-compose pull &amp;&amp; up
-                    └─ Job 4: verify             ← curl /actuator/health → 200 ✅</code></pre>
+  └─► CI (build + test + Docker push → GHCR)
+        └─► deploy.yml:
+              ├─ Job 1: terraform apply   ← provision/update AWS infra
+              ├─ Job 2: SSH deploy         ← docker-compose pull &amp;&amp; up
+              └─ Job 3: verify             ← curl /actuator/health → 200 ✅
+                    └─► Sandbox Masking Verification
+                              └─► Playwright E2E Tests
+                                        └─► Deploy Website (GitHub Pages)</code></pre>
 
-      <p>GitHub <strong>Environments</strong> (<code>staging</code>, <code>production</code>) track each deployment — enabling Copilot deployment status, history, and environment URLs in the GitHub UI.</p>
-      <p>Run smoke tests manually from the <em>Actions</em> tab → <em>Deployment Verification</em> → <em>Run workflow</em>.</p>
+      <p>GitHub <strong>Environments</strong> (<code>staging</code>, <code>production</code>) track each deployment — enabling deployment status, history, and environment URLs in the GitHub UI.</p>
 
       <h2 id="security">Security Notes</h2>
       <ul>

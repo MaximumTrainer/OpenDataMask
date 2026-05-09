@@ -2,6 +2,11 @@ package com.opendatamask.adapter.input.rest
 
 import com.opendatamask.domain.port.input.dto.PrivacyHubSummary
 import com.opendatamask.domain.port.input.dto.PrivacyRecommendation
+import com.opendatamask.domain.port.input.dto.KAnonymityReport
+import com.opendatamask.domain.port.input.dto.GdprComplianceReport
+import com.opendatamask.domain.port.input.dto.GdprPrincipleCheck
+import com.opendatamask.application.service.GdprComplianceService
+import com.opendatamask.application.service.KAnonymityService
 import com.opendatamask.application.service.PrivacyHubService
 import com.opendatamask.infrastructure.security.JwtTokenProvider
 import com.opendatamask.infrastructure.security.UserDetailsServiceImpl
@@ -50,6 +55,8 @@ class PrivacyHubControllerTest {
     @Autowired private lateinit var mockMvc: MockMvc
 
     @MockBean private lateinit var privacyHubService: PrivacyHubService
+    @MockBean private lateinit var kAnonymityService: KAnonymityService
+    @MockBean private lateinit var gdprComplianceService: GdprComplianceService
     @MockBean private lateinit var jwtTokenProvider: JwtTokenProvider
     @MockBean private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
 
@@ -118,11 +125,45 @@ class PrivacyHubControllerTest {
     }
 
     @Test
-    fun `POST apply recommendations returns 200 with count zero when no recommendations`() {
-        whenever(privacyHubService.applyRecommendations(1L)).thenReturn(0)
+    fun `GET k-anonymity returns score with quasi-identifiers`() {
+        val report = KAnonymityReport(
+            workspaceId = 1L,
+            kValue = 3,
+            atRisk = true,
+            quasiIdentifiers = listOf("users.gender", "users.zip_code"),
+            recommendation = "k-anonymity score is 3 (below safe threshold of 5)."
+        )
+        whenever(kAnonymityService.computeKAnonymity(1L)).thenReturn(report)
 
-        mockMvc.perform(post("/api/workspaces/1/privacy-hub/recommendations/apply"))
+        mockMvc.perform(get("/api/workspaces/1/privacy-hub/k-anonymity"))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.applied").value(0))
+            .andExpect(jsonPath("$.kValue").value(3))
+            .andExpect(jsonPath("$.atRisk").value(true))
+            .andExpect(jsonPath("$.quasiIdentifiers.length()").value(2))
+    }
+
+    @Test
+    fun `GET gdpr-report returns compliance report with principle checks`() {
+        val report = GdprComplianceReport(
+            workspaceId = 1L,
+            generatedAt = java.time.Instant.now(),
+            principleChecks = listOf(
+                GdprPrincipleCheck(
+                    principle = "Data Minimisation (Art. 5.1.c)",
+                    description = "Only necessary data is processed.",
+                    compliant = true,
+                    detail = "All 5 sensitive columns are masked."
+                )
+            ),
+            personalDataColumns = emptyList(),
+            overallCompliant = true
+        )
+        whenever(gdprComplianceService.generateReport(1L)).thenReturn(report)
+
+        mockMvc.perform(get("/api/workspaces/1/privacy-hub/gdpr-report"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.overallCompliant").value(true))
+            .andExpect(jsonPath("$.principleChecks.length()").value(1))
+            .andExpect(jsonPath("$.principleChecks[0].compliant").value(true))
     }
 }

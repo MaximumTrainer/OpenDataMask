@@ -204,7 +204,19 @@ export enum GeneratorType {
   PARTIAL_MASK = 'PARTIAL_MASK',
   FORMAT_PRESERVING = 'FORMAT_PRESERVING',
   SEQUENTIAL = 'SEQUENTIAL',
-  RANDOM_INT = 'RANDOM_INT'
+  RANDOM_INT = 'RANDOM_INT',
+  // Hashing / tokenization
+  HASH = 'HASH',
+  SCRAMBLE = 'SCRAMBLE',
+  TOKENIZE = 'TOKENIZE',
+  // Date masking
+  DATE_SHIFT = 'DATE_SHIFT',
+  DATE_BUCKET = 'DATE_BUCKET',
+  // Numeric noise
+  NUMERIC_NOISE = 'NUMERIC_NOISE',
+  // Generalisation / suppression
+  GENERALISE = 'GENERALISE',
+  TEXT_REDACT = 'TEXT_REDACT'
 }
 
 export interface ColumnGenerator {
@@ -274,8 +286,7 @@ export interface Job {
 }
 
 export interface JobRequest {
-  // When provided, the job uses the specified ConnectionPair's source and destination connections.
-  // When null or omitted, the system falls back to the workspace-wide source/destination lookup.
+  name?: string
   connectionPairId?: number | null
 }
 
@@ -294,6 +305,22 @@ export interface JobLog {
   level: LogLevel
   message: string
   timestamp: string
+}
+
+// ── Job Table Stats ──────────────────────────────────────────────────────
+
+export interface JobTableStats {
+  id: number
+  jobId: number
+  tableName: string
+  rowsRead: number
+  rowsWritten: number
+  rowsSkipped: number
+  startedAt: string
+  completedAt?: string
+  elapsedMs: number
+  rowsPerSecond?: number
+  errorMessage?: string
 }
 
 // ── Post-Job Action ───────────────────────────────────────────────────────

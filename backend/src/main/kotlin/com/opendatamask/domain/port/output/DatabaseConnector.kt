@@ -22,4 +22,5 @@ interface DatabaseConnector {
     fun truncateTable(tableName: String)
     fun writeData(tableName: String, rows: List<Map<String, Any?>>): Int
     fun listForeignKeys(tableName: String): List<ForeignKeyInfo> = emptyList()
+    fun countRows(tableName: String, whereClause: String? = null): Long = fetchData(tableName).size.toLong()
 }

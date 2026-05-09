@@ -14,6 +14,8 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 @Service
 class WebhookService(
@@ -45,7 +47,8 @@ class WebhookService(
             githubRepo = request.githubRepo,
             githubPatEncrypted = request.githubPat?.let { encryptionPort.encrypt(it) },
             githubWorkflow = request.githubWorkflow,
-            githubInputsJson = request.githubInputsJson
+            githubInputsJson = request.githubInputsJson,
+            signingSecretEncrypted = request.signingSecret?.let { encryptionPort.encrypt(it) }
         )
         return webhookRepository.save(webhook)
     }
@@ -65,6 +68,9 @@ class WebhookService(
         }
         webhook.githubWorkflow = request.githubWorkflow
         webhook.githubInputsJson = request.githubInputsJson
+        if (request.signingSecret != null) {
+            webhook.signingSecretEncrypted = encryptionPort.encrypt(request.signingSecret)
+        }
         return webhookRepository.save(webhook)
     }
 
@@ -152,6 +158,10 @@ class WebhookService(
         val url = webhook.url ?: return
         val body = substituteVars(webhook.bodyTemplate ?: "{}", vars)
         val headers = buildHeaders(webhook)
+        webhook.signingSecretEncrypted?.let { encryptedSecret ->
+            val secret = encryptionPort.decrypt(encryptedSecret)
+            headers.set("X-ODM-Signature", "sha256=${computeHmacSha256(secret, body)}")
+        }
         val entity = HttpEntity(body, headers)
         restTemplate.exchange(url, HttpMethod.POST, entity, String::class.java)
     }
@@ -197,6 +207,13 @@ class WebhookService(
             }
         }
         return headers
+    }
+
+    internal fun computeHmacSha256(secret: String, data: String): String {
+        val mac = Mac.getInstance("HmacSHA256")
+        mac.init(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+        return mac.doFinal(data.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
     }
 
     private fun findWebhook(workspaceId: Long, webhookId: Long): Webhook {

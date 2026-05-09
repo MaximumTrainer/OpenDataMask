@@ -117,4 +117,58 @@ class SubsetExecutionServiceTest {
         assertFalse(clause.contains("null"), "Clause should not contain null")
         assertTrue(clause.contains("'1'"), "Clause should contain non-null values")
     }
+
+    @Test
+    fun `executeSubset passes seedFilter as whereClause when seeding target table`() {
+        val seedFilter = "created_at > '2024-01-01'"
+        val customersConfig = SubsetTableConfig(
+            id = 1L,
+            workspaceId = 1L,
+            tableName = "customers",
+            limitType = SubsetLimitType.ROW_COUNT,
+            limitValue = 10,
+            isTargetTable = true,
+            isLookupTable = false,
+            seedFilter = seedFilter
+        )
+        val plan = listOf(SubsetStep(tableName = "customers", config = customersConfig, dependsOn = emptyList()))
+        whenever(subsetPlanService.buildExecutionPlan(1L)).thenReturn(plan)
+        whenever(fkRepo.findByWorkspaceId(1L)).thenReturn(emptyList())
+        whenever(connector.fetchData("customers", limit = 10, whereClause = seedFilter))
+            .thenReturn(listOf(mapOf("id" to 1L, "name" to "Alice")))
+
+        val result = service.executeSubset(1L, connector)
+
+        verify(connector).fetchData("customers", limit = 10, whereClause = seedFilter)
+        assertEquals(1, result["customers"]?.size)
+    }
+
+    @Test
+    fun `executeSubset supports multiple root target tables with different seed filters`() {
+        val customersConfig = SubsetTableConfig(
+            id = 1L, workspaceId = 1L, tableName = "customers",
+            limitType = SubsetLimitType.ROW_COUNT, limitValue = 5,
+            isTargetTable = true, isLookupTable = false, seedFilter = "region = 'EU'"
+        )
+        val productsConfig = SubsetTableConfig(
+            id = 2L, workspaceId = 1L, tableName = "products",
+            limitType = SubsetLimitType.ROW_COUNT, limitValue = 10,
+            isTargetTable = true, isLookupTable = false, seedFilter = "active = true"
+        )
+        val plan = listOf(
+            SubsetStep(tableName = "customers", config = customersConfig, dependsOn = emptyList()),
+            SubsetStep(tableName = "products", config = productsConfig, dependsOn = emptyList())
+        )
+        whenever(subsetPlanService.buildExecutionPlan(1L)).thenReturn(plan)
+        whenever(fkRepo.findByWorkspaceId(1L)).thenReturn(emptyList())
+        whenever(connector.fetchData("customers", limit = 5, whereClause = "region = 'EU'"))
+            .thenReturn(listOf(mapOf("id" to 1L)))
+        whenever(connector.fetchData("products", limit = 10, whereClause = "active = true"))
+            .thenReturn(listOf(mapOf("id" to 101L), mapOf("id" to 102L)))
+
+        val result = service.executeSubset(1L, connector)
+
+        assertEquals(1, result["customers"]?.size)
+        assertEquals(2, result["products"]?.size)
+    }
 }

@@ -17,5 +17,6 @@ data class WebhookRequest(
     val githubRepo: String? = null,
     val githubPat: String? = null,
     val githubWorkflow: String? = null,
-    val githubInputsJson: String? = null
+    val githubInputsJson: String? = null,
+    val signingSecret: String? = null
 )

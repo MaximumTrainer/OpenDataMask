@@ -21,6 +21,7 @@ import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class JobService(
@@ -38,7 +39,8 @@ class JobService(
     private val postJobActionService: PostJobActionService,
     private val schemaChangeService: SchemaChangeService,
     private val webhookService: WebhookService,
-    private val piiMaskingService: PIIMaskingService
+    private val piiMaskingService: PIIMaskingService,
+    private val jobProgressEmitterRegistry: JobProgressEmitterRegistry
 ) : JobUseCase {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private var subsetExecutionService: SubsetExecutionService? = null
@@ -49,10 +51,26 @@ class JobService(
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private var privacyReportService: PrivacyReportService? = null
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private var jobTableStatsPort: com.opendatamask.domain.port.output.JobTableStatsPort? = null
+
     private val logger = LoggerFactory.getLogger(JobService::class.java)
 
+    /** Tracks jobs that have been requested to cancel while running. */
+    private val cancellationRequests = ConcurrentHashMap.newKeySet<Long>()
+
     @Transactional
-    override fun createJob(workspaceId: Long, createdBy: Long, connectionPairId: Long?, name: String?): JobResponse {
+    override fun createJob(workspaceId: Long, createdBy: Long, connectionPairId: Long?, name: String?): JobResponse =
+        createJob(workspaceId, createdBy, connectionPairId, name, dryRun = false)
+
+    @Transactional
+    fun createJob(
+        workspaceId: Long,
+        createdBy: Long,
+        connectionPairId: Long?,
+        name: String?,
+        dryRun: Boolean
+    ): JobResponse {
         workspaceRepository.findById(workspaceId)
             .orElseThrow { NoSuchElementException("Workspace not found: $workspaceId") }
 
@@ -61,7 +79,8 @@ class JobService(
             status = JobStatus.PENDING,
             createdBy = createdBy,
             connectionPairId = connectionPairId,
-            name = name
+            name = name,
+            dryRun = dryRun
         )
         val saved = jobRepository.save(job)
         return saved.toResponse()
@@ -97,6 +116,8 @@ class JobService(
         if (job.status !in listOf(JobStatus.PENDING, JobStatus.RUNNING)) {
             throw IllegalStateException("Cannot cancel job in status ${job.status}")
         }
+        // Signal the running thread to stop between table batches
+        cancellationRequests.add(jobId)
         job.status = JobStatus.CANCELLED
         job.completedAt = LocalDateTime.now()
         return jobRepository.save(job).toResponse()
@@ -107,6 +128,26 @@ class JobService(
         val response = createJob(workspaceId, createdBy, connectionPairId)
         runJob(response.id)
         return response
+    }
+
+    @Transactional(readOnly = true)
+    override fun getJobTableStats(workspaceId: Long, jobId: Long): List<com.opendatamask.domain.port.input.dto.JobTableStatsResponse> {
+        findJob(workspaceId, jobId)
+        return (jobTableStatsPort?.findByJobId(jobId) ?: emptyList()).map { s ->
+            com.opendatamask.domain.port.input.dto.JobTableStatsResponse(
+                id = s.id,
+                jobId = s.jobId,
+                tableName = s.tableName,
+                rowsRead = s.rowsRead,
+                rowsWritten = s.rowsWritten,
+                rowsSkipped = s.rowsSkipped,
+                startedAt = s.startedAt,
+                completedAt = s.completedAt,
+                elapsedMs = s.elapsedMs,
+                rowsPerSecond = s.rowsPerSecond,
+                errorMessage = s.errorMessage
+            )
+        }
     }
 
     @Async
@@ -174,6 +215,26 @@ class JobService(
                 }
 
             for (tableConfig in tableConfigs) {
+                // Check for graceful cancellation request between table batches
+                if (cancellationRequests.remove(job.id)) {
+                    addLog(job.id, "Job cancelled gracefully after completing previous tables", LogLevel.INFO)
+                    val cancelledJob = jobRepository.findById(job.id).orElse(job)
+                    cancelledJob.status = JobStatus.CANCELLED
+                    cancelledJob.completedAt = LocalDateTime.now()
+                    jobRepository.save(cancelledJob)
+                    jobProgressEmitterRegistry.publish(
+                        JobProgressEvent(
+                            jobId = job.id, tableName = null, status = "CANCELLED",
+                            rowsProcessed = cancelledJob.rowsProcessed ?: 0L,
+                            tablesProcessed = cancelledJob.tablesProcessed ?: 0,
+                            tablesTotal = cancelledJob.tablesTotal ?: 0,
+                            message = "Job cancelled"
+                        )
+                    )
+                    jobProgressEmitterRegistry.complete(job.id)
+                    webhookService.triggerForJob(cancelledJob, JobStatus.CANCELLED.name)
+                    return
+                }
                 if (tableConfig.mode == TableMode.SKIP) {
                     addLog(job.id, "Skipping table: ${tableConfig.tableName}", LogLevel.INFO)
                     continue
@@ -181,22 +242,72 @@ class JobService(
                 addLog(job.id, "Mirroring schema for table: ${tableConfig.tableName}", LogLevel.INFO)
                 val selectedAttrs = tableConfig.selectedAttributes
                     ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
-                destinationSchemaService.mirrorSchema(
-                    sourceConnector, sourceConn.type,
-                    destConnector, destConn.type,
-                    tableConfig.tableName,
-                    selectedAttrs
-                )
-                val rowsWritten = processTable(job.id, tableConfig, sourceConnector, destConnector, subsetRows, job.workspaceId, sourceConn.id)
+                if (!job.dryRun) {
+                    destinationSchemaService.mirrorSchema(
+                        sourceConnector, sourceConn.type,
+                        destConnector, destConn.type,
+                        tableConfig.tableName,
+                        selectedAttrs
+                    )
+                }
+                val tableStartedAt = java.time.LocalDateTime.now()
+                val tableStartMs = System.currentTimeMillis()
+                var tableRowsProcessed = 0L
+                var tableError: String? = null
+                try {
+                    tableRowsProcessed = processTable(job.id, tableConfig, sourceConnector, destConnector, subsetRows, job.workspaceId, sourceConn.id, job.dryRun)
+                } catch (e: Exception) {
+                    tableError = e.message?.take(512)
+                    throw e
+                } finally {
+                    val elapsedMs = System.currentTimeMillis() - tableStartMs
+                    jobTableStatsPort?.save(
+                        com.opendatamask.domain.model.JobTableStats(
+                            jobId = job.id,
+                            tableName = tableConfig.tableName,
+                            rowsRead = tableRowsProcessed,
+                            rowsWritten = if (tableError == null) tableRowsProcessed else 0L,
+                            rowsSkipped = 0L,
+                            startedAt = tableStartedAt,
+                            completedAt = if (tableError == null) java.time.LocalDateTime.now() else null,
+                            elapsedMs = elapsedMs,
+                            rowsPerSecond = if (elapsedMs > 0 && tableError == null) tableRowsProcessed / (elapsedMs / 1000.0) else null,
+                            errorMessage = tableError
+                        )
+                    )
+                }
+                val rowsWritten = tableRowsProcessed
                 val progressJob = jobRepository.findById(job.id).orElse(job)
                 progressJob.rowsProcessed = (progressJob.rowsProcessed ?: 0L) + rowsWritten
                 progressJob.tablesProcessed = (progressJob.tablesProcessed ?: 0) + 1
                 jobRepository.save(progressJob)
+                jobProgressEmitterRegistry.publish(
+                    JobProgressEvent(
+                        jobId = job.id,
+                        tableName = tableConfig.tableName,
+                        status = "RUNNING",
+                        rowsProcessed = progressJob.rowsProcessed ?: 0L,
+                        tablesProcessed = progressJob.tablesProcessed ?: 0,
+                        tablesTotal = progressJob.tablesTotal ?: 0,
+                        message = "Completed table ${tableConfig.tableName}"
+                    )
+                )
             }
 
             updateJobStatus(job, JobStatus.COMPLETED)
             addLog(job.id, "Job completed successfully", LogLevel.INFO)
+            cancellationRequests.remove(job.id)
             val completedJob = jobRepository.findById(job.id).orElse(job)
+            jobProgressEmitterRegistry.publish(
+                JobProgressEvent(
+                    jobId = job.id, tableName = null, status = "COMPLETED",
+                    rowsProcessed = completedJob.rowsProcessed ?: 0L,
+                    tablesProcessed = completedJob.tablesProcessed ?: 0,
+                    tablesTotal = completedJob.tablesTotal ?: 0,
+                    message = "Job completed"
+                )
+            )
+            jobProgressEmitterRegistry.complete(job.id)
             privacyReportService?.generateJobReport(job.id, job.workspaceId)
             postJobActionService.triggerActions(completedJob)
             webhookService.triggerForJob(completedJob, JobStatus.COMPLETED.name)
@@ -204,11 +315,22 @@ class JobService(
         } catch (e: Exception) {
             logger.error("Job ${job.id} failed", e)
             addLog(job.id, "Job failed: ${e.message}", LogLevel.ERROR)
+            cancellationRequests.remove(job.id)
             val failedJob = jobRepository.findById(job.id).orElse(job)
             failedJob.status = JobStatus.FAILED
             failedJob.completedAt = LocalDateTime.now()
             failedJob.errorMessage = e.message?.take(4096)
             jobRepository.save(failedJob)
+            jobProgressEmitterRegistry.publish(
+                JobProgressEvent(
+                    jobId = job.id, tableName = null, status = "FAILED",
+                    rowsProcessed = failedJob.rowsProcessed ?: 0L,
+                    tablesProcessed = failedJob.tablesProcessed ?: 0,
+                    tablesTotal = failedJob.tablesTotal ?: 0,
+                    message = "Job failed: ${e.message?.take(256)}"
+                )
+            )
+            jobProgressEmitterRegistry.complete(job.id)
             postJobActionService.triggerActions(failedJob)
             webhookService.triggerForJob(failedJob, JobStatus.FAILED.name)
         }
@@ -221,9 +343,10 @@ class JobService(
         destConnector: DatabaseConnector,
         preComputedRows: Map<String, List<Map<String, Any?>>> = emptyMap(),
         workspaceId: Long? = null,
-        sourceConnectionId: Long? = null
+        sourceConnectionId: Long? = null,
+        dryRun: Boolean = false
     ): Long {
-        addLog(jobId, "Processing table: ${tableConfig.tableName} (mode: ${tableConfig.mode})", LogLevel.INFO)
+        addLog(jobId, "Processing table: ${tableConfig.tableName} (mode: ${tableConfig.mode}${if (dryRun) ", dry-run" else ""})", LogLevel.INFO)
 
         val selectedAttrs = tableConfig.selectedAttributes
             ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }
@@ -237,9 +360,14 @@ class JobService(
                 } else {
                     data
                 }
-                val written = destConnector.writeData(tableConfig.tableName, transformed)
-                addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
-                written.toLong()
+                if (!dryRun) {
+                    val written = destConnector.writeData(tableConfig.tableName, transformed)
+                    addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                    written.toLong()
+                } else {
+                    addLog(jobId, "[DRY RUN] Would write ${transformed.size} rows to ${tableConfig.tableName}", LogLevel.INFO)
+                    transformed.size.toLong()
+                }
             }
             TableMode.MASK -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
@@ -250,18 +378,28 @@ class JobService(
                     LogLevel.INFO
                 )
                 val maskedData = data.map { row -> generatorService.applyGenerators(row, generators) }
-                val written = destConnector.writeData(tableConfig.tableName, maskedData)
-                addLog(jobId, "Wrote $written masked rows to destination ${tableConfig.tableName}", LogLevel.INFO)
-                written.toLong()
+                if (!dryRun) {
+                    val written = destConnector.writeData(tableConfig.tableName, maskedData)
+                    addLog(jobId, "Wrote $written masked rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                    written.toLong()
+                } else {
+                    addLog(jobId, "[DRY RUN] Would write ${maskedData.size} masked rows to ${tableConfig.tableName}", LogLevel.INFO)
+                    maskedData.size.toLong()
+                }
             }
             TableMode.GENERATE -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
                 val rowCount = tableConfig.rowLimit?.toInt() ?: 100
                 addLog(jobId, "Generating $rowCount rows for ${tableConfig.tableName} with ${generators.size} generator(s)", LogLevel.INFO)
                 val generatedData = generatorService.generateRows(generators, rowCount)
-                val written = destConnector.writeData(tableConfig.tableName, generatedData)
-                addLog(jobId, "Wrote $written generated rows to destination ${tableConfig.tableName}", LogLevel.INFO)
-                written.toLong()
+                if (!dryRun) {
+                    val written = destConnector.writeData(tableConfig.tableName, generatedData)
+                    addLog(jobId, "Wrote $written generated rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                    written.toLong()
+                } else {
+                    addLog(jobId, "[DRY RUN] Would write ${generatedData.size} generated rows to ${tableConfig.tableName}", LogLevel.INFO)
+                    generatedData.size.toLong()
+                }
             }
             TableMode.SUBSET -> {
                 val data = preComputedRows[tableConfig.tableName]
@@ -272,18 +410,28 @@ class JobService(
                         selectedAttrs
                     )
                 addLog(jobId, "Subsetting ${data.size} rows from ${tableConfig.tableName}", LogLevel.INFO)
-                val written = destConnector.writeData(tableConfig.tableName, data)
-                addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
-                written.toLong()
+                if (!dryRun) {
+                    val written = destConnector.writeData(tableConfig.tableName, data)
+                    addLog(jobId, "Wrote $written rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                    written.toLong()
+                } else {
+                    addLog(jobId, "[DRY RUN] Would write ${data.size} subset rows to ${tableConfig.tableName}", LogLevel.INFO)
+                    data.size.toLong()
+                }
             }
             TableMode.UPSERT -> {
                 val generators = columnGeneratorRepository.findByTableConfigurationId(tableConfig.id)
                 val data = sourceConnector.fetchData(tableConfig.tableName, tableConfig.rowLimit?.toInt(), tableConfig.whereClause, selectedAttrs)
                 addLog(jobId, "Upserting ${data.size} rows in ${tableConfig.tableName} with ${generators.size} generator(s)", LogLevel.INFO)
                 val maskedData = if (generators.isNotEmpty()) data.map { row -> generatorService.applyGenerators(row, generators) } else data
-                val written = destConnector.writeData(tableConfig.tableName, maskedData)
-                addLog(jobId, "Wrote $written upserted rows to destination ${tableConfig.tableName}", LogLevel.INFO)
-                written.toLong()
+                if (!dryRun) {
+                    val written = destConnector.writeData(tableConfig.tableName, maskedData)
+                    addLog(jobId, "Wrote $written upserted rows to destination ${tableConfig.tableName}", LogLevel.INFO)
+                    written.toLong()
+                } else {
+                    addLog(jobId, "[DRY RUN] Would upsert ${maskedData.size} rows to ${tableConfig.tableName}", LogLevel.INFO)
+                    maskedData.size.toLong()
+                }
             }
             TableMode.SKIP -> 0L  // unreachable: SKIP tables are short-circuited in the calling loop
         }
@@ -374,21 +522,51 @@ class JobService(
         return sourceConnections.first() to destConnections.first()
     }
 
-    private fun Job.toResponse() = JobResponse(
-        id = id,
-        workspaceId = workspaceId,
-        status = status,
-        startedAt = startedAt,
-        completedAt = completedAt,
-        createdAt = createdAt,
-        errorMessage = errorMessage,
-        createdBy = createdBy,
-        connectionPairId = connectionPairId,
-        rowsProcessed = rowsProcessed ?: 0L,
-        tablesProcessed = tablesProcessed ?: 0,
-        tablesTotal = tablesTotal ?: 0,
-        name = name
+    private fun Job.toResponse(): JobResponse {
+        val (srcId, destId, srcName, destName) = resolveConnectionNames(this)
+        return JobResponse(
+            id = id,
+            workspaceId = workspaceId,
+            status = status,
+            startedAt = startedAt,
+            completedAt = completedAt,
+            createdAt = createdAt,
+            errorMessage = errorMessage,
+            createdBy = createdBy,
+            connectionPairId = connectionPairId,
+            rowsProcessed = rowsProcessed ?: 0L,
+            tablesProcessed = tablesProcessed ?: 0,
+            tablesTotal = tablesTotal ?: 0,
+            name = name,
+            dryRun = dryRun,
+            sourceConnectionId = srcId,
+            targetConnectionId = destId,
+            sourceConnectionName = srcName,
+            targetConnectionName = destName
+        )
+    }
+
+    private data class ConnectionNames(
+        val sourceId: Long?,
+        val targetId: Long?,
+        val sourceName: String?,
+        val targetName: String?
     )
+
+    private fun resolveConnectionNames(job: Job): ConnectionNames {
+        if (job.connectionPairId != null) {
+            val pair = connectionPairRepository.findById(job.connectionPairId!!).orElse(null)
+            if (pair != null) {
+                val src = dataConnectionRepository.findById(pair.sourceConnectionId).orElse(null)
+                val dest = dataConnectionRepository.findById(pair.destinationConnectionId).orElse(null)
+                return ConnectionNames(pair.sourceConnectionId, pair.destinationConnectionId, src?.name, dest?.name)
+            }
+        }
+        val connections = dataConnectionRepository.findByWorkspaceId(job.workspaceId)
+        val src = connections.firstOrNull { it.isSource }
+        val dest = connections.firstOrNull { !it.isSource }
+        return ConnectionNames(src?.id, dest?.id, src?.name, dest?.name)
+    }
 
     private fun JobLog.toLogResponse() = JobLogResponse(
         id = id,

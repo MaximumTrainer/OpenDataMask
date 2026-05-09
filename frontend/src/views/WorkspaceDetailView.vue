@@ -34,12 +34,17 @@ async function fetchStats() {
 }
 
 const tabs = [
-  { label: 'Overview',      icon: '📋', path: () => `/workspaces/${workspaceId.value}` },
-  { label: 'Connections',   icon: '🔌', path: () => `/workspaces/${workspaceId.value}/connections` },
-  { label: 'Tables',        icon: '📊', path: () => `/workspaces/${workspaceId.value}/tables` },
-  { label: 'Data Mappings', icon: '🗺️', path: () => `/workspaces/${workspaceId.value}/mappings` },
-  { label: 'Jobs',          icon: '⚙️', path: () => `/workspaces/${workspaceId.value}/jobs` },
-  { label: 'Actions',       icon: '⚡', path: () => `/workspaces/${workspaceId.value}/actions` }
+  { label: 'Overview',          icon: '📋', path: () => `/workspaces/${workspaceId.value}` },
+  { label: 'Connections',       icon: '🔌', path: () => `/workspaces/${workspaceId.value}/connections` },
+  { label: 'Tables',            icon: '📊', path: () => `/workspaces/${workspaceId.value}/tables` },
+  { label: 'Data Mappings',     icon: '🗺️', path: () => `/workspaces/${workspaceId.value}/mappings` },
+  { label: 'Subsets',           icon: '✂️', path: () => `/workspaces/${workspaceId.value}/subsets` },
+  { label: 'Jobs',              icon: '⚙️', path: () => `/workspaces/${workspaceId.value}/jobs` },
+  { label: 'Schedules',         icon: '🕐', path: () => `/workspaces/${workspaceId.value}/schedules` },
+  { label: 'Actions',           icon: '⚡', path: () => `/workspaces/${workspaceId.value}/actions` },
+  { label: 'Schema Changes',    icon: '🔄', path: () => `/workspaces/${workspaceId.value}/schema-changes` },
+  { label: 'Sensitivity Scan',  icon: '🔍', path: () => `/workspaces/${workspaceId.value}/sensitivity-scan` },
+  { label: 'Privacy Hub',       icon: '🛡️', path: () => `/workspaces/${workspaceId.value}/privacy-hub` }
 ]
 
 function navigate(path: string) {

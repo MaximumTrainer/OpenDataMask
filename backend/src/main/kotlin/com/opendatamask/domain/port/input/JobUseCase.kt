@@ -2,6 +2,7 @@ package com.opendatamask.domain.port.input
 
 import com.opendatamask.domain.port.input.dto.JobLogResponse
 import com.opendatamask.domain.port.input.dto.JobResponse
+import com.opendatamask.domain.port.input.dto.JobTableStatsResponse
 
 interface JobUseCase {
     fun createJob(workspaceId: Long, createdBy: Long, connectionPairId: Long? = null, name: String? = null): JobResponse
@@ -10,4 +11,5 @@ interface JobUseCase {
     fun getJobLogs(workspaceId: Long, jobId: Long): List<JobLogResponse>
     fun cancelJob(workspaceId: Long, jobId: Long): JobResponse
     fun createAndRunJob(workspaceId: Long, createdBy: Long, connectionPairId: Long? = null): JobResponse
+    fun getJobTableStats(workspaceId: Long, jobId: Long): List<JobTableStatsResponse>
 }

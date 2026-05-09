@@ -37,7 +37,17 @@ enum class GeneratorType {
     // Data utilities
     BOOLEAN, LOREM, TIMESTAMP,
     // Composite / PK generators
-    CONDITIONAL, PARTIAL_MASK, FORMAT_PRESERVING, SEQUENTIAL, RANDOM_INT
+    CONDITIONAL, PARTIAL_MASK, FORMAT_PRESERVING, SEQUENTIAL, RANDOM_INT,
+    // Hashing / tokenization
+    HASH, SCRAMBLE, TOKENIZE,
+    // Date masking (Issues 9)
+    DATE_SHIFT, DATE_BUCKET,
+    // Numeric noise (Issue 10)
+    NUMERIC_NOISE,
+    // Generalisation / suppression (Issue 12)
+    GENERALISE,
+    // Free-text PII redaction (Issue 11)
+    TEXT_REDACT
 }
 
 enum class ConsistencyMode {

@@ -11,9 +11,16 @@ import JobsView from '@/views/JobsView.vue'
 import ActionsView from '@/views/ActionsView.vue'
 import SensitivityRulesView from '@/views/SensitivityRulesView.vue'
 import DataMappingView from '@/views/DataMappingView.vue'
+import SubsetsView from '@/views/SubsetsView.vue'
+import SchedulesView from '@/views/SchedulesView.vue'
+import PrivacyHubView from '@/views/PrivacyHubView.vue'
+import SchemaChangesView from '@/views/SchemaChangesView.vue'
+import SensitivityScanView from '@/views/SensitivityScanView.vue'
 
 const SAML_AUTH_ENDPOINT = '/saml2/authenticate/default'
+const OIDC_AUTH_ENDPOINT = '/oauth2/authorization/oidc'
 const samlEnabled = import.meta.env.VITE_SAML_ENABLED === 'true'
+const oidcEnabled = import.meta.env.VITE_OIDC_ENABLED === 'true'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,6 +43,22 @@ const router = createRouter({
       name: 'register',
       component: RegisterView,
       meta: { public: true }
+    },
+    // OIDC callback: backend redirects here with ?token=<jwt> after a successful OIDC login.
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      meta: { public: true },
+      component: { template: '<div></div>' },
+      beforeEnter: (to) => {
+        const token = to.query.token as string | undefined
+        if (token) {
+          const auth = useAuthStore()
+          auth.loginWithToken(token)
+          return { name: 'workspaces' }
+        }
+        return { name: 'login' }
+      }
     },
     {
       path: '/workspaces',
@@ -84,6 +107,36 @@ const router = createRouter({
       name: 'data-mappings',
       component: DataMappingView,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/subsets',
+      name: 'subsets',
+      component: SubsetsView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/schedules',
+      name: 'schedules',
+      component: SchedulesView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/privacy-hub',
+      name: 'privacy-hub',
+      component: PrivacyHubView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/schema-changes',
+      name: 'schema-changes',
+      component: SchemaChangesView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspaces/:id/sensitivity-scan',
+      name: 'sensitivity-scan',
+      component: SensitivityScanView,
+      meta: { requiresAuth: true }
     }
   ]
 })
@@ -92,8 +145,10 @@ router.beforeEach((to) => {
   const auth = useAuthStore()
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    // When SAML SSO is enabled, redirect the browser directly to the IdP instead
-    // of showing the local login form.
+    if (oidcEnabled) {
+      window.location.href = OIDC_AUTH_ENDPOINT
+      return false
+    }
     if (samlEnabled) {
       window.location.href = SAML_AUTH_ENDPOINT
       return false

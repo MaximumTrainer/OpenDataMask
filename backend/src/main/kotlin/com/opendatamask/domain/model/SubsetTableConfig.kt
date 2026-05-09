@@ -30,5 +30,13 @@ class SubsetTableConfig(
     var isTargetTable: Boolean = false,
 
     @Column(name = "is_lookup_table", nullable = false)
-    var isLookupTable: Boolean = false
+    var isLookupTable: Boolean = false,
+
+    /**
+     * Optional WHERE clause used as the seed filter when this is a target (root) table.
+     * Allows multiple root tables to be seeded with different filters simultaneously.
+     * e.g. "created_at > '2024-01-01'" to seed only recent users.
+     */
+    @Column(name = "seed_filter", length = 2048)
+    var seedFilter: String? = null
 )

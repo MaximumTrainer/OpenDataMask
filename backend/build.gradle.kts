@@ -26,6 +26,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     // SAML2 SSO: Add the following dependency and the Shibboleth Maven repository
     // (https://build.shibboleth.net/nexus/content/repositories/releases/) to enable
     // SAML-based authentication. The SamlSecurityConfig bean is @ConditionalOnProperty
@@ -52,6 +53,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:mongodb")
     testImplementation("org.testcontainers:junit-jupiter")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
 }
 
 tasks.withType<KotlinCompile> {

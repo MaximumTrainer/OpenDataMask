@@ -25,6 +25,17 @@ spring:
   #   SAML_SP_PRIVATE_KEY    – path to SP signing key PEM
   #   SAML_SP_CERTIFICATE    – path to SP certificate PEM
   #   SAML_IDP_SSO_URL       – IdP SSO redirect URL
+
+  # OIDC/OAuth2 SSO is configured via environment variables at deployment time.
+  # The OidcSecurityConfig filter chain (Order=1) activates only when the env var
+  # OIDC_ISSUER_URI is set (it maps to spring.security.oauth2.client.registration.oidc.issuer-uri).
+  # Works with any standards-compliant OIDC provider (Okta, Azure AD, Google Workspace, Keycloak).
+  # Required env vars:
+  #   OIDC_ISSUER_URI    – IdP discovery URL (e.g. https://accounts.google.com)
+  #   OIDC_CLIENT_ID     – OAuth2 client ID registered with the IdP
+  #   OIDC_CLIENT_SECRET – OAuth2 client secret
+  # Note: Do NOT define these with empty defaults here — that would falsely trigger
+  #       @ConditionalOnProperty(matchIfMissing=false). Set env vars only at deployment time.
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017}
@@ -53,4 +64,12 @@ management:
   endpoint:
     health:
       show-details: never
+
+springdoc:
+  api-docs:
+    path: /api/docs
+  swagger-ui:
+    path: /api/swagger-ui.html
+    operationsSorter: alpha
+    tagsSorter: alpha
 

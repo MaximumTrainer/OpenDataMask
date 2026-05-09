@@ -63,20 +63,48 @@ class FileConnector(
 
     private fun parseCsvColumns(): List<ColumnInfo> {
         val text = String(sourceBytes, Charsets.UTF_8)
-        val header = text.lineSequence().firstOrNull()?.split(",")?.map { it.trim() } ?: return emptyList()
-        return header.map { ColumnInfo(name = it, type = "VARCHAR", nullable = true) }
+        val header = text.lineSequence().firstOrNull()?.let { parseCsvLine(it) } ?: return emptyList()
+        return header.map { ColumnInfo(name = it.trim(), type = "VARCHAR", nullable = true) }
     }
 
     private fun parseCsv(): List<Map<String, Any?>> {
         val text = String(sourceBytes, Charsets.UTF_8)
         val lines = text.lines().filter { it.isNotBlank() }
         if (lines.isEmpty()) return emptyList()
-        val headers = lines[0].split(",").map { it.trim() }
+        val headers = parseCsvLine(lines[0]).map { it.trim() }
         return lines.drop(1).map { line ->
-            val values = line.split(",").map { it.trim() }
-            headers.zip(values).associate { (h, v) -> h to v as Any? }
+            val values = parseCsvLine(line)
+            headers.mapIndexed { i, h -> h to (values.getOrNull(i)?.trimQuotes() as Any?) }.toMap()
         }
     }
+
+    private fun parseCsvLine(line: String): List<String> {
+        val result = mutableListOf<String>()
+        val current = StringBuilder()
+        var inQuotes = false
+        var i = 0
+        while (i < line.length) {
+            val ch = line[i]
+            when {
+                ch == '"' && !inQuotes -> inQuotes = true
+                ch == '"' && inQuotes && i + 1 < line.length && line[i + 1] == '"' -> {
+                    current.append('"')
+                    i++
+                }
+                ch == '"' && inQuotes -> inQuotes = false
+                ch == ',' && !inQuotes -> {
+                    result.add(current.toString())
+                    current.clear()
+                }
+                else -> current.append(ch)
+            }
+            i++
+        }
+        result.add(current.toString())
+        return result
+    }
+
+    private fun String.trimQuotes(): String = if (startsWith('"') && endsWith('"')) substring(1, length - 1) else this
 
     private fun parseJsonColumns(): List<ColumnInfo> {
         val rows = parseJson()
