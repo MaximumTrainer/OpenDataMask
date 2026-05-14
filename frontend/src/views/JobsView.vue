@@ -114,15 +114,14 @@ onUnmounted(() => {
 function openCreate() {
   createForm.value = {
     name: '',
-    sourceConnectionId: connections.value[0]?.id ?? 0,
-    targetConnectionId: connections.value[0]?.id ?? 0
+    connectionPairId: connectionPairs.value[0]?.id ?? null
   }
   createError.value = ''
   showCreateModal.value = true
 }
 
 async function submitCreate() {
-  if (!createForm.value.name) {
+  if (!createForm.value.name || createForm.value.connectionPairId == null) {
     createError.value = 'All fields are required.'
     return
   }
@@ -187,9 +186,6 @@ function duration(job: Job): string {
   if (secs < 60) return `${secs}s`
   if (secs < 3600) return `${Math.floor(secs / 60)}m ${secs % 60}s`
   return `${Math.floor(secs / 3600)}h ${Math.floor((secs % 3600) / 60)}m`
-}
-
-`
 }
 
 function logLevelClass(level: string) {
@@ -352,7 +348,7 @@ function isLive(jobId: number) {
     <AppModal v-if="showCreateModal" title="Run New Masking Job" @close="showCreateModal = false">
       <form @submit.prevent="submitCreate">
         <div v-if="createError" class="alert alert-error">{{ createError }}</div>
-<div class="form-group">
+        <div class="form-group">
           <label class="form-label">Job Name *</label>
           <input
             v-model="createForm.name"
@@ -363,15 +359,9 @@ function isLive(jobId: number) {
           />
         </div>
         <div class="form-group">
-          <label class="form-label">Source Connection *</label>
-          <select v-model.number="createForm.sourceConnectionId" class="form-control">
-            <option v-for="c in connections" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Target Connection *</label>
-          <select v-model.number="createForm.targetConnectionId" class="form-control">
-            <option v-for="c in connections" :key="c.id" :value="c.id">{{ c.name }}</option>
+          <label class="form-label">Connection Pair *</label>
+          <select v-model.number="createForm.connectionPairId" class="form-control">
+            <option v-for="pair in connectionPairs" :key="pair.id" :value="pair.id">{{ pair.name }}</option>
           </select>
         </div>
       </form>
